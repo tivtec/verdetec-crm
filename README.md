@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Verdetec Conecta CRM (Next.js + Supabase)
 
-## Getting Started
+CRM SaaS completo em **Next.js (App Router)**, inspirado nas telas do sistema atual FlutterFlow e preparado para deploy na **Vercel** com backend em **Supabase**.
 
-First, run the development server:
+## Stack
+- Next.js 16 (App Router)
+- TypeScript + Tailwind CSS
+- Supabase Auth + PostgreSQL + RLS
+- Supabase Realtime (leads, funil, agenda)
+- React Hook Form + Zod
+- TanStack Query + TanStack Table
+- Integração com n8n via API routes
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Rotas principais
+- Públicas: `/login`, `/splash`, `/auth1`, `/novasenha`, `/redefinirsenha`
+- CRM: `/dashboard`, `/dashboard-adm`, `/dashboard-representante`, `/clientes`, `/empresas`, `/pedido`, `/usuarios`, `/agenda`, `/solicitacao-portal`, `/invoice`
+
+## Estrutura
+```txt
+src/
+  app/
+    (public)/
+    (crm)/
+    api/
+  components/
+  services/
+  hooks/
+  schemas/
+  middleware/
+supabase/
+  migrations/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup local
+1. Instale dependências:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. Configure variáveis:
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Rode o projeto:
+```bash
+npm run dev
+```
 
-## Learn More
+## Supabase
+1. Crie um projeto Supabase.
+2. Rode a migration:
+   - `supabase/migrations/202602130001_init_crm.sql`
+3. Configure JWT claims custom (ex.: `company_id`, `unit_id`, `role`, `permissions`) no fluxo de auth.
 
-To learn more about Next.js, take a look at the following resources:
+### Modelagem implementada
+- Tabelas: `users`, `companies`, `org_units`, `clientes`, `empresas`, `leads`, `etiquetas`, `pipeline_histories`, `agenda_events`, `pedidos`, `propostas`, `contratos`
+- RBAC: `roles`, `permissions`, `role_permissions`, `user_roles`
+- RPCs: `rpc_get_clientes_funil`, `rpc_paginate_clientes`, `rpc_notify_channel`
+- View: `view_dashboard_metrics`
+- RLS com escopo: org / unit / self
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## n8n
+API route pronta: `POST /api/n8n/:event`
+- `lead-created`
+- `update-etiqueta`
+- `send-notification`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+A rota recebe payload do frontend, opcionalmente cria lead provisório no Supabase e encaminha para n8n.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy Vercel
+1. Importar repositório na Vercel.
+2. Definir variáveis de ambiente:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_KEY`
+   - `N8N_WEBHOOK_BASE_URL`
+   - `N8N_WEBHOOK_SECRET`
+   - `NEXT_PUBLIC_INVOICE_URL`
+3. Deploy.
