@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { createServerSupabaseClient } from "@/services/supabase/server";
@@ -10,7 +10,7 @@ function resolveRouteByRole(role?: string | null, vertical?: string | null) {
 
   const normalizedRole = role.toLowerCase();
 
-  if (normalizedRole === "superadm" || normalizedRole === "org_admin") {
+  if (normalizedRole === "superadm" || normalizedRole === "org_admin" || normalizedRole === "admin") {
     return "/dashboard";
   }
 
@@ -22,13 +22,53 @@ function resolveRouteByRole(role?: string | null, vertical?: string | null) {
   }
 
   if (normalizedRole === "representante") {
-    if (vertical?.toLowerCase().includes("pedidos")) {
+    if (vertical?.toLowerCase().includes("pedido")) {
       return "/pedido";
     }
     return "/dashboard-representante";
   }
 
   return "/dashboard";
+}
+
+type LegacyProfileRow = {
+  tipo_acesso: string | null;
+  verticais?: { descricao?: string | null } | Array<{ descricao?: string | null }> | null;
+};
+
+function getVerticalDescription(row: LegacyProfileRow | null) {
+  const relation = row?.verticais;
+
+  if (!relation) {
+    return null;
+  }
+
+  if (Array.isArray(relation)) {
+    return relation[0]?.descricao ?? null;
+  }
+
+  return relation.descricao ?? null;
+}
+
+async function getLegacyProfile(userId: string) {
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("usuarios")
+    .select(
+      `
+        tipo_acesso,
+        verticais:verticais!usuarios_id_vertical_fkey(descricao)
+      `,
+    )
+    .eq("uuid_user", userId)
+    .order("id", { ascending: false })
+    .limit(1);
+
+  if (error || !data?.length) {
+    return null;
+  }
+
+  return data[0] as unknown as LegacyProfileRow;
 }
 
 export default async function SplashPage() {
@@ -42,10 +82,16 @@ export default async function SplashPage() {
       redirect("/login");
     }
 
+    const legacyProfile = await getLegacyProfile(user.id);
+
     const role =
+      legacyProfile?.tipo_acesso ??
       (user.app_metadata?.role as string | undefined) ??
       (user.user_metadata?.tipoAcesso as string | undefined);
-    const vertical = user.user_metadata?.vertical as string | undefined;
+
+    const vertical =
+      getVerticalDescription(legacyProfile) ??
+      (user.user_metadata?.vertical as string | undefined);
 
     redirect(resolveRouteByRole(role, vertical));
   } catch {
@@ -55,7 +101,7 @@ export default async function SplashPage() {
           <Image src="/brand/Icon.png" alt="Verdetec" width={56} height={56} className="mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-slate-900">Preparando ambiente</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Configure as variáveis do Supabase para habilitar o redirecionamento automático.
+            Conexao com Supabase disponivel. Verifique login e permissoes para continuar.
           </p>
         </div>
       </div>
