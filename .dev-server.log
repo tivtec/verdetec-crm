@@ -1,0 +1,19 @@
+
+> verdetec-crm@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.1.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.18.31:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 1510ms
+○ Compiling /splash ...
+ HEAD / 307 in 5.2s (compile: 4.8s, proxy.ts: 179ms, render: 245ms)
+ HEAD /login 200 in 5.2s (compile: 4.8s, proxy.ts: 179ms, render: 249ms)
+ HEAD /splash 307 in 5.2s (compile: 4.8s, proxy.ts: 179ms, render: 275ms)
+ HEAD /login 200 in 84ms (compile: 8ms, proxy.ts: 17ms, render: 59ms)
+ GET /dashboard 200 in 6.1s (compile: 631ms, proxy.ts: 459ms, render: 5.0s)
+ GET /dashboard?view=retrato 200 in 2.2s (compile: 4ms, proxy.ts: 120ms, render: 2.1s)
+ GET /dashboard?view=orcamentos 200 in 3.8s (compile: 3ms, proxy.ts: 61ms, render: 3.7s)
