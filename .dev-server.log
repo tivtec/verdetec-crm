@@ -17,3 +17,4 @@
  GET /dashboard 200 in 6.1s (compile: 631ms, proxy.ts: 459ms, render: 5.0s)
  GET /dashboard?view=retrato 200 in 2.2s (compile: 4ms, proxy.ts: 120ms, render: 2.1s)
  GET /dashboard?view=orcamentos 200 in 3.8s (compile: 3ms, proxy.ts: 61ms, render: 3.7s)
+ GET /dashboard?view=orcamentos 200 in 479ms (compile: 5ms, proxy.ts: 427ms, render: 46ms)
