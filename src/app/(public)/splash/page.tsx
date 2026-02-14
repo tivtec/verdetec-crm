@@ -1,5 +1,4 @@
-﻿import Image from "next/image";
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 
 import { createServerSupabaseClient } from "@/services/supabase/server";
 
@@ -51,60 +50,50 @@ function getVerticalDescription(row: LegacyProfileRow | null) {
 }
 
 async function getLegacyProfile(userId: string) {
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("usuarios")
-    .select(
-      `
-        tipo_acesso,
-        verticais:verticais!usuarios_id_vertical_fkey(descricao)
-      `,
-    )
-    .eq("uuid_user", userId)
-    .order("id", { ascending: false })
-    .limit(1);
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select(
+        `
+          tipo_acesso,
+          verticais:verticais!usuarios_id_vertical_fkey(descricao)
+        `,
+      )
+      .eq("uuid_user", userId)
+      .order("id", { ascending: false })
+      .limit(1);
 
-  if (error || !data?.length) {
+    if (error || !data?.length) {
+      return null;
+    }
+
+    return data[0] as unknown as LegacyProfileRow;
+  } catch {
     return null;
   }
-
-  return data[0] as unknown as LegacyProfileRow;
 }
 
 export default async function SplashPage() {
-  try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    if (!user) {
-      redirect("/login");
-    }
-
-    const legacyProfile = await getLegacyProfile(user.id);
-
-    const role =
-      legacyProfile?.tipo_acesso ??
-      (user.app_metadata?.role as string | undefined) ??
-      (user.user_metadata?.tipoAcesso as string | undefined);
-
-    const vertical =
-      getVerticalDescription(legacyProfile) ??
-      (user.user_metadata?.vertical as string | undefined);
-
-    redirect(resolveRouteByRole(role, vertical));
-  } catch {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--brand-surface)] p-6">
-        <div className="w-full max-w-md rounded-2xl border border-[var(--brand-border)] bg-white p-8 text-center shadow-sm">
-          <Image src="/brand/Icon.png" alt="Verdetec" width={56} height={56} className="mx-auto mb-4" />
-          <h1 className="text-xl font-semibold text-slate-900">Preparando ambiente</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Conexao com Supabase disponivel. Verifique login e permissoes para continuar.
-          </p>
-        </div>
-      </div>
-    );
+  if (!user) {
+    redirect("/login");
   }
+
+  const legacyProfile = await getLegacyProfile(user.id);
+
+  const role =
+    legacyProfile?.tipo_acesso ??
+    (user.app_metadata?.role as string | undefined) ??
+    (user.user_metadata?.tipoAcesso as string | undefined);
+
+  const vertical =
+    getVerticalDescription(legacyProfile) ??
+    (user.user_metadata?.vertical as string | undefined);
+
+  redirect(resolveRouteByRole(role, vertical));
 }

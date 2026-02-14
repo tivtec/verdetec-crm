@@ -1,86 +1,549 @@
-import { BarChart3, Clock3, Filter } from "lucide-react";
+import Link from "next/link";
 
-import { KpiCard } from "@/components/dashboard/kpi-card";
+import { DashboardFiltersForm } from "@/components/dashboard/dashboard-filters-form";
+import { OrcamentosFiltersForm } from "@/components/dashboard/orcamentos-filters-form";
+import { RetratoFiltersForm } from "@/components/dashboard/retrato-filters-form";
 import { AppHeader } from "@/components/layout/app-header";
 import { PageContainer } from "@/components/layout/page-container";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAgendaEvents, getDashboardMetrics } from "@/services/crm/api";
-import { formatDateTime } from "@/utils/format";
+import {
+  getDashboardFunilSnapshot,
+  getDashboardOrcamentosSnapshot,
+  getDashboardRepresentantesByTipo,
+  getDashboardRetratoSnapshot,
+  type DashboardFunilRow,
+  type DashboardFunilTotals,
+  type DashboardOrcamentosRow,
+  type DashboardOrcamentosTotals,
+  type DashboardRetratoRow,
+  type DashboardRetratoTotals,
+} from "@/services/crm/api";
 
-export default async function DashboardPage() {
-  const [metrics, agenda] = await Promise.all([getDashboardMetrics(), getAgendaEvents()]);
+export const dynamic = "force-dynamic";
+
+type DashboardView = "dashboard" | "retrato" | "orcamentos";
+
+type FunilColumnKey =
+  | "nome"
+  | "lead"
+  | "plusL100"
+  | "l100"
+  | "n00"
+  | "n10"
+  | "n21"
+  | "n05"
+  | "n30"
+  | "n40"
+  | "n50"
+  | "n60"
+  | "n61"
+  | "n62"
+  | "n66"
+  | "tv"
+  | "min"
+  | "qtd"
+  | "umbler";
+
+type FunilColumn = {
+  key: FunilColumnKey;
+  label: string;
+  widthClass?: string;
+};
+
+type RetratoDataColumnKey = "lead" | "n00" | "n10" | "n21" | "n30" | "n35" | "n40" | "n50";
+type RetratoColumnKey = "nome" | RetratoDataColumnKey;
+
+type RetratoColumn = {
+  key: RetratoColumnKey;
+  label: string;
+  widthClass?: string;
+};
+
+type OrcamentosColumnKey =
+  | "nome"
+  | "carteira"
+  | "atend"
+  | "orcAbertos"
+  | "n10"
+  | "orcFeitos"
+  | "orcAprovado"
+  | "orcRep"
+  | "perfGanhosFeitos"
+  | "umbler";
+
+type OrcamentosColumn = {
+  key: OrcamentosColumnKey;
+  label: string;
+  widthClass?: string;
+};
+
+const funilColumns: FunilColumn[] = [
+  { key: "nome", label: "Nome", widthClass: "w-[14%]" },
+  { key: "lead", label: "Lead", widthClass: "w-[4.75%]" },
+  { key: "plusL100", label: "+L100", widthClass: "w-[4.75%]" },
+  { key: "l100", label: "L100", widthClass: "w-[4.75%]" },
+  { key: "n00", label: "#00", widthClass: "w-[4.75%]" },
+  { key: "n10", label: "#10", widthClass: "w-[4.75%]" },
+  { key: "n21", label: "#21", widthClass: "w-[4.75%]" },
+  { key: "n05", label: "#05", widthClass: "w-[4.75%]" },
+  { key: "n30", label: "#30", widthClass: "w-[4.75%]" },
+  { key: "n40", label: "#40", widthClass: "w-[4.75%]" },
+  { key: "n50", label: "#50", widthClass: "w-[4.75%]" },
+  { key: "n60", label: "#60", widthClass: "w-[4.75%]" },
+  { key: "n61", label: "#61", widthClass: "w-[4.75%]" },
+  { key: "n62", label: "#62", widthClass: "w-[4.75%]" },
+  { key: "n66", label: "#66", widthClass: "w-[4.75%]" },
+  { key: "tv", label: "TV", widthClass: "w-[4.75%]" },
+  { key: "min", label: "Min", widthClass: "w-[4.75%]" },
+  { key: "qtd", label: "Qtd", widthClass: "w-[4.75%]" },
+  { key: "umbler", label: "Umbler", widthClass: "w-[4.75%]" },
+];
+
+const retratoColumns: RetratoColumn[] = [
+  { key: "nome", label: "Nome", widthClass: "w-[18%]" },
+  { key: "lead", label: "Lead", widthClass: "w-[9%]" },
+  { key: "n00", label: "#00", widthClass: "w-[9%]" },
+  { key: "n10", label: "#10", widthClass: "w-[9%]" },
+  { key: "n21", label: "#21", widthClass: "w-[9%]" },
+  { key: "n30", label: "#30", widthClass: "w-[9%]" },
+  { key: "n35", label: "#35", widthClass: "w-[9%]" },
+  { key: "n40", label: "#40", widthClass: "w-[9%]" },
+  { key: "n50", label: "#50", widthClass: "w-[9%]" },
+];
+
+const orcamentosColumns: OrcamentosColumn[] = [
+  { key: "nome", label: "Nome", widthClass: "w-[18%]" },
+  { key: "carteira", label: "Carteira", widthClass: "w-[9%]" },
+  { key: "atend", label: "Atend.", widthClass: "w-[9%]" },
+  { key: "orcAbertos", label: "Orç. Abertos", widthClass: "w-[9%]" },
+  { key: "n10", label: "#10", widthClass: "w-[9%]" },
+  { key: "orcFeitos", label: "Orç. Feitos", widthClass: "w-[9%]" },
+  { key: "orcAprovado", label: "Orç. Aprovado", widthClass: "w-[9%]" },
+  { key: "orcRep", label: "Orç. Rep", widthClass: "w-[9%]" },
+  { key: "perfGanhosFeitos", label: "Perf. Ganhos/Feitos", widthClass: "w-[10%]" },
+  { key: "umbler", label: "Umbler", widthClass: "w-[9%]" },
+];
+
+function getDefaultDateRangeInput() {
+  const endDate = new Date();
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - 30);
+
+  return {
+    dataInicio: startDate.toISOString().slice(0, 10),
+    dataFim: endDate.toISOString().slice(0, 10),
+  };
+}
+
+function getSearchValue(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
+}
+
+function normalizeInputDate(value: string | undefined, fallbackInputDate: string) {
+  if (!value) {
+    return fallbackInputDate;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  if (/^\d{2}-\d{2}-\d{4}$/.test(value)) {
+    const [dd, mm, yyyy] = value.split("-");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return fallbackInputDate;
+  }
+
+  return parsed.toISOString().slice(0, 10);
+}
+
+function normalizeTipoAcessoSelection(value: string | undefined) {
+  const raw = (value ?? "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  if (
+    raw === "Time Neg\u00f3cios" ||
+    raw === "Time de Neg\u00f3cios" ||
+    raw === "Time de Negocios" ||
+    raw === "Time Negocios"
+  ) {
+    return "Time Neg\u00f3cios";
+  }
+
+  if (raw === "Prime") {
+    return "Prime";
+  }
+
+  return "";
+}
+
+function normalizeUsuarioSelection(value: string | undefined) {
+  const n = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function normalizeViewSelection(value: string | undefined): DashboardView {
+  if (value === "retrato") {
+    return "retrato";
+  }
+
+  if (value === "orcamentos") {
+    return "orcamentos";
+  }
+
+  return "dashboard";
+}
+
+function normalizeCarteiraSelection(value: string | undefined) {
+  const raw = (value ?? "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  if (raw === "CRV" || raw === "Prime") {
+    return raw;
+  }
+
+  return "";
+}
+
+function getFunilRowCellValue(row: DashboardFunilRow, key: FunilColumnKey) {
+  return row[key];
+}
+
+function getFunilTotalCellValue(totals: DashboardFunilTotals, key: FunilColumnKey) {
+  if (key === "nome") {
+    return "";
+  }
+
+  return totals[key as keyof DashboardFunilTotals];
+}
+
+function getRetratoRowCellValue(row: DashboardRetratoRow, key: RetratoColumnKey) {
+  if (key === "nome") {
+    return row.nome;
+  }
+
+  return row[key];
+}
+
+function getRetratoTotalCellValue(totals: DashboardRetratoTotals, key: RetratoColumnKey) {
+  if (key === "nome") {
+    return "";
+  }
+
+  return totals[key as keyof DashboardRetratoTotals];
+}
+
+function getOrcamentosRowCellValue(row: DashboardOrcamentosRow, key: OrcamentosColumnKey) {
+  return row[key];
+}
+
+function getOrcamentosTotalCellValue(totals: DashboardOrcamentosTotals, key: OrcamentosColumnKey) {
+  if (key === "nome") {
+    return "";
+  }
+
+  return totals[key as keyof DashboardOrcamentosTotals];
+}
+
+function formatOrcamentosCellValue(key: OrcamentosColumnKey, value: string | number) {
+  if (key === "perfGanhosFeitos") {
+    return `${Number(value).toFixed(2)}%`;
+  }
+
+  return String(value);
+}
+
+function baseCellClass(widthClass?: string) {
+  return `px-4 py-2 text-sm whitespace-nowrap ${widthClass ?? ""}`;
+}
+
+type DashboardPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const params = await searchParams;
+  const activeView = normalizeViewSelection(getSearchValue(params.view));
+  const defaultRange = getDefaultDateRangeInput();
+  const dataInicioInput = normalizeInputDate(getSearchValue(params.data_inicio), defaultRange.dataInicio);
+  const dataFimInput = normalizeInputDate(getSearchValue(params.data_fim), defaultRange.dataFim);
+  const selectedTipoAcesso = normalizeTipoAcessoSelection(getSearchValue(params.tipo_acesso_2));
+  const requestedUsuario = normalizeUsuarioSelection(getSearchValue(params.usuario));
+  const selectedTipoRepre = normalizeCarteiraSelection(
+    getSearchValue(params.tipo_repre) ?? getSearchValue(params.carteira),
+  );
+
+  const representantes = selectedTipoAcesso
+    ? await getDashboardRepresentantesByTipo(selectedTipoAcesso)
+    : [];
+
+  const selectedRepresentante = representantes.find((representante) => representante.id === requestedUsuario);
+  const selectedUsuario = selectedRepresentante?.id ?? 0;
+  const selectedVerticalId = selectedRepresentante?.verticalId ?? representantes[0]?.verticalId ?? "";
+
+  let dashboardSnapshot: Awaited<ReturnType<typeof getDashboardFunilSnapshot>> | null = null;
+  let retratoSnapshot: Awaited<ReturnType<typeof getDashboardRetratoSnapshot>> | null = null;
+  let orcamentosSnapshot: Awaited<ReturnType<typeof getDashboardOrcamentosSnapshot>> | null = null;
+
+  if (activeView === "dashboard") {
+    dashboardSnapshot = await getDashboardFunilSnapshot({
+      dataInicioInput,
+      dataFimInput,
+      tipoAcesso2: selectedTipoAcesso,
+      usuarioId: selectedUsuario || undefined,
+      verticalId: selectedVerticalId || undefined,
+    });
+  } else {
+    if (activeView === "retrato") {
+      retratoSnapshot = await getDashboardRetratoSnapshot({
+        tipoAcesso2: selectedTipoAcesso,
+        usuarioId: selectedUsuario || undefined,
+      });
+    } else {
+      orcamentosSnapshot = await getDashboardOrcamentosSnapshot({
+        dataInicioInput,
+        dataFimInput,
+        tipoRepre: selectedTipoRepre,
+      });
+    }
+  }
 
   return (
     <>
       <AppHeader
         title="Dashboard"
-        subtitle="Visão consolidada de métricas, funil e agenda da operação."
+        subtitle="Painel de funil comercial"
+        showUtilities={false}
       />
-      <PageContainer className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex items-center gap-2 rounded-xl border border-[var(--brand-border)] bg-white px-3 py-2 text-sm text-slate-600">
-            <Filter className="h-4 w-4" />
-            Filtros: período, usuário e vertical
-          </div>
-          <Button variant="secondary" className="gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Atualizar KPIs
-          </Button>
+
+      <PageContainer className="space-y-5 bg-[#eef0f2]">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/dashboard"
+            className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+              activeView === "dashboard" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+            }`}
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/dashboard?view=retrato"
+            className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+              activeView === "retrato" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+            }`}
+          >
+            Retrato
+          </Link>
+          <Link
+            href="/dashboard?view=orcamentos"
+            className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+              activeView === "orcamentos" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+            }`}
+          >
+            Orçamentos
+          </Link>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {metrics.map((item) => (
-            <KpiCard key={item.title} title={item.title} value={item.value} delta={item.delta} />
-          ))}
+        <div>
+          <h2 className="text-5xl font-semibold leading-tight text-slate-800 sm:text-[46px]">
+            {activeView === "retrato"
+              ? "Retrato"
+              : activeView === "orcamentos"
+                ? "Orçamentos"
+                : "Funil comercial"}
+          </h2>
+          {activeView === "dashboard" ? (
+            <p className="mt-2 text-xl text-slate-600">Informacoes do Funil de vendas</p>
+          ) : null}
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Funil por etapa</CardTitle>
-              <Badge tone="info">Realtime ready</Badge>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {[
-                  { etapa: "Lead novo", total: 78, progress: "w-[88%]" },
-                  { etapa: "Qualificação", total: 51, progress: "w-[63%]" },
-                  { etapa: "Proposta enviada", total: 36, progress: "w-[42%]" },
-                  { etapa: "Fechamento", total: 19, progress: "w-[26%]" },
-                ].map((item) => (
-                  <div key={item.etapa}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="font-medium text-slate-700">{item.etapa}</span>
-                      <span className="text-slate-500">{item.total}</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-100">
-                      <div className={`h-2 rounded-full bg-[var(--brand-primary)] ${item.progress}`} />
-                    </div>
-                  </div>
+        {activeView === "dashboard" ? (
+          <DashboardFiltersForm
+            key={`${dataInicioInput}:${dataFimInput}:${selectedTipoAcesso}:${selectedUsuario}:dashboard`}
+            dataInicioInput={dataInicioInput}
+            dataFimInput={dataFimInput}
+            selectedTipoAcesso={selectedTipoAcesso}
+            selectedUsuario={selectedUsuario}
+            representantes={representantes}
+          />
+        ) : (
+          <>
+            {activeView === "retrato" ? (
+              <RetratoFiltersForm
+                key={`${selectedTipoAcesso}:${selectedUsuario}:retrato`}
+                selectedTipoAcesso={selectedTipoAcesso}
+                selectedUsuario={selectedUsuario}
+                representantes={representantes}
+              />
+            ) : (
+              <OrcamentosFiltersForm
+                key={`${selectedTipoRepre}:${dataInicioInput}:${dataFimInput}:orcamentos`}
+                selectedTipoRepre={selectedTipoRepre}
+                dataInicioInput={dataInicioInput}
+                dataFimInput={dataFimInput}
+              />
+            )}
+          </>
+        )}
+
+        {activeView === "dashboard" ? (
+          <div className="max-h-[calc(100vh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+            <table className="w-full table-fixed border-collapse">
+              <thead className="bg-[#d6d6d8]">
+                <tr>
+                  {funilColumns.map((column) => (
+                    <th
+                      key={column.key}
+                      className={`${baseCellClass(column.widthClass)} text-left text-[clamp(0.72rem,0.9vw,0.95rem)] font-semibold text-[#18484a]`}
+                    >
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {dashboardSnapshot!.rows.map((row) => (
+                  <tr key={row.nome} className="border-t border-[#e5e7ea] bg-[#f4f4f5]">
+                    {funilColumns.map((column) => (
+                      <td
+                        key={`${row.nome}-${column.key}`}
+                        className={`${baseCellClass(column.widthClass)} ${
+                          column.key === "min"
+                            ? "text-[clamp(0.62rem,0.75vw,0.78rem)] tracking-wide text-slate-700"
+                            : "text-[clamp(0.7rem,0.85vw,0.92rem)] text-slate-700"
+                        }`}
+                      >
+                        {String(getFunilRowCellValue(row, column.key))}
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Próximos compromissos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {agenda.slice(0, 5).map((event) => (
-                <div key={event.id} className="rounded-xl border border-[var(--brand-border)] bg-slate-50 p-3">
-                  <p className="text-sm font-medium text-slate-800">{event.title}</p>
-                  <p className="mt-1 inline-flex items-center gap-1 text-xs text-slate-500">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    {formatDateTime(event.starts_at)}
-                  </p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-[#c9c9cb] bg-[#d6d6d8]">
+                  {funilColumns.map((column) => (
+                    <td
+                      key={`total-${column.key}`}
+                      className={`${baseCellClass(column.widthClass)} font-semibold ${
+                        column.key === "min"
+                          ? "text-[clamp(0.62rem,0.75vw,0.78rem)] tracking-wide text-[#18484a]"
+                          : "text-[clamp(0.78rem,1vw,1.05rem)] text-[#18484a]"
+                      }`}
+                    >
+                      {String(getFunilTotalCellValue(dashboardSnapshot!.totals, column.key))}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : activeView === "retrato" ? (
+          <div className="max-h-[calc(100vh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+            <table className="w-full table-fixed border-collapse">
+              <thead className="bg-[#d6d6d8]">
+                <tr>
+                  {retratoColumns.map((column) => (
+                    <th
+                      key={column.key}
+                      className={`${baseCellClass(column.widthClass)} text-left text-[clamp(0.82rem,0.98vw,1rem)] font-semibold text-[#18484a]`}
+                    >
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {retratoSnapshot!.rows.map((row, rowIndex) => (
+                  <tr key={`${row.nome}-${rowIndex}`} className="border-t border-[#e5e7ea] bg-[#f4f4f5]">
+                    {retratoColumns.map((column) => (
+                      <td
+                        key={`${row.nome}-${rowIndex}-${column.key}`}
+                        className={`${baseCellClass(column.widthClass)} text-[clamp(0.8rem,0.95vw,0.98rem)] text-slate-700`}
+                      >
+                        {String(getRetratoRowCellValue(row, column.key))}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-[#c9c9cb] bg-[#d6d6d8]">
+                  {retratoColumns.map((column) => (
+                    <td
+                      key={`retrato-total-${column.key}`}
+                      className={`${baseCellClass(column.widthClass)} text-[clamp(0.92rem,1.06vw,1.2rem)] font-semibold text-[#18484a]`}
+                    >
+                      {String(getRetratoTotalCellValue(retratoSnapshot!.totals, column.key))}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <div className="max-h-[calc(100vh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+            <table className="w-full table-fixed border-collapse">
+              <thead className="bg-[#d6d6d8]">
+                <tr>
+                  {orcamentosColumns.map((column) => (
+                    <th
+                      key={column.key}
+                      className={`${baseCellClass(column.widthClass)} text-left text-[clamp(0.82rem,0.98vw,1rem)] font-semibold text-[#18484a]`}
+                    >
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {orcamentosSnapshot!.rows.length > 0 ? (
+                  <>
+                    {orcamentosSnapshot!.rows.map((row, rowIndex) => (
+                      <tr key={`${row.idUsuario}-${rowIndex}`} className="border-t border-[#e5e7ea] bg-[#f4f4f5]">
+                        {orcamentosColumns.map((column) => (
+                          <td
+                            key={`${row.idUsuario}-${rowIndex}-${column.key}`}
+                            className={`${baseCellClass(column.widthClass)} text-[clamp(0.8rem,0.95vw,0.98rem)] text-slate-700`}
+                          >
+                            {formatOrcamentosCellValue(column.key, getOrcamentosRowCellValue(row, column.key))}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </>
+                ) : (
+                  <tr className="border-t border-[#e5e7ea] bg-[#c6c6c8]">
+                    <td colSpan={orcamentosColumns.length} className="h-[460px] px-0 py-0" />
+                  </tr>
+                )}
+              </tbody>
+              {orcamentosSnapshot!.rows.length > 0 ? (
+                <tfoot>
+                  <tr className="border-t border-[#c9c9cb] bg-[#d6d6d8]">
+                    {orcamentosColumns.map((column) => (
+                      <td
+                        key={`orcamentos-total-${column.key}`}
+                        className={`${baseCellClass(column.widthClass)} text-[clamp(0.92rem,1.06vw,1.1rem)] font-semibold text-[#18484a]`}
+                      >
+                        {formatOrcamentosCellValue(column.key, getOrcamentosTotalCellValue(orcamentosSnapshot!.totals, column.key))}
+                      </td>
+                    ))}
+                  </tr>
+                </tfoot>
+              ) : null}
+            </table>
+          </div>
+        )}
       </PageContainer>
     </>
   );

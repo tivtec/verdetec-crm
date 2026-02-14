@@ -31,8 +31,8 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-screen w-72 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-primary-soft)] px-4 py-5 lg:flex">
-      <div className="mb-6 flex items-center gap-3 rounded-xl bg-white px-3 py-2 shadow-sm">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden h-screen w-72 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-primary-soft)] px-4 py-5 lg:flex">
+      <div className="mb-6 flex items-center gap-3 rounded-xl bg-white px-3 py-2 shadow-sm shrink-0">
         <Image src="/brand/Icon.png" alt="Verdetec" width={36} height={36} />
         <div className="leading-tight">
           <p className="text-sm font-semibold text-slate-900">Verdetec CRM</p>
@@ -40,7 +40,7 @@ export function AppSidebar() {
         </div>
       </div>
 
-      <nav className="space-y-1.5">
+      <nav className="space-y-1.5 flex-1 overflow-y-auto pr-1">
         {items.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -63,7 +63,7 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="mt-auto rounded-xl border border-[var(--brand-border)] bg-white p-3">
+      <div className="mt-4 rounded-xl border border-[var(--brand-border)] bg-white p-3 shrink-0">
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Ambiente</p>
         <p className="mt-1 text-sm font-medium text-slate-900">Empresa Demo</p>
         <p className="text-xs text-slate-500">Vertical Hidrossemeadura</p>

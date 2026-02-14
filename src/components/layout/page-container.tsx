@@ -6,5 +6,9 @@ type PageContainerProps = {
 };
 
 export function PageContainer({ children, className }: PageContainerProps) {
-  return <section className={cn("flex-1 p-4 lg:p-8", className)}>{children}</section>;
+  return (
+    <section className={cn("min-h-0 flex-1 overflow-y-auto p-4 lg:p-8", className)}>
+      {children}
+    </section>
+  );
 }
