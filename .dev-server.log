@@ -404,3 +404,4 @@ Import trace for requested module:
 [clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] webhook.notify.response { status: 200, ok: true, body: null }
 [clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] request.success { duration_ms: 2965 }
  POST /api/clientes/enviar-link 200 in 3.0s (compile: 13ms, proxy.ts: 7ms, render: 3.0s)
+ GET /clientes?usuario=56&nome=eduarda 200 in 555ms (compile: 6ms, proxy.ts: 429ms, render: 119ms)
