@@ -336,3 +336,5 @@
  GET /clientes?nome=Clayton 200 in 1065ms (compile: 8ms, proxy.ts: 91ms, render: 965ms)
  GET /clientes?nome=Clayton 200 in 1007ms (compile: 6ms, proxy.ts: 78ms, render: 923ms)
  GET /clientes?nome=Clayton 200 in 714ms (compile: 6ms, proxy.ts: 630ms, render: 78ms)
+ GET /clientes?nome=Clayton 200 in 285ms (compile: 6ms, proxy.ts: 113ms, render: 165ms)
+ GET /clientes?nome=Clayton 200 in 195ms (compile: 7ms, proxy.ts: 80ms, render: 109ms)
