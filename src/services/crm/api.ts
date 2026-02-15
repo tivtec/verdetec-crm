@@ -1133,8 +1133,11 @@ export type UsuarioControleApiRow = {
   nome: string;
   telefone: string | null;
   tipoAcesso: string;
+  tipoAcesso2: string | null;
   email: string | null;
   meet: string | null;
+  l100: number | null;
+  dispoLeads: boolean;
   ativo: boolean;
 };
 
@@ -1143,27 +1146,36 @@ const mockUsuariosControle: UsuarioControleApiRow[] = [
     id: "120",
     nome: "120-Felipe P.",
     telefone: "47992257826",
-    tipoAcesso: "Time Negocios",
+    tipoAcesso: "Time Negócios",
+    tipoAcesso2: "Time Negócios",
     email: "felipe.po@verdetec.com",
     meet: "https://meet.google.com/uqc-vzjh-uea",
+    l100: null,
+    dispoLeads: true,
     ativo: true,
   },
   {
     id: "66",
     nome: "66-Edson T.",
     telefone: "4830368695",
-    tipoAcesso: "Time Negocios",
+    tipoAcesso: "Time Negócios",
+    tipoAcesso2: "Time Negócios",
     email: "vendas16@verdetec.com",
     meet: "http://meet.google.com/uaq-vfqo-oyo",
+    l100: null,
+    dispoLeads: true,
     ativo: true,
   },
   {
     id: "63",
     nome: "63-Lazaro S.",
     telefone: "4830368696",
-    tipoAcesso: "Time Negocios",
+    tipoAcesso: "Time Negócios",
+    tipoAcesso2: "Time Negócios",
     email: "vendas18@verdetec.com",
     meet: "http://meet.google.com/gig-ukpe-kmw",
+    l100: null,
+    dispoLeads: true,
     ativo: true,
   },
 ];
@@ -1176,7 +1188,7 @@ function normalizeTipoAcessoLabel(value: string | null | undefined) {
 
   const normalized = normalizeLoose(raw);
   if (normalized === "time negocios") {
-    return "Time Negocios";
+    return "Time Negócios";
   }
   if (normalized === "prime") {
     return "Prime";
@@ -1193,7 +1205,7 @@ export async function getUsuariosControleRows(): Promise<UsuarioControleApiRow[]
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase
       .from("usuarios")
-      .select("id,nome,telefone,tipo_acesso,tipo_acesso_2,email,link_meet,usuario_ativo")
+      .select("id,nome,telefone,tipo_acesso,tipo_acesso_2,email,link_meet,usuario_ativo,dispo_leads")
       .order("id", { ascending: false })
       .limit(5000);
 
@@ -1201,8 +1213,30 @@ export async function getUsuariosControleRows(): Promise<UsuarioControleApiRow[]
       return mockUsuariosControle;
     }
 
-    return (data as Array<Record<string, unknown>>).map((row) => {
+    const usuarioRows = data as Array<Record<string, unknown>>;
+    const usuarioIds = usuarioRows
+      .map((row) => Math.trunc(asNumber(row.id, 0)))
+      .filter((value) => Number.isInteger(value) && value > 0);
+
+    const l100ByUsuarioId = new Map<number, number>();
+    if (usuarioIds.length > 0) {
+      const { data: l100Data } = await supabase
+        .from("l100")
+        .select("usuario_id,valor")
+        .in("usuario_id", usuarioIds);
+
+      for (const row of (l100Data as Array<Record<string, unknown>> | null) ?? []) {
+        const usuarioId = Math.trunc(asNumber(row.usuario_id, 0));
+        if (usuarioId <= 0) {
+          continue;
+        }
+        l100ByUsuarioId.set(usuarioId, Math.trunc(asNumber(row.valor, 0)));
+      }
+    }
+
+    return usuarioRows.map((row) => {
       const id = asString(row.id);
+      const idAsNumber = Math.trunc(asNumber(row.id, 0));
       const nomeRaw = asString(row.nome, "Sem nome").trim();
 
       return {
@@ -1212,8 +1246,11 @@ export async function getUsuariosControleRows(): Promise<UsuarioControleApiRow[]
         tipoAcesso: normalizeTipoAcessoLabel(
           asString(row.tipo_acesso_2).trim() || asString(row.tipo_acesso).trim(),
         ),
+        tipoAcesso2: asNullableString(row.tipo_acesso_2),
         email: asNullableString(row.email),
         meet: asNullableString(row.link_meet),
+        l100: idAsNumber > 0 ? l100ByUsuarioId.get(idAsNumber) ?? null : null,
+        dispoLeads: asBoolean(row.dispo_leads, true),
         ativo: asBoolean(row.usuario_ativo, true),
       } satisfies UsuarioControleApiRow;
     });
