@@ -2,6 +2,7 @@ import { cache } from "react";
 
 import type { AgendaEvent, Cliente, Empresa, Pedido } from "@/schemas/domain";
 import { createServerSupabaseClient } from "@/services/supabase/server";
+import { formatDateTime } from "@/utils/format";
 
 export type DashboardMetric = {
   title: string;
@@ -152,6 +153,691 @@ export async function getClientes(search?: string) {
     })) satisfies Cliente[];
   } catch {
     return mockClientes;
+  }
+}
+
+export type ClienteControleApiRow = {
+  id: string;
+  etiqueta: string;
+  telefone: string | null;
+  nome: string;
+  equipamento: string | null;
+  data30: string | null;
+  data40: string | null;
+  pessoaId?: number | null;
+  agregacaoId?: number | null;
+  usuarioId?: number | null;
+};
+
+export type ClienteControleApiFilters = {
+  usuarioId?: string | number;
+  telefone?: string;
+  etiqueta?: string;
+  nome?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ClienteRepresentante = {
+  id: number;
+  nome: string;
+};
+
+type ClienteControleWebhookPayload = {
+  id_usuario: number;
+  limit_para: string;
+  off_para: string;
+  telefone?: string;
+  etiqueta?: string;
+  nome?: string;
+};
+
+type ClienteControleWebhookRow = Record<string, unknown>;
+
+const CLIENTES_CONTROLE_ENDPOINT =
+  process.env.CLIENTES_CONTROLE_ENDPOINT ??
+  "https://webh.verdetec.dev.br/webhook/94f13e26-f2e6-48ef-84b9-db208ee41fe4";
+
+function asNullableString(value: unknown) {
+  const parsed = asString(value).trim();
+  return parsed.length > 0 ? parsed : null;
+}
+
+function asNullablePositiveInt(value: unknown) {
+  const parsed = Math.max(0, Math.trunc(asNumber(value, 0)));
+  return parsed > 0 ? parsed : null;
+}
+
+function normalizeLoose(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function toEtiquetaCode(value: string, fallback = "") {
+  const digits = value.replace(/\D/g, "").slice(0, 2);
+  if (!digits) {
+    return fallback;
+  }
+
+  return `#${digits.padStart(2, "0")}`;
+}
+
+function extractEtiquetaCode(value: string | null | undefined, fallback = "") {
+  const raw = asString(value).trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  const hashMatch = raw.match(/#\s*(\d{1,2})/);
+  if (hashMatch) {
+    return toEtiquetaCode(hashMatch[1], fallback);
+  }
+
+  const numericMatch = raw.match(/\b(\d{1,2})\b/);
+  if (numericMatch) {
+    return toEtiquetaCode(numericMatch[1], fallback);
+  }
+
+  const normalized = normalizeLoose(raw);
+  if (normalized.includes("agenda")) {
+    return "#00";
+  }
+
+  if (normalized.includes("painel")) {
+    return "#21";
+  }
+
+  if (normalized.includes("pre contrato")) {
+    return "#35";
+  }
+
+  if (normalized.includes("contrato social")) {
+    return "#30";
+  }
+
+  if (normalized.includes("fechamento")) {
+    return "#40";
+  }
+
+  if (normalized.includes("hidrossemeador")) {
+    return "#50";
+  }
+
+  if (normalized.includes("ligar") || normalized.includes("lead")) {
+    return "#10";
+  }
+
+  return fallback;
+}
+
+function formatClientesDateTime(value: string | null | undefined) {
+  const raw = asString(value).trim();
+  if (!raw) {
+    return "";
+  }
+
+  if (/^\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  const formatted = formatDateTime(raw);
+  if (formatted.includes("Invalid")) {
+    return "";
+  }
+
+  return formatted;
+}
+
+function buildEtiquetaDisplay(rawEtiqueta: string | null | undefined, rawDate: string | null | undefined) {
+  const etiquetaCode = extractEtiquetaCode(rawEtiqueta, "#10");
+  const etiquetaDate = formatClientesDateTime(rawDate);
+  return etiquetaDate ? `${etiquetaCode} - ${etiquetaDate}` : etiquetaCode;
+}
+
+function mapPessoaTipoToEtiqueta(tipoPessoa: string | null | undefined) {
+  return extractEtiquetaCode(tipoPessoa, "#10");
+}
+
+function firstNonEmptyString(row: ClienteControleWebhookRow, keys: string[], fallback = "") {
+  for (const key of keys) {
+    const value = asString(row[key]).trim();
+    if (value.length > 0) {
+      return value;
+    }
+  }
+  return fallback;
+}
+
+function hasUsableClientesControleRows(rows: ClienteControleWebhookRow[]) {
+  return rows.some((row) => {
+    if (Object.keys(row).length === 0) {
+      return false;
+    }
+
+    return firstNonEmptyString(row, ["nome", "nome_pessoa", "pessoa_nome", "cliente", "nome_cliente"]).length > 0;
+  });
+}
+
+function mapClientesControleRows(rows: ClienteControleWebhookRow[]): ClienteControleApiRow[] {
+  return rows
+    .filter((row) => Object.keys(row).length > 0)
+    .map((row, index) => {
+      const rawEtiqueta = firstNonEmptyString(
+        row,
+        [
+          "etiqueta_etiqueta",
+          "etiqueta",
+          "tag",
+          "etiqueta_nome",
+          "tipo_pessoa",
+          "status",
+          "status_etiqueta",
+        ],
+        "#10",
+      );
+      const rawData = firstNonEmptyString(
+        row,
+        ["data_etiqueta", "data_hora", "created_at", "data_criacao", "updated_at", "horario"],
+      );
+      const etiqueta = buildEtiquetaDisplay(rawEtiqueta, rawData);
+      const data30Raw = firstNonEmptyString(row, ["data30", "data_30", "data_etiqueta_30"]);
+      const data40Raw = firstNonEmptyString(row, ["data40", "data_40", "data_etiqueta_40"]);
+      const data30Formatted = formatClientesDateTime(data30Raw);
+      const data40Formatted = formatClientesDateTime(data40Raw);
+      const agregacaoId = asNullablePositiveInt(
+        firstNonEmptyString(row, ["id_agregacao", "agregacao_id", "agregacao_id_agregacao"]),
+      );
+      const pessoaId = asNullablePositiveInt(
+        firstNonEmptyString(row, ["id_pessoa", "pessoa_id", "agregacao_id_pessoa", "lead_id"]),
+      );
+      const usuarioId = asNullablePositiveInt(
+        firstNonEmptyString(row, ["id_usuario", "agregacao_id_usuario", "usuario_id"]),
+      );
+
+      return {
+        id: firstNonEmptyString(
+          row,
+          ["id", "id_pessoa", "pessoa_id", "lead_id", "agregacao_id_pessoa", "agregacao_id_usuario"],
+          String(index + 1),
+        ),
+        etiqueta,
+        telefone: asNullableString(
+          firstNonEmptyString(
+            row,
+            ["telefone", "telefone_pessoa", "pessoa_telefone", "fone", "whatsapp", "telefone_cliente"],
+          ),
+        ),
+        nome: firstNonEmptyString(
+          row,
+          ["nome", "nome_pessoa", "pessoa_nome", "cliente", "nome_cliente"],
+          "Sem nome",
+        ),
+        equipamento: asNullableString(firstNonEmptyString(row, ["equipamento", "produto", "descricao_equipamento"])),
+        data30: data30Formatted || asNullableString(data30Raw),
+        data40: data40Formatted || asNullableString(data40Raw),
+        pessoaId,
+        agregacaoId,
+        usuarioId,
+      } satisfies ClienteControleApiRow;
+    });
+}
+
+async function fetchClientesControleWebhookRows(payload: ClienteControleWebhookPayload) {
+  const response = await fetch(CLIENTES_CONTROLE_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return [] as ClienteControleWebhookRow[];
+  }
+
+  const text = await response.text();
+  if (!text.trim()) {
+    return [] as ClienteControleWebhookRow[];
+  }
+
+  const json = JSON.parse(text) as unknown;
+
+  if (Array.isArray(json)) {
+    return json as ClienteControleWebhookRow[];
+  }
+
+  if (json && typeof json === "object") {
+    return [json as ClienteControleWebhookRow];
+  }
+
+  return [] as ClienteControleWebhookRow[];
+}
+
+type AgendamentoClienteRow = {
+  id?: number | string | null;
+  pessoa?: number | string | null;
+};
+
+type AgregacaoClienteRow = {
+  id?: number | string | null;
+  id_usuario?: number | string | null;
+  id_pessoa?: number | string | null;
+  id_etiqueta?: number | string | null;
+  created_at?: string | null;
+  data_criacao?: string | null;
+};
+
+type EtiquetaClienteRow = {
+  id?: number | string | null;
+  etiqueta?: string | null;
+  origem?: string | null;
+  created_at?: string | null;
+  data_criacao?: string | null;
+  id_pessoa?: number | string | null;
+};
+
+type PessoaClienteRow = {
+  id?: number | string | null;
+  nome?: string | null;
+  telefone?: string | null;
+  tipo_pessoa?: string | null;
+  created_at?: string | null;
+  data_criacao?: string | null;
+};
+
+async function fetchPessoaRowsByIds(ids: number[]) {
+  if (!ids.length) {
+    return [] as PessoaClienteRow[];
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const chunkSize = 400;
+  const rows: PessoaClienteRow[] = [];
+
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+
+    const { data, error } = await supabase
+      .from("pessoa")
+      .select("id,nome,telefone,tipo_pessoa,created_at,data_criacao")
+      .in("id", chunk);
+
+    if (error || !data?.length) {
+      continue;
+    }
+
+    rows.push(...(data as PessoaClienteRow[]));
+  }
+
+  return rows;
+}
+
+async function fetchEtiquetaRowsByIds(ids: number[]) {
+  if (!ids.length) {
+    return [] as EtiquetaClienteRow[];
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const chunkSize = 400;
+  const rows: EtiquetaClienteRow[] = [];
+
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+
+    const { data, error } = await supabase
+      .from("etiqueta")
+      .select("id,etiqueta,origem,created_at,data_criacao,id_pessoa")
+      .in("id", chunk);
+
+    if (error || !data?.length) {
+      continue;
+    }
+
+    rows.push(...(data as EtiquetaClienteRow[]));
+  }
+
+  return rows;
+}
+
+async function getClientesControleRowsFromAgregacao(
+  filters: ClienteControleApiFilters,
+): Promise<ClienteControleApiRow[]> {
+  const usuarioId = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
+  const supabase = await createServerSupabaseClient();
+
+  let query = supabase
+    .from("agregacao")
+    .select("id,id_usuario,id_pessoa,id_etiqueta,created_at,data_criacao")
+    .order("id", { ascending: false })
+    .limit(5000);
+
+  if (usuarioId > 0) {
+    query = query.eq("id_usuario", usuarioId);
+  }
+
+  const { data, error } = await query;
+  if (error || !data?.length) {
+    return [];
+  }
+
+  const agregacaoRows = data as AgregacaoClienteRow[];
+  const pessoaIds = Array.from(
+    new Set(
+      agregacaoRows
+        .map((row) => Math.max(0, Math.trunc(asNumber(row.id_pessoa, 0))))
+        .filter((id) => id > 0),
+    ),
+  );
+  const etiquetaIds = Array.from(
+    new Set(
+      agregacaoRows
+        .map((row) => Math.max(0, Math.trunc(asNumber(row.id_etiqueta, 0))))
+        .filter((id) => id > 0),
+    ),
+  );
+
+  const [pessoaRows, etiquetaRows] = await Promise.all([
+    fetchPessoaRowsByIds(pessoaIds),
+    fetchEtiquetaRowsByIds(etiquetaIds),
+  ]);
+
+  const pessoaById = new Map<number, PessoaClienteRow>();
+  for (const pessoa of pessoaRows) {
+    const pessoaId = Math.max(0, Math.trunc(asNumber(pessoa.id, 0)));
+    if (pessoaId > 0) {
+      pessoaById.set(pessoaId, pessoa);
+    }
+  }
+
+  const etiquetaById = new Map<number, EtiquetaClienteRow>();
+  for (const etiqueta of etiquetaRows) {
+    const etiquetaId = Math.max(0, Math.trunc(asNumber(etiqueta.id, 0)));
+    if (etiquetaId > 0) {
+      etiquetaById.set(etiquetaId, etiqueta);
+    }
+  }
+
+  const nomeFilter = normalizeLoose(asString(filters.nome));
+  const telefoneFilter = normalizeLoose(asString(filters.telefone));
+  const etiquetaFilterRaw = asString(filters.etiqueta);
+  const etiquetaFilterNormalized = normalizeLoose(etiquetaFilterRaw);
+  const etiquetaFilterCode = extractEtiquetaCode(etiquetaFilterRaw);
+  const hasOffset = filters.offset !== undefined && filters.offset !== null;
+  const hasLimit = filters.limit !== undefined && filters.limit !== null;
+  const offset = hasOffset ? Math.max(0, Math.trunc(asNumber(filters.offset, 0))) : 0;
+  const limit = hasLimit ? Math.max(1, Math.trunc(asNumber(filters.limit, 10))) : Number.MAX_SAFE_INTEGER;
+
+  const rows: ClienteControleApiRow[] = [];
+
+  for (const agregacao of agregacaoRows) {
+    const pessoaId = Math.max(0, Math.trunc(asNumber(agregacao.id_pessoa, 0)));
+    const pessoa = pessoaById.get(pessoaId);
+    const etiquetaId = Math.max(0, Math.trunc(asNumber(agregacao.id_etiqueta, 0)));
+    const etiquetaRow = etiquetaById.get(etiquetaId);
+
+    const nome = asString(pessoa?.nome, "Sem nome");
+    const telefone = asNullableString(pessoa?.telefone);
+    const etiquetaCode = extractEtiquetaCode(asString(etiquetaRow?.etiqueta), "#10");
+    const dataRaw = asString(
+      etiquetaRow?.created_at ??
+        etiquetaRow?.data_criacao ??
+        agregacao.created_at ??
+        agregacao.data_criacao,
+    ).trim();
+    const etiqueta = buildEtiquetaDisplay(etiquetaCode, dataRaw);
+
+    if (nomeFilter && !normalizeLoose(nome).includes(nomeFilter)) {
+      continue;
+    }
+
+    if (telefoneFilter && !normalizeLoose(telefone).includes(telefoneFilter)) {
+      continue;
+    }
+
+    if (etiquetaFilterCode.length > 0) {
+      if (etiquetaCode !== etiquetaFilterCode) {
+        continue;
+      }
+    } else if (etiquetaFilterNormalized && !normalizeLoose(etiqueta).includes(etiquetaFilterNormalized)) {
+      continue;
+    }
+
+    rows.push({
+      id: asString(agregacao.id, String(rows.length + 1)),
+      etiqueta,
+      telefone,
+      nome,
+      equipamento: null,
+      data30: null,
+      data40: null,
+      pessoaId,
+      agregacaoId: asNullablePositiveInt(agregacao.id),
+      usuarioId: asNullablePositiveInt(agregacao.id_usuario),
+    });
+  }
+
+  const end = hasLimit ? offset + limit : undefined;
+  return rows.slice(offset, end);
+}
+
+async function getClientesControleRowsFromAgendamentos(
+  filters: ClienteControleApiFilters,
+): Promise<ClienteControleApiRow[]> {
+  const usuarioId = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
+  if (usuarioId <= 0) {
+    return [];
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase
+    .from("agendamentos")
+    .select("id,pessoa")
+    .eq("id_usuario", usuarioId)
+    .eq("agendamento_ativo", true)
+    .not("pessoa", "is", null)
+    .order("id", { ascending: false })
+    .limit(5000);
+
+  if (error || !data?.length) {
+    return [];
+  }
+
+  const orderedPessoaIds: number[] = [];
+  const seenPessoaIds = new Set<number>();
+
+  for (const row of data as AgendamentoClienteRow[]) {
+    const pessoaId = Math.max(0, Math.trunc(asNumber(row.pessoa, 0)));
+    if (pessoaId > 0 && !seenPessoaIds.has(pessoaId)) {
+      seenPessoaIds.add(pessoaId);
+      orderedPessoaIds.push(pessoaId);
+    }
+  }
+
+  if (!orderedPessoaIds.length) {
+    return [];
+  }
+
+  const pessoaRows = await fetchPessoaRowsByIds(orderedPessoaIds);
+  if (!pessoaRows.length) {
+    return [];
+  }
+
+  const pessoaById = new Map<number, PessoaClienteRow>();
+  for (const pessoa of pessoaRows) {
+    const pessoaId = Math.max(0, Math.trunc(asNumber(pessoa.id, 0)));
+    if (pessoaId > 0) {
+      pessoaById.set(pessoaId, pessoa);
+    }
+  }
+
+  const nomeFilter = normalizeLoose(asString(filters.nome));
+  const telefoneFilter = normalizeLoose(asString(filters.telefone));
+  const etiquetaFilterRaw = asString(filters.etiqueta);
+  const etiquetaFilterNormalized = normalizeLoose(etiquetaFilterRaw);
+  const etiquetaFilterCode = extractEtiquetaCode(etiquetaFilterRaw);
+  const hasOffset = filters.offset !== undefined && filters.offset !== null;
+  const hasLimit = filters.limit !== undefined && filters.limit !== null;
+  const offset = hasOffset ? Math.max(0, Math.trunc(asNumber(filters.offset, 0))) : 0;
+  const limit = hasLimit ? Math.max(1, Math.trunc(asNumber(filters.limit, 10))) : Number.MAX_SAFE_INTEGER;
+
+  const rows: ClienteControleApiRow[] = [];
+
+  for (const pessoaId of orderedPessoaIds) {
+    const pessoa = pessoaById.get(pessoaId);
+    if (!pessoa) {
+      continue;
+    }
+
+    const nome = asString(pessoa.nome, "Sem nome");
+    const telefone = asNullableString(pessoa.telefone);
+    const etiquetaBase = mapPessoaTipoToEtiqueta(asString(pessoa.tipo_pessoa));
+    const dataRaw = asString(pessoa.created_at ?? pessoa.data_criacao).trim();
+    const etiqueta = buildEtiquetaDisplay(etiquetaBase, dataRaw);
+
+    if (nomeFilter && !normalizeLoose(nome).includes(nomeFilter)) {
+      continue;
+    }
+
+    if (telefoneFilter && !normalizeLoose(telefone).includes(telefoneFilter)) {
+      continue;
+    }
+
+    if (etiquetaFilterCode.length > 0) {
+      const etiquetaCode = extractEtiquetaCode(etiqueta);
+      if (etiquetaCode !== etiquetaFilterCode) {
+        continue;
+      }
+    } else if (etiquetaFilterNormalized) {
+      const matchesByText = normalizeLoose(etiqueta).includes(etiquetaFilterNormalized);
+      if (!matchesByText) {
+        continue;
+      }
+    }
+
+    rows.push({
+      id: String(pessoaId),
+      etiqueta,
+      telefone,
+      nome,
+      equipamento: null,
+      data30: null,
+      data40: null,
+      pessoaId,
+      agregacaoId: null,
+      usuarioId,
+    });
+  }
+
+  const end = hasLimit ? offset + limit : undefined;
+  return rows.slice(offset, end);
+}
+
+export async function getClientesControleRows(
+  filters: ClienteControleApiFilters = {},
+): Promise<ClienteControleApiRow[]> {
+  const selectedUsuario = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
+  const telefone = asString(filters.telefone).trim();
+  const etiqueta = asString(filters.etiqueta).trim();
+  const nome = asString(filters.nome).trim();
+  const hasLimit = filters.limit !== undefined && filters.limit !== null;
+  const hasOffset = filters.offset !== undefined && filters.offset !== null;
+  const limitPara = hasLimit ? String(Math.max(1, Math.trunc(asNumber(filters.limit, 10)))) : "";
+  const offPara = hasOffset ? String(Math.max(0, Math.trunc(asNumber(filters.offset, 0)))) : "";
+
+  const payload: ClienteControleWebhookPayload = {
+    id_usuario: selectedUsuario,
+    limit_para: limitPara,
+    off_para: offPara,
+  };
+  if (telefone) {
+    payload.telefone = telefone;
+  }
+  if (etiqueta) {
+    payload.etiqueta = etiqueta;
+  }
+  if (nome) {
+    payload.nome = nome;
+  }
+
+  const rows = await fetchClientesControleWebhookRows(payload);
+  if (!hasUsableClientesControleRows(rows)) {
+    const fallbackAgregacaoRows = await getClientesControleRowsFromAgregacao(filters);
+    if (fallbackAgregacaoRows.length > 0) {
+      return fallbackAgregacaoRows;
+    }
+
+    return getClientesControleRowsFromAgendamentos(filters);
+  }
+
+  const mappedRows = mapClientesControleRows(rows);
+  const etiquetaCodeFilter = extractEtiquetaCode(etiqueta);
+  if (etiquetaCodeFilter.length === 0) {
+    return mappedRows;
+  }
+
+  return mappedRows.filter((row) => extractEtiquetaCode(row.etiqueta) === etiquetaCodeFilter);
+}
+
+export async function getClientesRepresentantes(): Promise<ClienteRepresentante[]> {
+  try {
+    const allowedTipos = new Set(["time negocios", "prime"]);
+
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id,nome,usuario_ativo,tipo_acesso_2")
+      .eq("usuario_ativo", true)
+      .not("nome", "is", null)
+      .order("nome", { ascending: true })
+      .limit(5000);
+
+    if (error || !data?.length) {
+      return [];
+    }
+
+    return (data as Array<Record<string, unknown>>)
+      .map((row) => ({
+        id: asNumber(row.id, 0),
+        nome: asString(row.nome, "").trim(),
+        tipoAcesso2: normalizeLoose(asString(row.tipo_acesso_2)),
+      }))
+      .filter((row) => row.id > 0 && row.nome.length > 0 && allowedTipos.has(row.tipoAcesso2))
+      .map(({ id, nome }) => ({ id, nome }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getCurrentUsuarioLegacyId(): Promise<number | null> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id")
+      .eq("uuid_user", user.id)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (error || !data?.length) {
+      return null;
+    }
+
+    const id = asNumber((data[0] as Record<string, unknown>).id, 0);
+    return id > 0 ? id : null;
+  } catch {
+    return null;
   }
 }
 
@@ -1633,5 +2319,6 @@ export async function getDashboardOrcamentosSnapshot(
     totals: buildDashboardOrcamentosTotals(rows),
   };
 }
+
 
 

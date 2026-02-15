@@ -1,56 +1,233 @@
-import { Download, Filter, Plus } from "lucide-react";
-
-import { AppHeader } from "@/components/layout/app-header";
+import { ClientesControlShell } from "@/components/clientes/clientes-control-shell";
+import type { ClienteControleRow, ClientesControlFiltersValue } from "@/components/clientes/types";
 import { PageContainer } from "@/components/layout/page-container";
-import { ClientesTable } from "@/components/tables/clientes-table";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { getClientes } from "@/services/crm/api";
+import {
+  getClientes,
+  getClientesControleRows,
+  getClientesRepresentantes,
+  getCurrentUsuarioLegacyId,
+} from "@/services/crm/api";
+import { formatDateTime } from "@/utils/format";
 
-export default async function ClientesPage() {
-  const clientes = await getClientes();
+const fallbackRows: ClienteControleRow[] = [
+  {
+    id: "1",
+    etiqueta: "#10 - 14/02/2026 11:44",
+    telefone: "+5492314405665",
+    nome: "Gabi Arizcuren",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+  {
+    id: "2",
+    etiqueta: "#10 - 14/02/2026 10:32",
+    telefone: "+5493525630012",
+    nome: "Eduardo",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+  {
+    id: "3",
+    etiqueta: "#10 - 14/02/2026 09:34",
+    telefone: "+5493624126014",
+    nome: "Eas",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+  {
+    id: "4",
+    etiqueta: "#60 - 14/02/2026 11:15",
+    telefone: "+59891074377",
+    nome: "Pablo Orihuela",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+  {
+    id: "5",
+    etiqueta: "#10 - 14/02/2026 07:10",
+    telefone: "+5493584024817",
+    nome: "Ruc Agro",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+  {
+    id: "6",
+    etiqueta: "#10 - 14/02/2026 06:13",
+    telefone: "+5492342508018",
+    nome: "Guillermo Anso",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+  {
+    id: "7",
+    etiqueta: "#60 - 14/02/2026 07:44",
+    telefone: "31984757163",
+    nome: "Divina",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+  {
+    id: "8",
+    etiqueta: "#60 - 14/02/2026 03:14",
+    telefone: "44998214843",
+    nome: "Blindado E Protegido",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+  {
+    id: "9",
+    etiqueta: "#60 - 14/02/2026 00:00",
+    telefone: "+5493515589761",
+    nome: "z",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+  {
+    id: "10",
+    etiqueta: "#60 - 14/02/2026 00:01",
+    telefone: "+5493704258223",
+    nome: "Sergio Oviedo",
+    equipamento: null,
+    data30: null,
+    data40: null,
+  },
+];
+
+function normalizeEtiqueta(value: string | null) {
+  const raw = (value ?? "").trim();
+  if (!raw) {
+    return "#10";
+  }
+
+  if (raw.startsWith("#")) {
+    return raw.toUpperCase();
+  }
+
+  const numeric = raw.match(/\d+/)?.[0];
+  if (numeric) {
+    return `#${numeric}`;
+  }
+
+  if (raw.toLowerCase() === "lead") {
+    return "#10";
+  }
+
+  return raw;
+}
+
+function safeFormatDateTime(value: string) {
+  const formatted = formatDateTime(value);
+  return formatted.includes("Invalid") ? "" : formatted;
+}
+
+function getSearchValue(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
+}
+
+function normalizeEtiquetaFilterValue(value: string) {
+  const raw = value.trim();
+  if (!raw) {
+    return "";
+  }
+
+  const digits = raw.match(/\d+/)?.[0];
+  if (!digits) {
+    return "";
+  }
+
+  return digits.slice(0, 2).padStart(2, "0");
+}
+
+type ClientesPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function ClientesPage({ searchParams }: ClientesPageProps) {
+  const params = await searchParams;
+  const selectedUsuario = getSearchValue(params.usuario) ?? "";
+  const telefone = getSearchValue(params.telefone) ?? "";
+  const nome = getSearchValue(params.nome) ?? "";
+  const etiqueta = normalizeEtiquetaFilterValue(getSearchValue(params.etiqueta) ?? "");
+
+  const initialFilters: ClientesControlFiltersValue = {
+    usuario: selectedUsuario,
+    telefone,
+    nome,
+    etiqueta,
+  };
+
+  const [webhookRows, representantes, currentUserId] = await Promise.all([
+    getClientesControleRows({
+      usuarioId: selectedUsuario,
+      telefone,
+      etiqueta,
+      nome,
+    }),
+    getClientesRepresentantes(),
+    getCurrentUsuarioLegacyId(),
+  ]);
+
+  const hasFilters =
+    selectedUsuario.trim().length > 0 ||
+    telefone.trim().length > 0 ||
+    nome.trim().length > 0 ||
+    etiqueta.trim().length > 0;
+
+  const clientes = webhookRows.length === 0 && !hasFilters ? await getClientes() : [];
+
+  const fallbackRowsFromSupabase: ClienteControleRow[] = clientes.map((cliente, index) => {
+    const etiquetaBase = normalizeEtiqueta(cliente.etiqueta);
+    const createdAt = safeFormatDateTime(cliente.created_at);
+
+    return {
+      id: cliente.id || String(index + 1),
+      etiqueta: createdAt ? `${etiquetaBase} - ${createdAt}` : etiquetaBase,
+      telefone: cliente.telefone ?? null,
+      nome: cliente.nome,
+      equipamento: null,
+      data30: null,
+      data40: null,
+    };
+  });
+
+  const rows =
+    webhookRows.length > 0
+      ? webhookRows
+      : fallbackRowsFromSupabase.length > 0
+        ? fallbackRowsFromSupabase
+        : hasFilters
+          ? []
+          : fallbackRows;
 
   return (
-    <>
-      <AppHeader title="Clientes" subtitle="Busca, filtros por etiqueta/status, paginação e ações em lote." />
-      <PageContainer className="space-y-4">
-        <Card>
-          <CardContent className="grid gap-3 p-4 md:grid-cols-[2fr_1fr_1fr_auto_auto]">
-            <Input placeholder="Buscar cliente..." />
-            <Select defaultValue="">
-              <option value="">Todas etiquetas</option>
-              <option value="lead-quente">Lead quente</option>
-              <option value="negociacao">Negociação</option>
-              <option value="sem-contato">Sem contato</option>
-            </Select>
-            <Select defaultValue="">
-              <option value="">Todos status</option>
-              <option value="novo">Novo</option>
-              <option value="em-progresso">Em progresso</option>
-              <option value="ativo">Ativo</option>
-            </Select>
-            <Button variant="secondary" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Filtrar
-            </Button>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Novo cliente
-            </Button>
-          </CardContent>
-        </Card>
+    <PageContainer className="space-y-5 bg-[#eceef0]">
+      <header>
+        <h1 className="text-5xl font-semibold text-[#30343a]">Controle de Clientes</h1>
+      </header>
 
-        <div className="flex justify-end">
-          <Button variant="ghost" className="gap-2">
-            <Download className="h-4 w-4" />
-            Exportar CSV
-          </Button>
+      <div className="rounded-2xl bg-[#e4e6e8] p-4">
+        <div className="max-h-[calc(100vh-230px)] overflow-auto">
+          <ClientesControlShell
+            key={`${selectedUsuario}:${telefone}:${nome}:${etiqueta}`}
+            initialRows={rows}
+            representantes={representantes}
+            initialFilters={initialFilters}
+            currentUserId={currentUserId}
+          />
         </div>
-
-        <ClientesTable data={clientes} />
-      </PageContainer>
-    </>
+      </div>
+    </PageContainer>
   );
 }

@@ -33,7 +33,13 @@ export function AppSidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden h-screen w-72 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-primary-soft)] px-4 py-5 lg:flex">
       <div className="mb-6 flex items-center gap-3 rounded-xl bg-white px-3 py-2 shadow-sm shrink-0">
-        <Image src="/brand/Icon.png" alt="Verdetec" width={36} height={36} />
+        <Image
+          src="/brand/Icon.png"
+          alt="Verdetec"
+          width={36}
+          height={36}
+          style={{ width: "auto", height: "auto" }}
+        />
         <div className="leading-tight">
           <p className="text-sm font-semibold text-slate-900">Verdetec CRM</p>
           <p className="text-xs text-slate-500">Conecta</p>
