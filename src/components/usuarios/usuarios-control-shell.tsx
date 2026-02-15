@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   KeyRound,
@@ -32,6 +33,7 @@ const MENU_WIDTH = 340;
 const MENU_HEIGHT = 320;
 const MENU_GAP = 8;
 const MENU_MARGIN = 12;
+const TIPO_ACESSO_OPTIONS = ["Time Negócios", "Prime", "CRV", "Gestor"] as const;
 
 const EMPTY_FORM: UsuarioFormValues = {
   nome: "",
@@ -40,7 +42,7 @@ const EMPTY_FORM: UsuarioFormValues = {
   linkMeet: "",
   identificadorUmbler: "",
   senha: "",
-  tipoAcesso: "Time Negocios",
+  tipoAcesso: "Time Negócios",
   ativo: true,
 };
 
@@ -51,6 +53,7 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
   const [isCadastroModalOpen, setIsCadastroModalOpen] = useState(false);
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [formValues, setFormValues] = useState<UsuarioFormValues>(EMPTY_FORM);
+  const [isSubmittingCadastro, setIsSubmittingCadastro] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -135,7 +138,11 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
   const openCreateModal = () => {
     setMenuAnchor(null);
     setEditingRowId(null);
-    setFormValues(EMPTY_FORM);
+    setFormValues({
+      ...EMPTY_FORM,
+      email: "",
+      senha: "",
+    });
     setIsCadastroModalOpen(true);
   };
 
@@ -149,7 +156,7 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
       linkMeet: row.meet ?? "",
       identificadorUmbler: "",
       senha: "",
-      tipoAcesso: row.tipoAcesso || "Time Negocios",
+      tipoAcesso: row.tipoAcesso || "Time Negócios",
       ativo: row.ativo,
     });
     setIsCadastroModalOpen(true);
@@ -158,6 +165,7 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
   const closeCadastroModal = () => {
     setIsCadastroModalOpen(false);
     setEditingRowId(null);
+    setIsSubmittingCadastro(false);
     setFormValues(EMPTY_FORM);
   };
 
@@ -180,12 +188,34 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
     openEditModal(row);
   };
 
-  const handleSubmitUsuario = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmitUsuario = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const nome = formValues.nome.trim();
     if (!nome) {
       setFeedback("Informe o nome do usuario.");
+      return;
+    }
+
+    const email = formValues.email.trim();
+    const senha = formValues.senha.trim();
+    const telefone = formValues.telefone.trim();
+    const linkMeet = formValues.linkMeet.trim();
+    const identificadorUmbler = formValues.identificadorUmbler.trim();
+    const tipoAcesso = formValues.tipoAcesso.trim();
+
+    if (!email) {
+      setFeedback("Informe o email.");
+      return;
+    }
+
+    if (!senha && !editingRowId) {
+      setFeedback("Informe a senha.");
+      return;
+    }
+
+    if (!tipoAcesso) {
+      setFeedback("Selecione o tipo de acesso.");
       return;
     }
 
@@ -196,10 +226,10 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
             ? {
                 ...row,
                 nome: `${row.id}-${nome}`,
-                telefone: formValues.telefone.trim() || null,
-                tipoAcesso: formValues.tipoAcesso.trim() || "-",
-                email: formValues.email.trim() || null,
-                meet: formValues.linkMeet.trim() || null,
+                telefone: telefone || null,
+                tipoAcesso: tipoAcesso || "-",
+                email: email || null,
+                meet: linkMeet || null,
                 ativo: formValues.ativo,
               }
             : row,
@@ -208,6 +238,45 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
       setFeedback("Edicao local concluida. A integracao sera conectada na proxima etapa.");
       closeCadastroModal();
       return;
+    }
+
+    setIsSubmittingCadastro(true);
+
+    try {
+      const response = await fetch("/api/usuarios/cadastrar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          senha,
+          nome,
+          fone: telefone,
+          telefone,
+          link_meet: linkMeet,
+          id_umbler: identificadorUmbler,
+          identificador_umbler: identificadorUmbler,
+          permissao: "gestor",
+          tipo_acesso: tipoAcesso,
+          setor: "",
+          vertical: "",
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
+
+      if (!response.ok || !payload?.ok) {
+        setFeedback(payload?.error ?? "Falha ao cadastrar usuario.");
+        return;
+      }
+    } catch {
+      setFeedback("Erro ao chamar webhook de cadastro.");
+      return;
+    } finally {
+      setIsSubmittingCadastro(false);
     }
 
     const nextId =
@@ -222,16 +291,16 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
     const created: UsuarioControleRow = {
       id: String(nextId),
       nome: `${nextId}-${nome}`,
-      telefone: formValues.telefone.trim() || null,
-      tipoAcesso: formValues.tipoAcesso.trim() || "-",
-      email: formValues.email.trim() || null,
-      meet: formValues.linkMeet.trim() || null,
+      telefone: telefone || null,
+      tipoAcesso: tipoAcesso || "-",
+      email: email || null,
+      meet: linkMeet || null,
       ativo: formValues.ativo,
     };
 
     setRows((current) => [created, ...current]);
     setPage(1);
-    setFeedback("Cadastro local concluido. A integracao sera conectada na proxima etapa.");
+    setFeedback("Usuario cadastrado com sucesso.");
     closeCadastroModal();
   };
 
@@ -435,7 +504,7 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
               </button>
             </div>
 
-            <form onSubmit={handleSubmitUsuario} className="space-y-3">
+            <form onSubmit={handleSubmitUsuario} className="space-y-3" autoComplete="off">
               <label className="block space-y-1">
                 <span className="text-xl leading-none text-[#2f3538]">Nome</span>
                 <input
@@ -466,13 +535,37 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
                 <span className="text-xl leading-none text-[#2f3538]">Email</span>
                 <input
                   id="usuario-email"
-                  name="usuario-email"
+                  name="email_novo_usuario"
                   type="email"
                   value={formValues.email}
                   onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))}
                   placeholder="Digite o email"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   className="h-11 w-full rounded-xl border-0 bg-[#c8dfde] px-4 text-base text-[#2a4f51] outline-none placeholder:text-[#2a4f51]"
                 />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-xl leading-none text-[#2f3538]">Tipo de acesso</span>
+                <div className="relative">
+                  <select
+                    id="usuario-tipo-acesso"
+                    name="usuario-tipo-acesso"
+                    value={formValues.tipoAcesso}
+                    onChange={(event) => setFormValues((current) => ({ ...current, tipoAcesso: event.target.value }))}
+                    className="h-11 w-full appearance-none rounded-xl border-0 bg-[#c8dfde] px-4 pr-10 text-base text-[#2a4f51] outline-none"
+                  >
+                    {TIPO_ACESSO_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-[#355c5f]" />
+                </div>
               </label>
 
               <label className="block space-y-1">
@@ -507,11 +600,15 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
                 <span className="text-xl leading-none text-[#2f3538]">Senha</span>
                 <input
                   id="usuario-senha"
-                  name="usuario-senha"
+                  name="senha_novo_usuario"
                   type="password"
                   value={formValues.senha}
                   onChange={(event) => setFormValues((current) => ({ ...current, senha: event.target.value }))}
                   placeholder="*******"
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   className="h-11 w-full rounded-xl border-0 bg-[#c8dfde] px-4 text-base text-[#2a4f51] outline-none placeholder:text-[#2a4f51]"
                 />
               </label>
@@ -519,9 +616,10 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
               <div className="pt-3 flex justify-end">
                 <Button
                   type="submit"
+                  disabled={isSubmittingCadastro}
                   className="h-11 min-w-[180px] rounded-xl border-0 bg-[#0f5050] px-8 text-base font-semibold text-white hover:bg-[#0c4343]"
                 >
-                  {editingRowId ? "Salvar" : "Cadastrar"}
+                  {isSubmittingCadastro ? "Cadastrando..." : editingRowId ? "Salvar" : "Cadastrar"}
                 </Button>
               </div>
             </form>
