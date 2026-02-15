@@ -22,6 +22,7 @@ type EnviarLinkPayload = {
   id_pessoa?: number | string | null;
   pessoa_id?: number | string | null;
   id_usuario?: number | string | null;
+  id_agregacao?: number | string | null;
 };
 
 type DebugEntry = {
@@ -107,6 +108,37 @@ async function resolveCurrentUsuarioId() {
   return asPositiveInt((data[0] as Record<string, unknown>).id);
 }
 
+async function resolveAgregacaoIdByPessoa(pessoaId: number, usuarioId: number | null) {
+  const admin = createAdminSupabaseClient();
+
+  if (usuarioId) {
+    const { data, error } = await admin
+      .from("agregacao")
+      .select("id")
+      .eq("id_pessoa", pessoaId)
+      .eq("id_usuario", usuarioId)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (!error && data?.length) {
+      return asPositiveInt((data[0] as Record<string, unknown>).id);
+    }
+  }
+
+  const { data, error } = await admin
+    .from("agregacao")
+    .select("id")
+    .eq("id_pessoa", pessoaId)
+    .order("id", { ascending: false })
+    .limit(1);
+
+  if (error || !data?.length) {
+    return null;
+  }
+
+  return asPositiveInt((data[0] as Record<string, unknown>).id);
+}
+
 export async function POST(request: NextRequest) {
   const debugId = randomUUID();
   const startedAt = Date.now();
@@ -176,6 +208,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let idAgregacao = asPositiveInt(payload.id_agregacao);
+  if (!idAgregacao) {
+    pushDebug("resolve.id_agregacao.from_agregacao.start", {
+      id_pessoa: idPessoa,
+      id_usuario: idUsuario,
+    });
+    idAgregacao = await resolveAgregacaoIdByPessoa(idPessoa, idUsuario);
+    pushDebug("resolve.id_agregacao.from_agregacao.end", { value: idAgregacao });
+  } else {
+    pushDebug("resolve.id_agregacao.from_payload", { value: idAgregacao });
+  }
+
+  if (!idAgregacao) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Nao foi possivel resolver id_agre para o cliente selecionado.",
+        debug_id: debugId,
+        debug: debugEnabled ? debugEntries : undefined,
+      },
+      { status: 400 },
+    );
+  }
+
   const cod = generateNumericCode(10);
   pushDebug("code.generated", { cod });
 
@@ -225,7 +281,8 @@ export async function POST(request: NextRequest) {
     }
 
     const notifyPayload = {
-      id_agre: idUsuario,
+      id_agre: idAgregacao,
+      id_agregacao: idAgregacao,
       cod,
     };
 

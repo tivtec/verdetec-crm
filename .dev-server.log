@@ -1,408 +1,338 @@
 
 > verdetec-crm@0.1.0 dev
-> next dev --webpack
+> next dev --webpack --hostname 0.0.0.0 --port 3000
 
 ▲ Next.js 16.1.6 (webpack)
 - Local:         http://localhost:3000
-- Network:       http://192.168.18.31:3000
+- Network:       http://0.0.0.0:3000
 - Environments: .env.local
 
 ✓ Starting...
-✓ Ready in 1510ms
-○ Compiling /splash ...
- HEAD / 307 in 5.2s (compile: 4.8s, proxy.ts: 179ms, render: 245ms)
- HEAD /login 200 in 5.2s (compile: 4.8s, proxy.ts: 179ms, render: 249ms)
- HEAD /splash 307 in 5.2s (compile: 4.8s, proxy.ts: 179ms, render: 275ms)
- HEAD /login 200 in 84ms (compile: 8ms, proxy.ts: 17ms, render: 59ms)
- GET /dashboard 200 in 6.1s (compile: 631ms, proxy.ts: 459ms, render: 5.0s)
- GET /dashboard?view=retrato 200 in 2.2s (compile: 4ms, proxy.ts: 120ms, render: 2.1s)
- GET /dashboard?view=orcamentos 200 in 3.8s (compile: 3ms, proxy.ts: 61ms, render: 3.7s)
- GET /dashboard?view=orcamentos 200 in 479ms (compile: 5ms, proxy.ts: 427ms, render: 46ms)
- GET /dashboard?view=orcamentos 200 in 261ms (compile: 5ms, proxy.ts: 225ms, render: 30ms)
- GET /dashboard?view=orcamentos 200 in 191ms (compile: 4ms, proxy.ts: 151ms, render: 36ms)
- GET /dashboard?view=orcamentos 200 in 121ms (compile: 3ms, proxy.ts: 83ms, render: 34ms)
- GET /clientes 200 in 1331ms (compile: 789ms, proxy.ts: 392ms, render: 150ms)
- GET /clientes 200 in 385ms (compile: 5ms, proxy.ts: 341ms, render: 39ms)
- GET /clientes 200 in 147ms (compile: 3ms, proxy.ts: 120ms, render: 23ms)
- GET /clientes 200 in 488ms (compile: 5ms, proxy.ts: 454ms, render: 29ms)
- GET /clientes 200 in 221ms (compile: 4ms, proxy.ts: 193ms, render: 24ms)
- GET /clientes 200 in 264ms (compile: 51ms, proxy.ts: 141ms, render: 72ms)
- GET /clientes 200 in 350ms (compile: 53ms, proxy.ts: 215ms, render: 83ms)
- GET /clientes 200 in 260ms (compile: 6ms, proxy.ts: 193ms, render: 61ms)
- GET /clientes 200 in 134ms (compile: 6ms, proxy.ts: 93ms, render: 34ms)
- GET /clientes 200 in 220ms (compile: 27ms, proxy.ts: 140ms, render: 54ms)
- GET /clientes 200 in 187ms (compile: 5ms, proxy.ts: 131ms, render: 51ms)
- GET /clientes 200 in 410ms (compile: 24ms, proxy.ts: 341ms, render: 45ms)
- GET /clientes 200 in 1462ms (compile: 28ms, proxy.ts: 128ms, render: 1306ms)
- GET /clientes 200 in 186ms (compile: 3ms, proxy.ts: 156ms, render: 27ms)
- GET /clientes 200 in 173ms (compile: 5ms, proxy.ts: 130ms, render: 39ms)
- GET /clientes 200 in 2000ms (compile: 4ms, proxy.ts: 381ms, render: 1615ms)
- GET /clientes 200 in 1638ms (compile: 3ms, proxy.ts: 122ms, render: 1513ms)
- GET /clientes 200 in 325ms (compile: 4ms, proxy.ts: 294ms, render: 28ms)
- GET /clientes 200 in 287ms (compile: 52ms, proxy.ts: 154ms, render: 81ms)
-⚠ Fast Refresh had to perform a full reload due to a runtime error.
- GET /clientes 200 in 404ms (compile: 4ms, proxy.ts: 359ms, render: 41ms)
-⨯ TypeError: Cannot read properties of undefined (reading 'usuario')
-    at ClientesControlFilters (src\components\clientes\clientes-control-filters.tsx:41:25)
-  39 |       <div className="relative min-w-[150px]">
-  40 |         <Select
-> 41 |           value={values.usuario}
-     |                         ^
-  42 |           onChange={(event) => onChange({ ...values, usuario: event.target.value })}
-  43 |           className="h-11 rounded-xl border-[#d7dadd] bg-white pr-9 text-sm text-[#2a4f51]"
-  44 |         > {
-  digest: '3640396809'
-}
- GET /clientes 500 in 1812ms (compile: 29ms, proxy.ts: 153ms, render: 1629ms)
-⚠ ./src/app/(crm)/clientes/page.tsx
-Attempted import error: 'getClientesRepresentantes' is not exported from '@/services/crm/api' (imported as 'getClientesRepresentantes').
-
-Import trace for requested module:
-./src/app/(crm)/clientes/page.tsx
-⚠ Fast Refresh had to perform a full reload due to a runtime error.
-⨯ TypeError: (0 , _services_crm_api__WEBPACK_IMPORTED_MODULE_3__.getClientesRepresentantes) is not a function
-    at ClientesPage (src\app\(crm)\clientes\page.tsx:161:30)
-  159 |       nome,
-  160 |     }),
-> 161 |     getClientesRepresentantes(),
-      |                              ^
-  162 |   ]);
-  163 |
-  164 |   const hasFilters = {
-  digest: '2776822629'
-}
- GET /clientes 500 in 323ms (compile: 28ms, proxy.ts: 198ms, render: 98ms)
-⚠ Fast Refresh had to perform a full reload due to a runtime error.
- GET /clientes 200 in 1464ms (compile: 26ms, proxy.ts: 135ms, render: 1303ms)
- GET /clientes 200 in 200ms (compile: 26ms, proxy.ts: 118ms, render: 56ms)
- GET /clientes 200 in 216ms (compile: 26ms, proxy.ts: 125ms, render: 65ms)
- GET /clientes 200 in 249ms (compile: 6ms, proxy.ts: 198ms, render: 45ms)
- GET /clientes 200 in 878ms (compile: 52ms, proxy.ts: 629ms, render: 197ms)
- GET /clientes 200 in 217ms (compile: 4ms, proxy.ts: 168ms, render: 45ms)
- GET /clientes?usuario=89 200 in 1652ms (compile: 4ms, proxy.ts: 258ms, render: 1389ms)
- GET /clientes?usuario=56 200 in 1365ms (compile: 5ms, proxy.ts: 130ms, render: 1230ms)
- GET /clientes?usuario=56 200 in 1335ms (compile: 6ms, proxy.ts: 147ms, render: 1182ms)
- GET /clientes?usuario=89 200 in 761ms (compile: 6ms, proxy.ts: 121ms, render: 634ms)
- GET /clientes?usuario=89 200 in 818ms (compile: 6ms, proxy.ts: 63ms, render: 748ms)
- GET /clientes?usuario=89 200 in 3.1s (compile: 5ms, proxy.ts: 1637ms, render: 1455ms)
- GET /clientes?usuario=56 200 in 1377ms (compile: 5ms, proxy.ts: 136ms, render: 1235ms)
- GET /clientes?usuario=98 200 in 1269ms (compile: 6ms, proxy.ts: 123ms, render: 1141ms)
- GET /clientes?usuario=98 200 in 595ms (compile: 5ms, proxy.ts: 565ms, render: 24ms)
- GET /clientes?usuario=98 200 in 233ms (compile: 26ms, proxy.ts: 157ms, render: 50ms)
- GET /clientes?usuario=98 200 in 195ms (compile: 24ms, proxy.ts: 124ms, render: 48ms)
- GET /clientes?usuario=98 200 in 195ms (compile: 23ms, proxy.ts: 129ms, render: 43ms)
- GET /clientes?usuario=98 200 in 182ms (compile: 4ms, proxy.ts: 139ms, render: 39ms)
- GET /clientes?usuario=98 200 in 1455ms (compile: 4ms, proxy.ts: 115ms, render: 1337ms)
- GET /clientes?usuario=98 200 in 716ms (compile: 4ms, proxy.ts: 63ms, render: 649ms)
- GET /clientes?usuario=89 200 in 1286ms (compile: 3ms, proxy.ts: 145ms, render: 1139ms)
- GET /clientes 200 in 802ms (compile: 2ms, proxy.ts: 60ms, render: 740ms)
- GET /clientes?usuario=89 200 in 1230ms (compile: 3ms, proxy.ts: 115ms, render: 1111ms)
- GET /clientes?usuario=56 200 in 795ms (compile: 4ms, proxy.ts: 125ms, render: 666ms)
- GET /clientes?usuario=56 200 in 683ms (compile: 5ms, proxy.ts: 66ms, render: 612ms)
- GET /clientes?usuario=66 200 in 1275ms (compile: 3ms, proxy.ts: 107ms, render: 1165ms)
- GET /clientes?usuario=98 200 in 1223ms (compile: 5ms, proxy.ts: 112ms, render: 1106ms)
- GET /clientes 200 in 821ms (compile: 4ms, proxy.ts: 137ms, render: 679ms)
- GET /clientes 200 in 408ms (compile: 51ms, proxy.ts: 271ms, render: 86ms)
- GET /clientes 200 in 345ms (compile: 5ms, proxy.ts: 269ms, render: 71ms)
- GET /clientes 200 in 1938ms (compile: 4ms, proxy.ts: 350ms, render: 1584ms)
- GET /clientes?usuario=89 200 in 1943ms (compile: 4ms, proxy.ts: 332ms, render: 1607ms)
- GET /clientes?usuario=56 200 in 1608ms (compile: 5ms, proxy.ts: 135ms, render: 1468ms)
- GET /clientes?usuario=66 200 in 1825ms (compile: 3ms, proxy.ts: 233ms, render: 1588ms)
- GET /clientes?usuario=66 200 in 736ms (compile: 60ms, proxy.ts: 591ms, render: 85ms)
- GET /clientes?usuario=66 200 in 375ms (compile: 51ms, proxy.ts: 229ms, render: 96ms)
- GET /clientes?usuario=66 200 in 239ms (compile: 33ms, proxy.ts: 148ms, render: 57ms)
- GET /clientes?usuario=66 200 in 205ms (compile: 26ms, proxy.ts: 114ms, render: 65ms)
- GET /clientes?usuario=66 200 in 244ms (compile: 5ms, proxy.ts: 144ms, render: 95ms)
- GET /clientes?usuario=66 200 in 249ms (compile: 23ms, proxy.ts: 163ms, render: 62ms)
- GET /clientes?usuario=45 200 in 2.7s (compile: 3ms, proxy.ts: 151ms, render: 2.6s)
- GET /clientes?usuario=45&nome=luciano 200 in 1529ms (compile: 6ms, proxy.ts: 133ms, render: 1390ms)
- GET /clientes?usuario=45 200 in 1451ms (compile: 3ms, proxy.ts: 109ms, render: 1339ms)
- GET /clientes?usuario=45&telefone=0445 200 in 1459ms (compile: 6ms, proxy.ts: 133ms, render: 1320ms)
- GET /clientes?usuario=45 200 in 2.3s (compile: 5ms, proxy.ts: 111ms, render: 2.2s)
- GET /clientes?usuario=45 200 in 8.7s (compile: 6ms, proxy.ts: 105ms, render: 8.6s)
- GET /clientes?usuario=45&telefone=3749 200 in 1477ms (compile: 5ms, proxy.ts: 136ms, render: 1336ms)
- GET /clientes?usuario=45 200 in 3.6s (compile: 4ms, proxy.ts: 171ms, render: 3.4s)
- GET /clientes?usuario=45&etiqueta=00+Agendamento 200 in 1354ms (compile: 7ms, proxy.ts: 105ms, render: 1242ms)
- GET /clientes?usuario=45&etiqueta=21+Painel+Liga%C3%A7%C3%A3o 200 in 806ms (compile: 5ms, proxy.ts: 63ms, render: 737ms)
- GET /clientes?usuario=45&etiqueta=30+Conseguir+Contrato+Social 200 in 1423ms (compile: 4ms, proxy.ts: 147ms, render: 1272ms)
- GET /clientes?usuario=45&etiqueta=30+Conseguir+Contrato+Social 200 in 517ms (compile: 26ms, proxy.ts: 433ms, render: 59ms)
- GET /clientes?usuario=45&etiqueta=30+Conseguir+Contrato+Social 200 in 98ms (compile: 4ms, proxy.ts: 62ms, render: 32ms)
- GET /clientes?usuario=45&etiqueta=30+Conseguir+Contrato+Social 200 in 1370ms (compile: 28ms, proxy.ts: 139ms, render: 1204ms)
- GET /clientes?usuario=45&etiqueta=00 200 in 1675ms (compile: 4ms, proxy.ts: 150ms, render: 1520ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 1715ms (compile: 6ms, proxy.ts: 121ms, render: 1588ms)
- GET /clientes?usuario=45&etiqueta=30 200 in 1362ms (compile: 3ms, proxy.ts: 106ms, render: 1253ms)
- GET /clientes?usuario=45&etiqueta=35 200 in 815ms (compile: 5ms, proxy.ts: 61ms, render: 749ms)
- GET /clientes?usuario=45&etiqueta=40 200 in 1379ms (compile: 5ms, proxy.ts: 123ms, render: 1252ms)
- GET /clientes?usuario=45&etiqueta=50 200 in 1477ms (compile: 5ms, proxy.ts: 143ms, render: 1329ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 1573ms (compile: 5ms, proxy.ts: 149ms, render: 1419ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 376ms (compile: 51ms, proxy.ts: 238ms, render: 87ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 235ms (compile: 26ms, proxy.ts: 140ms, render: 69ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 204ms (compile: 26ms, proxy.ts: 119ms, render: 58ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 280ms (compile: 21ms, proxy.ts: 146ms, render: 113ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 378ms (compile: 5ms, proxy.ts: 295ms, render: 78ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 348ms (compile: 21ms, proxy.ts: 264ms, render: 63ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 2.8s (compile: 5ms, proxy.ts: 312ms, render: 2.5s)
- GET /clientes?usuario=45&etiqueta=21 200 in 2.5s (compile: 4ms, proxy.ts: 152ms, render: 2.3s)
- GET /clientes?usuario=45&etiqueta=21 200 in 1465ms (compile: 9ms, proxy.ts: 63ms, render: 1393ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 1457ms (compile: 6ms, proxy.ts: 91ms, render: 1360ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 1523ms (compile: 5ms, proxy.ts: 143ms, render: 1375ms)
- GET /clientes?usuario=45&etiqueta=10 200 in 2.0s (compile: 4ms, proxy.ts: 281ms, render: 1763ms)
- GET /clientes?usuario=45&etiqueta=00 200 in 1394ms (compile: 7ms, proxy.ts: 145ms, render: 1242ms)
- GET /clientes?usuario=45&etiqueta=21 200 in 1375ms (compile: 4ms, proxy.ts: 130ms, render: 1242ms)
- GET /clientes?usuario=45&etiqueta=30 200 in 1395ms (compile: 4ms, proxy.ts: 137ms, render: 1255ms)
- GET /clientes?usuario=45&etiqueta=35 200 in 1510ms (compile: 8ms, proxy.ts: 198ms, render: 1305ms)
- GET /clientes?usuario=45&etiqueta=40 200 in 1425ms (compile: 5ms, proxy.ts: 138ms, render: 1282ms)
- GET /clientes?usuario=45&etiqueta=40 200 in 1441ms (compile: 5ms, proxy.ts: 157ms, render: 1278ms)
- GET /clientes?usuario=45&etiqueta=40 200 in 517ms (compile: 51ms, proxy.ts: 379ms, render: 88ms)
- GET /clientes?usuario=45&etiqueta=40 200 in 221ms (compile: 25ms, proxy.ts: 139ms, render: 56ms)
- GET /clientes?usuario=45&etiqueta=40 200 in 1405ms (compile: 27ms, proxy.ts: 169ms, render: 1210ms)
- GET /clientes?usuario=45&etiqueta=40 200 in 219ms (compile: 5ms, proxy.ts: 158ms, render: 56ms)
- GET /clientes?usuario=55&etiqueta=21 200 in 1677ms (compile: 4ms, proxy.ts: 167ms, render: 1506ms)
- GET /clientes?usuario=55&etiqueta=10 200 in 1415ms (compile: 3ms, proxy.ts: 130ms, render: 1281ms)
- GET /clientes?usuario=55&etiqueta=21 200 in 1524ms (compile: 5ms, proxy.ts: 219ms, render: 1300ms)
- GET /clientes?usuario=55&etiqueta=30 200 in 1401ms (compile: 3ms, proxy.ts: 116ms, render: 1282ms)
- GET /clientes?usuario=55&etiqueta=35 200 in 796ms (compile: 4ms, proxy.ts: 67ms, render: 725ms)
- GET /clientes?usuario=55&etiqueta=40 200 in 1363ms (compile: 6ms, proxy.ts: 110ms, render: 1248ms)
- GET /clientes?usuario=87&etiqueta=21 200 in 1384ms (compile: 6ms, proxy.ts: 135ms, render: 1244ms)
- GET /clientes?usuario=87&etiqueta=21 200 in 911ms (compile: 7ms, proxy.ts: 56ms, render: 848ms)
- GET /clientes?usuario=87&etiqueta=21 200 in 1478ms (compile: 2ms, proxy.ts: 137ms, render: 1339ms)
- GET /clientes?usuario=87&etiqueta=21 200 in 1560ms (compile: 3ms, proxy.ts: 188ms, render: 1369ms)
- GET /clientes?usuario=87&etiqueta=21 200 in 1520ms (compile: 5ms, proxy.ts: 231ms, render: 1285ms)
- GET /clientes?usuario=87&etiqueta=21 200 in 1450ms (compile: 5ms, proxy.ts: 148ms, render: 1298ms)
- GET /clientes?usuario=87&etiqueta=10 200 in 1464ms (compile: 6ms, proxy.ts: 121ms, render: 1337ms)
- GET /clientes?usuario=87&etiqueta=10 200 in 534ms (compile: 68ms, proxy.ts: 355ms, render: 111ms)
- GET /clientes?usuario=87&etiqueta=10 200 in 980ms (compile: 24ms, proxy.ts: 164ms, render: 792ms)
- GET /clientes?usuario=87&etiqueta=10 200 in 353ms (compile: 25ms, proxy.ts: 125ms, render: 203ms)
- GET /clientes?usuario=87&etiqueta=10 200 in 328ms (compile: 8ms, proxy.ts: 171ms, render: 150ms)
- GET /clientes?usuario=87&etiqueta=21 200 in 3.6s (compile: 4ms, proxy.ts: 1118ms, render: 2.4s)
- GET /clientes?usuario=56&etiqueta=21 200 in 2.1s (compile: 5ms, proxy.ts: 132ms, render: 1980ms)
- GET /clientes?usuario=56&etiqueta=30 200 in 1802ms (compile: 4ms, proxy.ts: 182ms, render: 1616ms)
- GET /clientes?usuario=56&etiqueta=35 200 in 1278ms (compile: 3ms, proxy.ts: 75ms, render: 1200ms)
- GET /clientes?usuario=56&etiqueta=40 200 in 1565ms (compile: 3ms, proxy.ts: 68ms, render: 1493ms)
- GET /clientes?usuario=56&etiqueta=40 200 in 664ms (compile: 50ms, proxy.ts: 509ms, render: 104ms)
- GET /clientes?usuario=56&etiqueta=40 200 in 1480ms (compile: 25ms, proxy.ts: 149ms, render: 1305ms)
- GET /clientes?usuario=56&etiqueta=40 200 in 235ms (compile: 4ms, proxy.ts: 146ms, render: 85ms)
- GET /clientes?usuario=56&etiqueta=10 200 in 2.4s (compile: 4ms, proxy.ts: 285ms, render: 2.1s)
- GET /dashboard 200 in 4.5s (compile: 12ms, proxy.ts: 138ms, render: 4.3s)
- GET /dashboard?view=retrato 200 in 1335ms (compile: 7ms, proxy.ts: 120ms, render: 1208ms)
- GET /dashboard?view=orcamentos 200 in 4.4s (compile: 6ms, proxy.ts: 142ms, render: 4.2s)
- GET /clientes 200 in 2.2s (compile: 3ms, proxy.ts: 373ms, render: 1868ms)
- GET /clientes 200 in 525ms (compile: 49ms, proxy.ts: 367ms, render: 108ms)
- GET /clientes 200 in 308ms (compile: 27ms, proxy.ts: 194ms, render: 87ms)
- GET /clientes 200 in 381ms (compile: 27ms, proxy.ts: 276ms, render: 78ms)
- GET /clientes 200 in 247ms (compile: 7ms, proxy.ts: 150ms, render: 90ms)
- GET /clientes 200 in 1974ms (compile: 54ms, proxy.ts: 756ms, render: 1163ms)
- GET /clientes 200 in 372ms (compile: 28ms, proxy.ts: 216ms, render: 129ms)
- GET /clientes 200 in 300ms (compile: 7ms, proxy.ts: 127ms, render: 167ms)
- GET /clientes 200 in 734ms (compile: 56ms, proxy.ts: 553ms, render: 125ms)
- GET /clientes 200 in 388ms (compile: 9ms, proxy.ts: 215ms, render: 164ms)
- GET /clientes 200 in 549ms (compile: 4ms, proxy.ts: 489ms, render: 56ms)
- GET /clientes 200 in 288ms (compile: 49ms, proxy.ts: 121ms, render: 118ms)
- GET /clientes 200 in 229ms (compile: 24ms, proxy.ts: 112ms, render: 93ms)
- GET /clientes 200 in 255ms (compile: 25ms, proxy.ts: 150ms, render: 81ms)
- GET /clientes 200 in 245ms (compile: 25ms, proxy.ts: 134ms, render: 86ms)
- GET /clientes 200 in 415ms (compile: 23ms, proxy.ts: 227ms, render: 165ms)
- GET /clientes 200 in 285ms (compile: 28ms, proxy.ts: 170ms, render: 87ms)
- GET /clientes 200 in 324ms (compile: 34ms, proxy.ts: 138ms, render: 152ms)
- GET /clientes 200 in 381ms (compile: 48ms, proxy.ts: 192ms, render: 141ms)
- GET /clientes 200 in 268ms (compile: 29ms, proxy.ts: 124ms, render: 115ms)
- GET /clientes 200 in 311ms (compile: 47ms, proxy.ts: 149ms, render: 115ms)
- GET /clientes 200 in 1671ms (compile: 1330ms, proxy.ts: 183ms, render: 158ms)
- GET /clientes 200 in 144ms (compile: 3ms, proxy.ts: 71ms, render: 70ms)
- GET /clientes 200 in 334ms (compile: 7ms, proxy.ts: 188ms, render: 139ms)
- GET /clientes 200 in 503ms (compile: 6ms, proxy.ts: 359ms, render: 138ms)
- GET /clientes 200 in 343ms (compile: 52ms, proxy.ts: 158ms, render: 133ms)
- GET /clientes 200 in 348ms (compile: 7ms, proxy.ts: 179ms, render: 161ms)
- GET /clientes?telefone=clayton 200 in 2.5s (compile: 3ms, proxy.ts: 544ms, render: 1948ms)
- GET /clientes?telefone=nestor 200 in 1666ms (compile: 5ms, proxy.ts: 130ms, render: 1531ms)
- GET /clientes?telefone=Nestor 200 in 2.2s (compile: 4ms, proxy.ts: 276ms, render: 1898ms)
- GET /clientes?usuario=56&telefone=Nestor 200 in 2.2s (compile: 4ms, proxy.ts: 113ms, render: 2.1s)
- GET /clientes?nome=Nestor 200 in 1674ms (compile: 5ms, proxy.ts: 129ms, render: 1539ms)
- GET /clientes?nome=Clayton 200 in 2.2s (compile: 4ms, proxy.ts: 489ms, render: 1667ms)
- GET /clientes?nome=eduarda 200 in 1832ms (compile: 6ms, proxy.ts: 256ms, render: 1569ms)
- POST /api/clientes/alterar-etiqueta 200 in 2.2s (compile: 616ms, proxy.ts: 208ms, render: 1360ms)
- GET /clientes?nome=eduarda 200 in 1764ms (compile: 31ms, proxy.ts: 59ms, render: 1674ms)
- GET /clientes?nome=eduarda 200 in 2.3s (compile: 5ms, proxy.ts: 178ms, render: 2.1s)
- POST /api/clientes/alterar-etiqueta 200 in 1427ms (compile: 4ms, proxy.ts: 129ms, render: 1293ms)
- GET /clientes?nome=eduarda 200 in 1615ms (compile: 7ms, proxy.ts: 56ms, render: 1551ms)
- GET /clientes?nome=eduarda 200 in 1066ms (compile: 3ms, proxy.ts: 56ms, render: 1008ms)
- POST /api/clientes/alterar-etiqueta 200 in 1601ms (compile: 3ms, proxy.ts: 272ms, render: 1326ms)
- GET /clientes?nome=eduarda 200 in 1739ms (compile: 9ms, proxy.ts: 59ms, render: 1671ms)
- POST /api/clientes/alterar-etiqueta 200 in 1868ms (compile: 3ms, proxy.ts: 415ms, render: 1449ms)
- GET /clientes?nome=eduarda 200 in 1811ms (compile: 3ms, proxy.ts: 66ms, render: 1742ms)
- GET /clientes?nome=eduarda 200 in 468ms (compile: 82ms, proxy.ts: 238ms, render: 148ms)
- GET /clientes?nome=eduarda 200 in 426ms (compile: 7ms, proxy.ts: 250ms, render: 170ms)
- GET /clientes?nome=eduarda 200 in 269ms (compile: 37ms, proxy.ts: 127ms, render: 105ms)
- POST /api/clientes/alterar-etiqueta 502 in 8.1s (compile: 565ms, proxy.ts: 722ms, render: 6.8s)
- GET /clientes?nome=eduarda 200 in 2.2s (compile: 83ms, proxy.ts: 762ms, render: 1362ms)
- GET /clientes?nome=eduarda 200 in 3.4s (compile: 4ms, proxy.ts: 773ms, render: 2.7s)
- GET /clientes?nome=eduarda 200 in 282ms (compile: 31ms, proxy.ts: 165ms, render: 86ms)
- POST /api/clientes/alterar-etiqueta 502 in 12.7s (compile: 448ms, proxy.ts: 216ms, render: 12.1s)
- GET /clientes?nome=eduarda 200 in 780ms (compile: 84ms, proxy.ts: 573ms, render: 123ms)
- GET /clientes?nome=eduarda 200 in 467ms (compile: 29ms, proxy.ts: 339ms, render: 98ms)
- GET /clientes?nome=eduarda 200 in 2.4s (compile: 3ms, proxy.ts: 395ms, render: 2.0s)
- GET /clientes?nome=eduarda 200 in 271ms (compile: 6ms, proxy.ts: 185ms, render: 81ms)
- GET /clientes?nome=eduarda 200 in 450ms (compile: 67ms, proxy.ts: 278ms, render: 105ms)
- GET /clientes?nome=eduarda 200 in 262ms (compile: 29ms, proxy.ts: 103ms, render: 130ms)
- POST /api/clientes/alterar-etiqueta 200 in 11.7s (compile: 314ms, proxy.ts: 85ms, render: 11.3s)
- GET /clientes?nome=eduarda 200 in 1647ms (compile: 8ms, proxy.ts: 52ms, render: 1587ms)
- GET /clientes?nome=eduarda 200 in 1173ms (compile: 6ms, proxy.ts: 59ms, render: 1108ms)
- GET /clientes?nome=eduarda 200 in 1072ms (compile: 6ms, proxy.ts: 67ms, render: 999ms)
- POST /api/clientes/alterar-etiqueta 200 in 11.0s (compile: 6ms, proxy.ts: 202ms, render: 10.8s)
- GET /clientes?nome=eduarda 200 in 1675ms (compile: 11ms, proxy.ts: 59ms, render: 1606ms)
- GET /clientes?nome=eduarda 200 in 1608ms (compile: 4ms, proxy.ts: 53ms, render: 1552ms)
- GET /clientes?nome=eduarda 200 in 1000ms (compile: 4ms, proxy.ts: 128ms, render: 867ms)
- GET /clientes?nome=eduarda 200 in 772ms (compile: 87ms, proxy.ts: 558ms, render: 126ms)
- GET /clientes?nome=eduarda 200 in 1613ms (compile: 6ms, proxy.ts: 879ms, render: 727ms)
- GET /clientes?nome=eduarda 200 in 721ms (compile: 3ms, proxy.ts: 196ms, render: 522ms)
- GET /clientes?nome=eduarda 200 in 269ms (compile: 31ms, proxy.ts: 144ms, render: 94ms)
- GET /clientes?nome=eduarda 200 in 204ms (compile: 3ms, proxy.ts: 147ms, render: 54ms)
- GET /clientes?nome=eduarda 200 in 2.6s (compile: 3ms, proxy.ts: 413ms, render: 2.1s)
- GET /clientes?nome=eduarda 200 in 265ms (compile: 42ms, proxy.ts: 127ms, render: 96ms)
- POST /api/clientes/alterar-etiqueta 200 in 1946ms (compile: 557ms, proxy.ts: 444ms, render: 944ms)
- GET /clientes?nome=eduarda 200 in 1958ms (compile: 3ms, proxy.ts: 61ms, render: 1894ms)
- GET /clientes?nome=eduarda 200 in 3.3s (compile: 5ms, proxy.ts: 589ms, render: 2.7s)
- GET /clientes?nome=eduarda 200 in 736ms (compile: 83ms, proxy.ts: 561ms, render: 92ms)
- GET /clientes?nome=eduarda 200 in 239ms (compile: 23ms, proxy.ts: 131ms, render: 85ms)
- POST /api/clientes/alterar-etiqueta 200 in 1357ms (compile: 247ms, proxy.ts: 138ms, render: 972ms)
- GET /clientes?nome=eduarda 200 in 2.2s (compile: 7ms, proxy.ts: 69ms, render: 2.2s)
- GET /clientes?nome=eduarda 200 in 2.5s (compile: 9ms, proxy.ts: 464ms, render: 2.0s)
- GET /clientes?nome=eduarda 200 in 798ms (compile: 94ms, proxy.ts: 594ms, render: 110ms)
- GET /clientes?nome=eduarda 200 in 211ms (compile: 3ms, proxy.ts: 149ms, render: 58ms)
- GET /clientes?nome=eduarda 200 in 239ms (compile: 25ms, proxy.ts: 137ms, render: 78ms)
- POST /api/clientes/alterar-etiqueta 200 in 11.4s (compile: 226ms, proxy.ts: 123ms, render: 11.1s)
- GET /clientes?nome=eduarda 200 in 1712ms (compile: 6ms, proxy.ts: 67ms, render: 1640ms)
- GET /clientes?nome=eduarda 200 in 1103ms (compile: 3ms, proxy.ts: 54ms, render: 1047ms)
- GET /clientes?nome=eduarda 200 in 999ms (compile: 4ms, proxy.ts: 65ms, render: 930ms)
- GET /clientes?nome=eduarda 200 in 960ms (compile: 5ms, proxy.ts: 65ms, render: 890ms)
- POST /api/clientes/alterar-etiqueta 200 in 1050ms (compile: 3ms, proxy.ts: 139ms, render: 908ms)
- GET /clientes?nome=eduarda 200 in 1635ms (compile: 5ms, proxy.ts: 70ms, render: 1559ms)
- GET /clientes?nome=eduarda 200 in 964ms (compile: 5ms, proxy.ts: 56ms, render: 903ms)
- GET /clientes?nome=eduarda 200 in 1024ms (compile: 3ms, proxy.ts: 62ms, render: 958ms)
- GET /clientes?nome=eduarda 200 in 1059ms (compile: 6ms, proxy.ts: 79ms, render: 974ms)
- GET /clientes?nome=eduarda 200 in 2.4s (compile: 6ms, proxy.ts: 438ms, render: 1974ms)
- POST /api/clientes/alterar-etiqueta 200 in 1368ms (compile: 2ms, proxy.ts: 475ms, render: 891ms)
- GET /clientes?nome=eduarda 200 in 1870ms (compile: 6ms, proxy.ts: 73ms, render: 1791ms)
- GET /clientes?nome=eduarda 200 in 1694ms (compile: 11ms, proxy.ts: 59ms, render: 1624ms)
- GET /clientes?nome=eduarda 200 in 1017ms (compile: 4ms, proxy.ts: 63ms, render: 949ms)
- GET /clientes?nome=eduarda 200 in 1043ms (compile: 4ms, proxy.ts: 55ms, render: 984ms)
- POST /api/clientes/alterar-etiqueta 200 in 1068ms (compile: 2ms, proxy.ts: 159ms, render: 906ms)
- GET /clientes?nome=eduarda 200 in 1638ms (compile: 5ms, proxy.ts: 52ms, render: 1581ms)
- GET /clientes?nome=eduarda 200 in 993ms (compile: 5ms, proxy.ts: 72ms, render: 916ms)
- GET /clientes?nome=eduarda 200 in 1012ms (compile: 8ms, proxy.ts: 72ms, render: 933ms)
- GET /clientes?nome=eduarda 200 in 960ms (compile: 6ms, proxy.ts: 54ms, render: 899ms)
- GET /clientes?nome=eduarda 200 in 797ms (compile: 85ms, proxy.ts: 621ms, render: 92ms)
- GET /clientes?nome=eduarda 200 in 128ms (compile: 4ms, proxy.ts: 62ms, render: 61ms)
- GET /clientes?nome=eduarda 200 in 355ms (compile: 45ms, proxy.ts: 207ms, render: 102ms)
- GET /clientes?nome=eduarda 200 in 1697ms (compile: 26ms, proxy.ts: 565ms, render: 1106ms)
- GET /clientes?nome=eduarda 200 in 976ms (compile: 688ms, proxy.ts: 180ms, render: 108ms)
- GET /clientes?nome=eduarda 200 in 113ms (compile: 2ms, proxy.ts: 58ms, render: 53ms)
- GET /clientes?nome=eduarda 200 in 212ms (compile: 3ms, proxy.ts: 152ms, render: 57ms)
- GET /clientes?nome=eduarda 200 in 4.0s (compile: 3ms, proxy.ts: 531ms, render: 3.4s)
- GET /clientes?usuario=87&nome=eduarda 200 in 2.8s (compile: 3ms, proxy.ts: 139ms, render: 2.7s)
- GET /clientes?usuario=87&nome=eduarda 200 in 250ms (compile: 47ms, proxy.ts: 79ms, render: 123ms)
- POST /api/clientes/alterar-representante 200 in 1797ms (compile: 512ms, proxy.ts: 437ms, render: 848ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 2.0s (compile: 4ms, proxy.ts: 65ms, render: 1937ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 1536ms (compile: 6ms, proxy.ts: 62ms, render: 1469ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 1084ms (compile: 4ms, proxy.ts: 149ms, render: 931ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 1691ms (compile: 3ms, proxy.ts: 125ms, render: 1562ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 2.1s (compile: 4ms, proxy.ts: 198ms, render: 1855ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 1762ms (compile: 3ms, proxy.ts: 174ms, render: 1585ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 655ms (compile: 75ms, proxy.ts: 485ms, render: 95ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 268ms (compile: 4ms, proxy.ts: 206ms, render: 58ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 2.9s (compile: 3ms, proxy.ts: 146ms, render: 2.7s)
- GET /clientes?usuario=87&nome=eduarda 200 in 188ms (compile: 25ms, proxy.ts: 82ms, render: 81ms)
- POST /api/clientes/alterar-representante 200 in 1432ms (compile: 436ms, proxy.ts: 154ms, render: 842ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 1646ms (compile: 4ms, proxy.ts: 62ms, render: 1580ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 1152ms (compile: 4ms, proxy.ts: 54ms, render: 1094ms)
- GET /clientes?usuario=87&nome=eduarda 200 in 1103ms (compile: 3ms, proxy.ts: 51ms, render: 1049ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 2.0s (compile: 3ms, proxy.ts: 350ms, render: 1657ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 700ms (compile: 80ms, proxy.ts: 524ms, render: 96ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 709ms (compile: 301ms, proxy.ts: 293ms, render: 115ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 133ms (compile: 2ms, proxy.ts: 79ms, render: 52ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 187ms (compile: 4ms, proxy.ts: 117ms, render: 66ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 268ms (compile: 4ms, proxy.ts: 200ms, render: 64ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 312ms (compile: 50ms, proxy.ts: 145ms, render: 116ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 188ms (compile: 3ms, proxy.ts: 126ms, render: 59ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 4.5s (compile: 16ms, proxy.ts: 550ms, render: 3.9s)
-○ Compiling /api/clientes/enviar-link ...
-[clientes/enviar-link][5c9b727f-8911-4fc9-a653-5428c145744a] request.received 
-[clientes/enviar-link][5c9b727f-8911-4fc9-a653-5428c145744a] request.parsed_payload { id_pessoa: 27356, id_usuario: 87 }
-[clientes/enviar-link][5c9b727f-8911-4fc9-a653-5428c145744a] resolve.id_pessoa { value: 27356 }
-[clientes/enviar-link][5c9b727f-8911-4fc9-a653-5428c145744a] code.generated { cod: '8269319507' }
-[clientes/enviar-link][5c9b727f-8911-4fc9-a653-5428c145744a] rpc.insert_apresentacao.request {
-  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
-  payload: {
-    add: 'true',
-    cod: '8269319507',
-    id_usuario: 87,
-    id_pessoa: 27356,
-    status: 'Pendente'
-  }
-}
-[clientes/enviar-link][5c9b727f-8911-4fc9-a653-5428c145744a] rpc.insert_apresentacao.response {
-  status: 404,
-  ok: false,
-  body: {
-    code: 'PGRST202',
-    details: 'Searched for the function public.insert_apresentacao with parameters add, cod, id_pessoa, id_usuario, status or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
-    hint: 'Perhaps you meant to call the function public.insert_apresentacao(p_adicionado, p_cod_link, p_id_usuario, p_pessoa, p_status)',
-    message: 'Could not find the function public.insert_apresentacao(add, cod, id_pessoa, id_usuario, status) in the schema cache'
-  }
-}
- POST /api/clientes/enviar-link 502 in 8.4s (compile: 8.1s, proxy.ts: 149ms, render: 216ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 1519ms (compile: 98ms, proxy.ts: 192ms, render: 1228ms)
-[clientes/enviar-link][a8120729-0133-4e92-aab5-9386142a783d] request.received 
-[clientes/enviar-link][a8120729-0133-4e92-aab5-9386142a783d] request.parsed_payload { id_pessoa: 27356, id_usuario: 56 }
-[clientes/enviar-link][a8120729-0133-4e92-aab5-9386142a783d] resolve.id_pessoa { value: 27356 }
-[clientes/enviar-link][a8120729-0133-4e92-aab5-9386142a783d] code.generated { cod: '8854546800' }
-[clientes/enviar-link][a8120729-0133-4e92-aab5-9386142a783d] rpc.insert_apresentacao.request {
-  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
-  payload: {
-    add: 'true',
-    cod: '8854546800',
-    id_usuario: 56,
-    id_pessoa: 27356,
-    status: 'Pendente'
-  }
-}
-[clientes/enviar-link][a8120729-0133-4e92-aab5-9386142a783d] rpc.insert_apresentacao.response {
-  status: 404,
-  ok: false,
-  body: {
-    code: 'PGRST202',
-    details: 'Searched for the function public.insert_apresentacao with parameters add, cod, id_pessoa, id_usuario, status or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
-    hint: 'Perhaps you meant to call the function public.insert_apresentacao(p_adicionado, p_cod_link, p_id_usuario, p_pessoa, p_status)',
-    message: 'Could not find the function public.insert_apresentacao(add, cod, id_pessoa, id_usuario, status) in the schema cache'
-  }
-}
- POST /api/clientes/enviar-link 502 in 178ms (compile: 3ms, proxy.ts: 8ms, render: 168ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 1300ms (compile: 96ms, proxy.ts: 974ms, render: 231ms)
-[clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] request.received 
-[clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] request.parsed_payload { id_pessoa: 27356, id_usuario: 56 }
-[clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] resolve.id_pessoa { value: 27356 }
-[clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] code.generated { cod: '7314478053' }
-[clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] rpc.insert_apresentacao.request {
+✓ Ready in 5.4s
+○ Compiling /dashboard ...
+ GET /dashboard 200 in 17.9s (compile: 10.7s, proxy.ts: 200ms, render: 6.9s)
+ GET /clientes 200 in 4.0s (compile: 31ms, proxy.ts: 142ms, render: 3.9s)
+ GET /clientes 200 in 8.5s (compile: 2.5s, proxy.ts: 220ms, render: 5.7s)
+ GET /clientes 200 in 3.5s (compile: 11ms, proxy.ts: 105ms, render: 3.4s)
+ GET /clientes?nome=eduarda 200 in 2.4s (compile: 21ms, proxy.ts: 213ms, render: 2.1s)
+ GET /clientes?usuario=56&nome=eduarda 200 in 3.1s (compile: 17ms, proxy.ts: 186ms, render: 2.9s)
+[clientes/enviar-link][5b2ead91-07ba-4052-802c-73909f4ba137] request.received 
+[clientes/enviar-link][5b2ead91-07ba-4052-802c-73909f4ba137] request.parsed_payload { id_pessoa: 27356, id_usuario: 87 }
+[clientes/enviar-link][5b2ead91-07ba-4052-802c-73909f4ba137] resolve.id_pessoa { value: 27356 }
+[clientes/enviar-link][5b2ead91-07ba-4052-802c-73909f4ba137] code.generated { cod: '4273840610' }
+[clientes/enviar-link][5b2ead91-07ba-4052-802c-73909f4ba137] rpc.insert_apresentacao.request {
   endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
   payload: {
     p_adicionado: true,
-    p_cod_link: '7314478053',
+    p_cod_link: '4273840610',
+    p_id_usuario: 87,
+    p_pessoa: 27356,
+    p_status: 'Pendente'
+  }
+}
+[clientes/enviar-link][5b2ead91-07ba-4052-802c-73909f4ba137] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3917, result_cod_link: '4273840610' } ]
+}
+[clientes/enviar-link][5b2ead91-07ba-4052-802c-73909f4ba137] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 87, cod: '4273840610' }
+}
+[clientes/enviar-link][5b2ead91-07ba-4052-802c-73909f4ba137] webhook.notify.response { status: 200, ok: true, body: null }
+[clientes/enviar-link][5b2ead91-07ba-4052-802c-73909f4ba137] request.success { duration_ms: 1477 }
+ POST /api/clientes/enviar-link 200 in 4.1s (compile: 2.4s, proxy.ts: 204ms, render: 1551ms)
+ GET /clientes?usuario=56&nome=eduarda 200 in 2.0s (compile: 159ms, proxy.ts: 80ms, render: 1804ms)
+ GET /clientes?usuario=56&nome=eduarda 200 in 1902ms (compile: 427ms, proxy.ts: 683ms, render: 792ms)
+ GET /clientes?usuario=56&nome=eduarda 200 in 822ms (compile: 16ms, proxy.ts: 487ms, render: 318ms)
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] request.received 
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] request.parsed_payload { id_pessoa: 27356, id_usuario: 56 }
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] resolve.id_pessoa { value: 27356 }
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] resolve.id_agregacao.from_agregacao.start { id_pessoa: 27356, id_usuario: 56 }
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] resolve.id_agregacao.from_agregacao.end { value: 48401 }
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] code.generated { cod: '2432562479' }
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '2432562479',
     p_id_usuario: 56,
     p_pessoa: 27356,
     p_status: 'Pendente'
   }
 }
-[clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] rpc.insert_apresentacao.response {
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] rpc.insert_apresentacao.response {
   status: 200,
   ok: true,
-  body: [ { result_id: 3916, result_cod_link: '7314478053' } ]
+  body: [ { result_id: 3918, result_cod_link: '2432562479' } ]
 }
-[clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] webhook.notify.request {
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] webhook.notify.request {
   endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
-  payload: { id_agre: 56, cod: '7314478053' }
+  payload: { id_agre: 48401, cod: '2432562479' }
 }
-[clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] webhook.notify.response { status: 200, ok: true, body: null }
-[clientes/enviar-link][c76652b8-9a51-4375-9f1b-3dbbc3eb8605] request.success { duration_ms: 2965 }
- POST /api/clientes/enviar-link 200 in 3.0s (compile: 13ms, proxy.ts: 7ms, render: 3.0s)
- GET /clientes?usuario=56&nome=eduarda 200 in 555ms (compile: 6ms, proxy.ts: 429ms, render: 119ms)
- GET /clientes?usuario=56&nome=eduarda 200 in 252ms (compile: 8ms, proxy.ts: 129ms, render: 115ms)
+ GET /clientes?usuario=56&nome=eduarda 200 in 821ms (compile: 163ms, proxy.ts: 155ms, render: 504ms)
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] webhook.notify.response { status: 200, ok: true, body: null }
+[clientes/enviar-link][28d88c23-2111-4264-8a91-c6fce1c7fd1f] request.success { duration_ms: 2192 }
+ POST /api/clientes/enviar-link 200 in 3.9s (compile: 1647ms, proxy.ts: 23ms, render: 2.2s)
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] request.received 
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] request.parsed_payload { id_pessoa: 27356, id_agregacao: 48401, id_usuario: 87 }
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] resolve.id_pessoa { value: 27356 }
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] resolve.id_agregacao.from_payload { value: 48401 }
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] code.generated { cod: '2344930612' }
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '2344930612',
+    p_id_usuario: 87,
+    p_pessoa: 27356,
+    p_status: 'Pendente'
+  }
+}
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3919, result_cod_link: '2344930612' } ]
+}
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 48401, cod: '2344930612' }
+}
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] webhook.notify.response { status: 200, ok: true, body: null }
+[clientes/enviar-link][d0e89801-f540-43fa-beb3-c0e24def6dec] request.success { duration_ms: 1404 }
+ POST /api/clientes/enviar-link 200 in 2.1s (compile: 11ms, proxy.ts: 688ms, render: 1423ms)
+ GET /clientes?usuario=56&nome=eduarda 200 in 3.2s (compile: 18ms, proxy.ts: 88ms, render: 3.1s)
+ GET /clientes?usuario=56&nome=eduarda 200 in 1718ms (compile: 414ms, proxy.ts: 595ms, render: 710ms)
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] request.received 
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] request.parsed_payload { id_pessoa: 27356, id_usuario: 56 }
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] resolve.id_pessoa { value: 27356 }
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] resolve.id_agregacao.from_agregacao.start { id_pessoa: 27356, id_usuario: 56 }
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] resolve.id_agregacao.from_agregacao.end { value: 48401 }
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] code.generated { cod: '1917610807' }
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '1917610807',
+    p_id_usuario: 56,
+    p_pessoa: 27356,
+    p_status: 'Pendente'
+  }
+}
+ GET /clientes?usuario=56&nome=eduarda 200 in 774ms (compile: 151ms, proxy.ts: 144ms, render: 479ms)
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3920, result_cod_link: '1917610807' } ]
+}
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 48401, id_agregacao: 48401, cod: '1917610807' }
+}
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] webhook.notify.response {
+  status: 200,
+  ok: true,
+  body: {
+    contactId: 'aYuSIRc39Xo63lNI',
+    prefix: null,
+    headerContent: null,
+    content: 'Olá Teste Eliseu! estou entrando agora para nossa reunião.\n' +
+      '\n' +
+      'Segue o link: https://apresentacao.verdetec.com/ap?cod=1917610807\n' +
+      '\n' +
+      '*Este link é válido por 1h.',
+    footer: null,
+    file: null,
+    thumbnail: null,
+    quotedStatusUpdate: null,
+    contacts: [],
+    messageType: 'Text',
+    sentByOrganizationMember: { id: 'aL64KCAeLIr5SiDW' },
+    isPrivate: false,
+    location: null,
+    question: null,
+    source: 'Member',
+    inReplyTo: null,
+    messageState: 'Processing',
+    eventAtUTC: '2026-02-15T11:46:19.3105926Z',
+    chat: { id: 'aZGyC7Q-auSL7R27' },
+    fromContact: null,
+    templateId: null,
+    buttons: [],
+    latestEdit: null,
+    botInstance: null,
+    forwardedFrom: null,
+    scheduledMessage: null,
+    bulkSendSession: null,
+    elements: null,
+    mentions: [],
+    ad: null,
+    fileId: null,
+    reactions: [],
+    deductedAiCredits: null,
+    carousel: [],
+    billable: null,
+    id: 'aZGyC7Q-auSL7R28',
+    createdAtUTC: '2026-02-15T11:46:19.3105925Z'
+  }
+}
+[clientes/enviar-link][da8eca78-6974-40f0-a34f-b3d8c96ad523] request.success { duration_ms: 3296 }
+ POST /api/clientes/enviar-link 200 in 4.5s (compile: 1190ms, proxy.ts: 22ms, render: 3.3s)
+ GET /clientes?usuario=56&nome=eduarda 200 in 2.7s (compile: 7ms, proxy.ts: 525ms, render: 2.2s)
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] request.received 
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] request.parsed_payload { id_pessoa: 27356, id_agregacao: 48401, id_usuario: 87 }
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] resolve.id_pessoa { value: 27356 }
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] resolve.id_agregacao.from_payload { value: 48401 }
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] code.generated { cod: '8888545080' }
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '8888545080',
+    p_id_usuario: 87,
+    p_pessoa: 27356,
+    p_status: 'Pendente'
+  }
+}
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3921, result_cod_link: '8888545080' } ]
+}
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 48401, id_agregacao: 48401, cod: '8888545080' }
+}
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] webhook.notify.response {
+  status: 200,
+  ok: true,
+  body: {
+    contactId: 'aYuSIRc39Xo63lNI',
+    prefix: null,
+    headerContent: null,
+    content: 'Olá Teste Eliseu! estou entrando agora para nossa reunião.\n' +
+      '\n' +
+      'Segue o link: https://apresentacao.verdetec.com/ap?cod=8888545080\n' +
+      '\n' +
+      '*Este link é válido por 1h.',
+    footer: null,
+    file: null,
+    thumbnail: null,
+    quotedStatusUpdate: null,
+    contacts: [],
+    messageType: 'Text',
+    sentByOrganizationMember: { id: 'aL64KCAeLIr5SiDW' },
+    isPrivate: false,
+    location: null,
+    question: null,
+    source: 'Member',
+    inReplyTo: null,
+    messageState: 'Processing',
+    eventAtUTC: '2026-02-15T11:55:08.5280375Z',
+    chat: { id: 'aZGyC7Q-auSL7R27' },
+    fromContact: null,
+    templateId: null,
+    buttons: [],
+    latestEdit: null,
+    botInstance: null,
+    forwardedFrom: null,
+    scheduledMessage: null,
+    bulkSendSession: null,
+    elements: null,
+    mentions: [],
+    ad: null,
+    fileId: null,
+    reactions: [],
+    deductedAiCredits: null,
+    carousel: [],
+    billable: null,
+    id: 'aZG0HIE7TcGwUc40',
+    createdAtUTC: '2026-02-15T11:55:08.5280374Z'
+  }
+}
+[clientes/enviar-link][780e5974-4083-4d13-9af5-6a30d83bd8ee] request.success { duration_ms: 2484 }
+ POST /api/clientes/enviar-link 200 in 2.6s (compile: 3ms, proxy.ts: 146ms, render: 2.5s)
+ GET /clientes?usuario=56&nome=eduarda 200 in 1192ms (compile: 7ms, proxy.ts: 70ms, render: 1115ms)
+ GET /clientes?nome=Clayton 200 in 2.8s (compile: 14ms, proxy.ts: 854ms, render: 1948ms)
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] request.received 
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] request.parsed_payload { id_pessoa: 28042, id_agregacao: 48474, id_usuario: 87 }
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] resolve.id_pessoa { value: 28042 }
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] resolve.id_agregacao.from_payload { value: 48474 }
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] code.generated { cod: '2818727847' }
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '2818727847',
+    p_id_usuario: 87,
+    p_pessoa: 28042,
+    p_status: 'Pendente'
+  }
+}
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3922, result_cod_link: '2818727847' } ]
+}
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 48474, id_agregacao: 48474, cod: '2818727847' }
+}
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] webhook.notify.response {
+  status: 200,
+  ok: true,
+  body: {
+    contactId: 'aZG99JouCe54zD5D',
+    prefix: null,
+    headerContent: null,
+    content: 'Olá Teste Eliseu! estou entrando agora para nossa reunião.\n' +
+      '\n' +
+      'Segue o link: https://apresentacao.verdetec.com/ap?cod=2818727847\n' +
+      '\n' +
+      '*Este link é válido por 1h.',
+    footer: null,
+    file: null,
+    thumbnail: null,
+    quotedStatusUpdate: null,
+    contacts: [],
+    messageType: 'Text',
+    sentByOrganizationMember: { id: 'aL64KCAeLIr5SiDW' },
+    isPrivate: false,
+    location: null,
+    question: null,
+    source: 'Member',
+    inReplyTo: null,
+    messageState: 'Processing',
+    eventAtUTC: '2026-02-15T12:56:08.4497999Z',
+    chat: { id: 'aZG99JouCe54zD5E' },
+    fromContact: null,
+    templateId: null,
+    buttons: [],
+    latestEdit: null,
+    botInstance: null,
+    forwardedFrom: null,
+    scheduledMessage: null,
+    bulkSendSession: null,
+    elements: null,
+    mentions: [],
+    ad: null,
+    fileId: null,
+    reactions: [],
+    deductedAiCredits: null,
+    carousel: [],
+    billable: null,
+    id: 'aZHCaB10gPHbCqgK',
+    createdAtUTC: '2026-02-15T12:56:08.4497999Z'
+  }
+}
+[clientes/enviar-link][ed505d0c-c780-4c6c-bbba-80148572f7e6] request.success { duration_ms: 2915 }
+ POST /api/clientes/enviar-link 200 in 3.1s (compile: 6ms, proxy.ts: 187ms, render: 2.9s)
+ GET /clientes?nome=Clayton 200 in 1051ms (compile: 8ms, proxy.ts: 59ms, render: 984ms)
+ GET /clientes?nome=Clayton 200 in 307ms (compile: 38ms, proxy.ts: 174ms, render: 96ms)
+ GET /clientes?nome=Clayton 200 in 162ms (compile: 7ms, proxy.ts: 57ms, render: 97ms)
+ POST /api/clientes/alterar-etiqueta 200 in 1681ms (compile: 629ms, proxy.ts: 149ms, render: 903ms)
+ GET /clientes?nome=Clayton 200 in 1836ms (compile: 6ms, proxy.ts: 116ms, render: 1714ms)
+ GET /clientes?nome=Clayton 200 in 1253ms (compile: 7ms, proxy.ts: 105ms, render: 1141ms)
+ GET /clientes?nome=Clayton 200 in 1065ms (compile: 8ms, proxy.ts: 91ms, render: 965ms)
+ GET /clientes?nome=Clayton 200 in 1007ms (compile: 6ms, proxy.ts: 78ms, render: 923ms)
+ GET /clientes?nome=Clayton 200 in 714ms (compile: 6ms, proxy.ts: 630ms, render: 78ms)

@@ -75,10 +75,24 @@ async function getLegacyProfile(userId: string) {
 }
 
 export default async function SplashPage() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const hasSupabaseEnv = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  if (!hasSupabaseEnv) {
+    redirect("/login");
+  }
+
+  let user: { id: string; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown> } | null =
+    null;
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    const authResult = await supabase.auth.getUser();
+    user = authResult.data.user;
+  } catch {
+    redirect("/login");
+  }
 
   if (!user) {
     redirect("/login");

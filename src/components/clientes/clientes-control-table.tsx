@@ -460,6 +460,7 @@ export function ClientesControlTable({
         },
         body: JSON.stringify({
           id_pessoa: idPessoaFromRow,
+          id_agregacao: targetRow.agregacaoId ?? null,
           id_usuario: currentUserId ?? null,
         }),
       });
