@@ -88,3 +88,131 @@
  GET /usuarios 200 in 497ms (compile: 31ms, proxy.ts: 416ms, render: 50ms)
  GET /usuarios 200 in 394ms (compile: 30ms, proxy.ts: 316ms, render: 48ms)
  GET /usuarios 200 in 222ms (compile: 31ms, proxy.ts: 114ms, render: 77ms)
+ GET /usuarios 200 in 770ms (compile: 5ms, proxy.ts: 726ms, render: 39ms)
+ GET /usuarios 200 in 131ms (compile: 7ms, proxy.ts: 86ms, render: 39ms)
+⨯ ./src/components/layout/app-shell.tsx
+Error:   x Return statement is not allowed here
+    ,-[C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-shell.tsx:21:1]
+ 18 |         </div>
+ 19 |       );
+ 20 |     }
+ 21 | ,->   return (
+ 22 | |       <div className="h-screen bg-[var(--brand-surface)]">
+ 23 | |         <AppSidebar />
+ 24 | |         <div className="h-screen w-full lg:pl-72">
+ 25 | |           <main className="flex h-full flex-col overflow-hidden">{children}</main>
+ 26 | |         </div>
+ 27 | |       </div>
+ 28 | `->   );
+ 29 |     }
+    `----
+  x Expression expected
+    ,-[C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-shell.tsx:29:1]
+ 26 |       </div>
+ 27 |     </div>
+ 28 |   );
+ 29 | }
+    : ^
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/layout/app-shell.tsx
+./src/layouts/crm-layout.tsx
+./src/app/(crm)/layout.tsx
+⨯ ./src/components/layout/app-shell.tsx
+Error:   x Return statement is not allowed here
+    ,-[C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-shell.tsx:21:1]
+ 18 |         </div>
+ 19 |       );
+ 20 |     }
+ 21 | ,->   return (
+ 22 | |       <div className="h-screen bg-[var(--brand-surface)]">
+ 23 | |         <AppSidebar />
+ 24 | |         <div className="h-screen w-full lg:pl-72">
+ 25 | |           <main className="flex h-full flex-col overflow-hidden">{children}</main>
+ 26 | |         </div>
+ 27 | |       </div>
+ 28 | `->   );
+ 29 |     }
+    `----
+  x Expression expected
+    ,-[C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-shell.tsx:29:1]
+ 26 |       </div>
+ 27 |     </div>
+ 28 |   );
+ 29 | }
+    : ^
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/layout/app-shell.tsx
+./src/layouts/crm-layout.tsx
+./src/app/(crm)/layout.tsx
+ GET /usuarios 500 in 3.8s (compile: 3.5s, proxy.ts: 195ms, render: 119ms)
+ GET /usuarios 500 in 89ms (compile: 5ms, proxy.ts: 74ms, render: 10ms)
+ GET /usuarios 500 in 114ms (compile: 6ms, proxy.ts: 101ms, render: 7ms)
+○ Compiling /_error ...
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ./src/components/layout/app-shell.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-shell.tsx
+    1: O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Import trace for requested module:
+./src/components/layout/app-shell.tsx
+./src/layouts/crm-layout.tsx
+./src/app/(crm)/layout.tsx
+ GET /usuarios 500 in 205ms (compile: 6ms, proxy.ts: 189ms, render: 10ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /usuarios 200 in 607ms (compile: 106ms, proxy.ts: 101ms, render: 400ms)
+⨯ ./src/components/layout/app-sidebar.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-sidebar.tsx
+    1: O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Import trace for requested module:
+./src/components/layout/app-sidebar.tsx
+./src/components/layout/app-shell.tsx
+./src/layouts/crm-layout.tsx
+./src/app/(crm)/layout.tsx
+ GET /usuarios 500 in 342ms (compile: 6ms, proxy.ts: 327ms, render: 8ms)
+ GET /usuarios 500 in 73ms (compile: 6ms, proxy.ts: 60ms, render: 7ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /usuarios 200 in 554ms (compile: 72ms, proxy.ts: 112ms, render: 370ms)
+ GET /usuarios 200 in 462ms (compile: 33ms, proxy.ts: 338ms, render: 92ms)
+ GET /usuarios 200 in 749ms (compile: 42ms, proxy.ts: 623ms, render: 85ms)
+⨯ ./src/components/layout/app-sidebar.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-sidebar.tsx
+    1: O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Import trace for requested module:
+./src/components/layout/app-sidebar.tsx
+./src/components/layout/app-shell.tsx
+./src/layouts/crm-layout.tsx
+./src/app/(crm)/layout.tsx
+ GET /usuarios 500 in 288ms (compile: 5ms, proxy.ts: 272ms, render: 11ms)
+ GET /usuarios 500 in 65ms (compile: 5ms, proxy.ts: 54ms, render: 7ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /usuarios 200 in 624ms (compile: 99ms, proxy.ts: 102ms, render: 422ms)
