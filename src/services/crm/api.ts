@@ -183,6 +183,11 @@ export type ClienteRepresentante = {
   nome: string;
 };
 
+export type ClienteEquipamento = {
+  id: number;
+  nome: string;
+};
+
 type ClienteControleWebhookPayload = {
   id_usuario: number;
   limit_para: string;
@@ -812,6 +817,31 @@ export async function getClientesRepresentantes(): Promise<ClienteRepresentante[
   }
 }
 
+export async function getClientesEquipamentos(): Promise<ClienteEquipamento[]> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("equipamento")
+      .select("id,nome_equipamento")
+      .not("nome_equipamento", "is", null)
+      .order("nome_equipamento", { ascending: true })
+      .limit(5000);
+
+    if (error || !data?.length) {
+      return [];
+    }
+
+    return (data as Array<Record<string, unknown>>)
+      .map((row) => ({
+        id: asNumber(row.id, 0),
+        nome: asString(row.nome_equipamento, "").trim(),
+      }))
+      .filter((row) => row.id > 0 && row.nome.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 export async function getCurrentUsuarioLegacyId(): Promise<number | null> {
   try {
     const supabase = await createServerSupabaseClient();
@@ -1095,6 +1125,100 @@ export async function getUsuariosLegacy() {
     });
   } catch {
     return mockUsuarios;
+  }
+}
+
+export type UsuarioControleApiRow = {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  tipoAcesso: string;
+  email: string | null;
+  meet: string | null;
+  ativo: boolean;
+};
+
+const mockUsuariosControle: UsuarioControleApiRow[] = [
+  {
+    id: "120",
+    nome: "120-Felipe P.",
+    telefone: "47992257826",
+    tipoAcesso: "Time Negocios",
+    email: "felipe.po@verdetec.com",
+    meet: "https://meet.google.com/uqc-vzjh-uea",
+    ativo: true,
+  },
+  {
+    id: "66",
+    nome: "66-Edson T.",
+    telefone: "4830368695",
+    tipoAcesso: "Time Negocios",
+    email: "vendas16@verdetec.com",
+    meet: "http://meet.google.com/uaq-vfqo-oyo",
+    ativo: true,
+  },
+  {
+    id: "63",
+    nome: "63-Lazaro S.",
+    telefone: "4830368696",
+    tipoAcesso: "Time Negocios",
+    email: "vendas18@verdetec.com",
+    meet: "http://meet.google.com/gig-ukpe-kmw",
+    ativo: true,
+  },
+];
+
+function normalizeTipoAcessoLabel(value: string | null | undefined) {
+  const raw = asString(value).trim();
+  if (!raw) {
+    return "-";
+  }
+
+  const normalized = normalizeLoose(raw);
+  if (normalized === "time negocios") {
+    return "Time Negocios";
+  }
+  if (normalized === "prime") {
+    return "Prime";
+  }
+  if (normalized === "crv") {
+    return "CRV";
+  }
+
+  return raw;
+}
+
+export async function getUsuariosControleRows(): Promise<UsuarioControleApiRow[]> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id,nome,telefone,tipo_acesso,tipo_acesso_2,email,link_meet,usuario_ativo")
+      .order("id", { ascending: false })
+      .limit(5000);
+
+    if (error || !data?.length) {
+      return mockUsuariosControle;
+    }
+
+    return (data as Array<Record<string, unknown>>).map((row) => {
+      const id = asString(row.id);
+      const nomeRaw = asString(row.nome, "Sem nome").trim();
+
+      return {
+        id,
+        nome: id ? `${id}-${nomeRaw}` : nomeRaw,
+        telefone: asNullableString(row.telefone),
+        tipoAcesso: normalizeTipoAcessoLabel(
+          asString(row.tipo_acesso_2).trim() || asString(row.tipo_acesso).trim(),
+        ),
+        email: asNullableString(row.email),
+        meet: asNullableString(row.link_meet),
+        ativo: asBoolean(row.usuario_ativo, true),
+      } satisfies UsuarioControleApiRow;
+    });
+  } catch {
+    return mockUsuariosControle;
   }
 }
 

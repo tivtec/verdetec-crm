@@ -4,6 +4,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import {
   getClientes,
   getClientesControleRows,
+  getClientesEquipamentos,
   getClientesRepresentantes,
   getCurrentUsuarioLegacyId,
 } from "@/services/crm/api";
@@ -168,7 +169,7 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
     etiqueta,
   };
 
-  const [webhookRows, representantes, currentUserId] = await Promise.all([
+  const [webhookRows, representantes, equipamentos, currentUserId] = await Promise.all([
     getClientesControleRows({
       usuarioId: selectedUsuario,
       telefone,
@@ -176,6 +177,7 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
       nome,
     }),
     getClientesRepresentantes(),
+    getClientesEquipamentos(),
     getCurrentUsuarioLegacyId(),
   ]);
 
@@ -223,6 +225,7 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
             key={`${selectedUsuario}:${telefone}:${nome}:${etiqueta}`}
             initialRows={rows}
             representantes={representantes}
+            equipamentos={equipamentos}
             initialFilters={initialFilters}
             currentUserId={currentUserId}
           />

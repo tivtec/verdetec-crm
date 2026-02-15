@@ -18,12 +18,18 @@ import {
   X,
 } from "lucide-react";
 
-import type { ClienteControleRow, ClienteRepresentanteOption } from "@/components/clientes/types";
+import type {
+  ClienteControleRow,
+  ClienteEquipamentoOption,
+  ClienteRepresentanteOption,
+} from "@/components/clientes/types";
 import { Button } from "@/components/ui/button";
+import { formatDateTime } from "@/utils/format";
 
 type ClientesControlTableProps = {
   rows: ClienteControleRow[];
   representantes: ClienteRepresentanteOption[];
+  equipamentos: ClienteEquipamentoOption[];
   page: number;
   pageSize: number;
   currentUserId: number | null;
@@ -36,6 +42,22 @@ type MenuAnchor = {
   rowId: string;
   top: number;
   left: number;
+};
+
+type VisualizacaoEtiqueta = {
+  etiqueta: string;
+  data_criacao: string | null;
+};
+
+type VisualizacaoClienteData = {
+  id_pessoa: number;
+  nome: string;
+  telefone: string;
+  email: string;
+  documento: string;
+  tipo_pessoa: string | null;
+  created_at: string | null;
+  etiquetas: VisualizacaoEtiqueta[];
 };
 
 const MENU_WIDTH = 332;
@@ -54,6 +76,7 @@ const ETIQUETA_OPTIONS = [
 export function ClientesControlTable({
   rows,
   representantes,
+  equipamentos,
   page,
   pageSize,
   currentUserId,
@@ -65,6 +88,11 @@ export function ClientesControlTable({
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [isEtiquetaModalOpen, setIsEtiquetaModalOpen] = useState(false);
   const [isRepresentanteModalOpen, setIsRepresentanteModalOpen] = useState(false);
+  const [isPropostaModalOpen, setIsPropostaModalOpen] = useState(false);
+  const [isVisualizarModalOpen, setIsVisualizarModalOpen] = useState(false);
+  const [propostaTargetRowId, setPropostaTargetRowId] = useState<string | null>(null);
+  const [selectedEquipamentoId, setSelectedEquipamentoId] = useState("");
+  const [propostaFeedback, setPropostaFeedback] = useState<string | null>(null);
   const [representanteTargetRowId, setRepresentanteTargetRowId] = useState<string | null>(null);
   const [selectedRepresentanteId, setSelectedRepresentanteId] = useState("");
   const [isSavingRepresentante, setIsSavingRepresentante] = useState(false);
@@ -75,7 +103,11 @@ export function ClientesControlTable({
   const [etiquetaCep, setEtiquetaCep] = useState("");
   const [isSavingEtiqueta, setIsSavingEtiqueta] = useState(false);
   const [isSendingLink, setIsSendingLink] = useState(false);
+  const [isCreatingProposta, setIsCreatingProposta] = useState(false);
+  const [isLoadingVisualizacao, setIsLoadingVisualizacao] = useState(false);
   const [etiquetaFeedback, setEtiquetaFeedback] = useState<string | null>(null);
+  const [visualizacaoFeedback, setVisualizacaoFeedback] = useState<string | null>(null);
+  const [visualizacaoData, setVisualizacaoData] = useState<VisualizacaoClienteData | null>(null);
   const [successAlert, setSuccessAlert] = useState<string | null>(null);
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -89,12 +121,34 @@ export function ClientesControlTable({
   const canGoNext = safePage < totalPages;
 
   useEffect(() => {
-    if (!menuAnchor && !isEtiquetaModalOpen && !isRepresentanteModalOpen) {
+    if (
+      !menuAnchor &&
+      !isEtiquetaModalOpen &&
+      !isRepresentanteModalOpen &&
+      !isPropostaModalOpen &&
+      !isVisualizarModalOpen
+    ) {
       return;
     }
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") {
+        return;
+      }
+
+      if (isVisualizarModalOpen) {
+        setIsVisualizarModalOpen(false);
+        setIsLoadingVisualizacao(false);
+        setVisualizacaoFeedback(null);
+        setVisualizacaoData(null);
+        return;
+      }
+
+      if (isPropostaModalOpen) {
+        setIsPropostaModalOpen(false);
+        setPropostaTargetRowId(null);
+        setSelectedEquipamentoId("");
+        setPropostaFeedback(null);
         return;
       }
 
@@ -117,7 +171,13 @@ export function ClientesControlTable({
     };
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (isEtiquetaModalOpen || isRepresentanteModalOpen || !menuAnchor) {
+      if (
+        isEtiquetaModalOpen ||
+        isRepresentanteModalOpen ||
+        isPropostaModalOpen ||
+        isVisualizarModalOpen ||
+        !menuAnchor
+      ) {
         return;
       }
 
@@ -138,7 +198,13 @@ export function ClientesControlTable({
     };
 
     const handleViewportChange = () => {
-      if (menuAnchor && !isEtiquetaModalOpen && !isRepresentanteModalOpen) {
+      if (
+        menuAnchor &&
+        !isEtiquetaModalOpen &&
+        !isRepresentanteModalOpen &&
+        !isPropostaModalOpen &&
+        !isVisualizarModalOpen
+      ) {
         setMenuAnchor(null);
       }
     };
@@ -154,7 +220,7 @@ export function ClientesControlTable({
       window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("scroll", handleViewportChange, true);
     };
-  }, [isEtiquetaModalOpen, isRepresentanteModalOpen, menuAnchor]);
+  }, [isEtiquetaModalOpen, isPropostaModalOpen, isRepresentanteModalOpen, isVisualizarModalOpen, menuAnchor]);
 
   useEffect(() => {
     if (!successAlert) {
@@ -247,6 +313,118 @@ export function ClientesControlTable({
     setMenuAnchor(null);
   };
 
+  const openPropostaModal = () => {
+    if (!menuAnchor) {
+      return;
+    }
+
+    setPropostaTargetRowId(menuAnchor.rowId);
+    setSelectedEquipamentoId("");
+    setPropostaFeedback(null);
+    setIsCreatingProposta(false);
+    setIsPropostaModalOpen(true);
+    setMenuAnchor(null);
+  };
+
+  const openVisualizarModal = async () => {
+    if (!menuAnchor) {
+      return;
+    }
+
+    const targetRow = rows.find((row) => row.id === menuAnchor.rowId);
+    if (!targetRow) {
+      setErrorAlert("Nao foi possivel localizar o cliente selecionado.");
+      setMenuAnchor(null);
+      return;
+    }
+
+    const idPessoaFromRow = (() => {
+      if (typeof targetRow.pessoaId === "number" && targetRow.pessoaId > 0) {
+        return targetRow.pessoaId;
+      }
+
+      const parsed = Number(targetRow.id);
+      return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+    })();
+
+    if (!idPessoaFromRow) {
+      setErrorAlert("Nao foi possivel resolver id_pessoa para visualizar.");
+      setMenuAnchor(null);
+      return;
+    }
+
+    setMenuAnchor(null);
+    setIsVisualizarModalOpen(true);
+    setIsLoadingVisualizacao(true);
+    setVisualizacaoFeedback(null);
+    setVisualizacaoData(null);
+
+    try {
+      const response = await fetch("/api/clientes/visualizar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id_pessoa: idPessoaFromRow,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            ok?: boolean;
+            error?: string;
+            cliente?: {
+              id_pessoa?: number;
+              nome?: string;
+              telefone?: string;
+              email?: string;
+              documento?: string;
+              tipo_pessoa?: string | null;
+              created_at?: string | null;
+            };
+            etiquetas?: Array<{ etiqueta?: string; data_criacao?: string | null }>;
+            debug_id?: string;
+            debug?: unknown;
+          }
+        | null;
+
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[clientes/visualizar] response", {
+          httpStatus: response.status,
+          payload,
+        });
+      }
+
+      if (!response.ok || !payload?.ok || !payload.cliente) {
+        setVisualizacaoFeedback(payload?.error ?? "Falha ao carregar dados do cliente.");
+        return;
+      }
+
+      setVisualizacaoData({
+        id_pessoa: payload.cliente.id_pessoa ?? idPessoaFromRow,
+        nome: payload.cliente.nome ?? targetRow.nome ?? "Cliente sem nome",
+        telefone: payload.cliente.telefone ?? targetRow.telefone ?? "Nao informado",
+        email: payload.cliente.email ?? "Email nao existente",
+        documento: payload.cliente.documento ?? String(payload.cliente.id_pessoa ?? idPessoaFromRow),
+        tipo_pessoa: payload.cliente.tipo_pessoa ?? null,
+        created_at: payload.cliente.created_at ?? null,
+        etiquetas: Array.isArray(payload.etiquetas)
+          ? payload.etiquetas
+              .map((item) => ({
+                etiqueta: item?.etiqueta ?? "",
+                data_criacao: item?.data_criacao ?? null,
+              }))
+              .filter((item) => item.etiqueta.length > 0)
+          : [],
+      });
+    } catch {
+      setVisualizacaoFeedback("Erro ao carregar dados do cliente.");
+    } finally {
+      setIsLoadingVisualizacao(false);
+    }
+  };
+
   const closeEtiquetaModal = () => {
     setIsEtiquetaModalOpen(false);
     setEtiquetaTargetRowId(null);
@@ -263,6 +441,21 @@ export function ClientesControlTable({
     setSelectedRepresentanteId("");
     setIsSavingRepresentante(false);
     setRepresentanteFeedback(null);
+  };
+
+  const closePropostaModal = () => {
+    setIsPropostaModalOpen(false);
+    setPropostaTargetRowId(null);
+    setSelectedEquipamentoId("");
+    setPropostaFeedback(null);
+    setIsCreatingProposta(false);
+  };
+
+  const closeVisualizarModal = () => {
+    setIsVisualizarModalOpen(false);
+    setIsLoadingVisualizacao(false);
+    setVisualizacaoFeedback(null);
+    setVisualizacaoData(null);
   };
 
   const handleCepChange = (value: string) => {
@@ -491,6 +684,91 @@ export function ClientesControlTable({
     }
   };
 
+  const handleContinuarProposta = async () => {
+    if (!propostaTargetRowId) {
+      setPropostaFeedback("Cliente selecionado invalido.");
+      return;
+    }
+
+    if (!selectedEquipamentoId.trim()) {
+      setPropostaFeedback("Selecione um equipamento.");
+      return;
+    }
+
+    const targetRow = rows.find((row) => row.id === propostaTargetRowId);
+    if (!targetRow) {
+      setPropostaFeedback("Nao foi possivel localizar o cliente selecionado.");
+      return;
+    }
+
+    const selectedEquipamento = Number(selectedEquipamentoId);
+    if (!Number.isFinite(selectedEquipamento) || selectedEquipamento <= 0) {
+      setPropostaFeedback("Equipamento invalido.");
+      return;
+    }
+
+    const idPessoaFromRow = (() => {
+      if (typeof targetRow.pessoaId === "number" && targetRow.pessoaId > 0) {
+        return targetRow.pessoaId;
+      }
+
+      const parsed = Number(targetRow.id);
+      return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+    })();
+
+    setIsCreatingProposta(true);
+    setPropostaFeedback(null);
+
+    try {
+      const response = await fetch("/api/clientes/criar-proposta", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id_agregacao: targetRow.agregacaoId ?? null,
+          id_pessoa: idPessoaFromRow,
+          id_equipamento: Math.trunc(selectedEquipamento),
+          id_usuario: currentUserId ?? null,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; debug_id?: string; debug?: unknown }
+        | null;
+
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[clientes/criar-proposta] response", {
+          httpStatus: response.status,
+          payload,
+        });
+      }
+
+      if (!response.ok || !payload?.ok) {
+        setPropostaFeedback(payload?.error ?? "Falha ao criar proposta.");
+        return;
+      }
+
+      closePropostaModal();
+      setSuccessAlert("Proposta criada com sucesso.");
+      router.refresh();
+      window.setTimeout(() => router.refresh(), 1200);
+    } catch {
+      setPropostaFeedback("Erro ao criar proposta.");
+    } finally {
+      setIsCreatingProposta(false);
+    }
+  };
+
+  const formatVisualizacaoDateTime = (value: string | null) => {
+    if (!value) {
+      return "-";
+    }
+
+    const formatted = formatDateTime(value);
+    return formatted.includes("Invalid") ? "-" : formatted;
+  };
+
   return (
     <>
       {successAlert ? (
@@ -646,6 +924,7 @@ export function ClientesControlTable({
             </button>
             <button
               type="button"
+              onClick={openPropostaModal}
               className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
             >
               <FileText className="h-5 w-5 text-[#a8acac]" />
@@ -653,6 +932,7 @@ export function ClientesControlTable({
             </button>
             <button
               type="button"
+              onClick={openVisualizarModal}
               className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
             >
               <Eye className="h-5 w-5 text-[#a8acac]" />
@@ -822,6 +1102,166 @@ export function ClientesControlTable({
               >
                 {isSavingRepresentante ? "Alterando..." : "Alterar"}
               </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isPropostaModalOpen ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4"
+          onClick={closePropostaModal}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-[770px] rounded-3xl bg-[#f4f6f6] p-5 shadow-2xl sm:p-7"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Selecionar Equipamentos"
+          >
+            <div className="mb-8 flex items-center justify-between">
+              <h3 className="text-5xl font-semibold text-[#1d4d50]">Selecionar Equipamentos</h3>
+              <button
+                type="button"
+                onClick={closePropostaModal}
+                aria-label="Fechar selecionar equipamentos"
+                className="rounded-md p-1 text-[#5e6567] hover:bg-[#e3e7e7]"
+              >
+                <X className="h-7 w-7" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label htmlFor="equipamento-select" className="block text-4xl text-[#2f3538]">
+                Valor
+              </label>
+              <div className="relative">
+                <select
+                  id="equipamento-select"
+                  name="equipamento-select"
+                  value={selectedEquipamentoId}
+                  onChange={(event) => {
+                    setSelectedEquipamentoId(event.target.value);
+                    setPropostaFeedback(null);
+                  }}
+                  className="h-14 w-full appearance-none rounded-2xl border-0 bg-[#c8dfde] px-5 pr-12 text-[31px] text-[#2a4f51] outline-none"
+                >
+                  <option value="">Selecione Equipamento</option>
+                  {equipamentos.map((equipamento) => (
+                    <option key={equipamento.id} value={String(equipamento.id)}>
+                      {equipamento.nome}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 text-[#355c5f]" />
+              </div>
+              {propostaFeedback ? (
+                <p className="text-sm text-[#7b2323]">{propostaFeedback}</p>
+              ) : null}
+            </div>
+
+            <div className="mt-14 flex justify-end">
+              <Button
+                type="button"
+                onClick={handleContinuarProposta}
+                disabled={isCreatingProposta}
+                className="h-14 w-full max-w-[245px] rounded-2xl border border-[#31635f] bg-[#69a79f] text-4xl font-semibold text-white hover:bg-[#5d9890] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isCreatingProposta ? "Enviando..." : "Continuar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isVisualizarModalOpen ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4"
+          onClick={closeVisualizarModal}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#1d4d50]/45 bg-[#f4f6f6] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Informacao do Cliente"
+          >
+            <div className="flex items-center justify-between border-b border-[#d2d7d9] px-5 py-4 sm:px-6">
+              <h3 className="text-2xl font-semibold text-[#1d4d50] sm:text-3xl">Informacao do Cliente</h3>
+              <button
+                type="button"
+                onClick={closeVisualizarModal}
+                aria-label="Fechar visualizacao"
+                className="rounded-md p-1 text-[#5e6567] hover:bg-[#e3e7e7]"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="max-h-[80vh] overflow-y-auto px-5 py-4 sm:px-6 sm:py-5">
+              {isLoadingVisualizacao ? (
+                <p className="py-8 text-center text-sm text-[#466568]">Carregando dados do cliente...</p>
+              ) : visualizacaoFeedback ? (
+                <p className="py-8 text-center text-sm text-[#7b2323]">{visualizacaoFeedback}</p>
+              ) : visualizacaoData ? (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-[#dde2e4] bg-white px-4 py-3">
+                    <p className="text-xs font-medium tracking-wide text-[#5a5f62] uppercase">Cliente</p>
+                    <p className="mt-1 text-2xl font-semibold text-[#2f3538] break-words">{visualizacaoData.nome}</p>
+                    <p className="mt-1 text-sm text-[#2f7437] break-all">{visualizacaoData.email}</p>
+                  </div>
+
+                  <div className="rounded-xl border border-[#dde2e4] bg-white p-4">
+                    <p className="mb-3 text-lg font-semibold text-[#4d5356]">Informacoes</p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs font-medium tracking-wide text-[#5a5f62] uppercase">Nome</p>
+                        <p className="text-base font-semibold text-[#2f3538] break-words">{visualizacaoData.nome}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium tracking-wide text-[#5a5f62] uppercase">Telefone</p>
+                        <p className="text-base font-semibold text-[#2f3538] break-all">{visualizacaoData.telefone}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium tracking-wide text-[#5a5f62] uppercase">Email</p>
+                        <p className="text-base font-semibold text-[#2f3538] break-all">{visualizacaoData.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium tracking-wide text-[#5a5f62] uppercase">Documento</p>
+                        <p className="text-base font-semibold text-[#2f3538] break-all">{visualizacaoData.documento}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden rounded-xl border border-[#d8dddf]">
+                    <div className="grid grid-cols-2 bg-[#c8dfde] px-4 py-3 text-sm font-semibold text-[#1d4d50]">
+                      <p>Etiqueta</p>
+                      <p>Data</p>
+                    </div>
+                    <div className="max-h-56 overflow-y-auto bg-white">
+                      {visualizacaoData.etiquetas.length > 0 ? (
+                        visualizacaoData.etiquetas.map((etiqueta, index) => (
+                          <div
+                            key={`${etiqueta.etiqueta}-${etiqueta.data_criacao ?? "sem-data"}-${index}`}
+                            className="grid grid-cols-2 border-t border-[#e3e6e7] px-4 py-3 text-sm text-[#2f3538]"
+                          >
+                            <p>{etiqueta.etiqueta}</p>
+                            <p>{formatVisualizacaoDateTime(etiqueta.data_criacao)}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="border-t border-[#e3e6e7] px-4 py-3 text-sm text-[#5a5f62]">
+                          Nenhuma etiqueta registrada.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="py-8 text-center text-sm text-[#466568]">Nenhum dado encontrado.</p>
+              )}
             </div>
           </div>
         </div>

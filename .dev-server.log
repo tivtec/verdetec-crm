@@ -339,3 +339,176 @@
  GET /clientes?nome=Clayton 200 in 285ms (compile: 6ms, proxy.ts: 113ms, render: 165ms)
  GET /clientes?nome=Clayton 200 in 195ms (compile: 7ms, proxy.ts: 80ms, render: 109ms)
  GET /clientes?nome=Clayton 200 in 620ms (compile: 4ms, proxy.ts: 524ms, render: 92ms)
+ GET /clientes?nome=Clayton 200 in 171ms (compile: 5ms, proxy.ts: 60ms, render: 106ms)
+ GET /clientes?nome=Clayton 200 in 358ms (compile: 4ms, proxy.ts: 255ms, render: 99ms)
+ GET /clientes?nome=Clayton 200 in 603ms (compile: 5ms, proxy.ts: 537ms, render: 61ms)
+ GET /clientes?nome=Clayton 200 in 360ms (compile: 84ms, proxy.ts: 150ms, render: 126ms)
+ GET /clientes?nome=Clayton 200 in 402ms (compile: 50ms, proxy.ts: 187ms, render: 165ms)
+ GET /clientes?nome=Clayton 200 in 357ms (compile: 32ms, proxy.ts: 189ms, render: 136ms)
+ GET /clientes?nome=Clayton 200 in 349ms (compile: 36ms, proxy.ts: 120ms, render: 193ms)
+ GET /clientes?nome=Clayton 200 in 404ms (compile: 29ms, proxy.ts: 259ms, render: 115ms)
+ GET /clientes?nome=Clayton 200 in 377ms (compile: 53ms, proxy.ts: 170ms, render: 153ms)
+ GET /clientes?nome=Clayton 200 in 269ms (compile: 31ms, proxy.ts: 98ms, render: 141ms)
+ GET /clientes?nome=Clayton 200 in 260ms (compile: 36ms, proxy.ts: 104ms, render: 120ms)
+ GET /clientes?nome=Clayton 200 in 258ms (compile: 31ms, proxy.ts: 122ms, render: 105ms)
+ GET /clientes?nome=Clayton 200 in 634ms (compile: 67ms, proxy.ts: 408ms, render: 159ms)
+ GET /clientes?nome=Clayton 200 in 929ms (compile: 594ms, proxy.ts: 201ms, render: 135ms)
+ GET /clientes?nome=Clayton 200 in 147ms (compile: 9ms, proxy.ts: 67ms, render: 71ms)
+ GET /clientes?nome=Clayton 200 in 216ms (compile: 7ms, proxy.ts: 106ms, render: 103ms)
+[clientes/criar-proposta][522bae5e-b1ee-4c34-9a20-379936062613] request.received 
+[clientes/criar-proposta][522bae5e-b1ee-4c34-9a20-379936062613] request.parsed_payload { id_usuario: 56, id_agregacao: 48401, id_equipamento: 1 }
+[clientes/criar-proposta][522bae5e-b1ee-4c34-9a20-379936062613] resolve.id_agregacao.from_payload { value: 48401 }
+[clientes/criar-proposta][522bae5e-b1ee-4c34-9a20-379936062613] webhook.request {
+  endpoint: 'https://whvtec2.verdetec.dev.br/webhook/68fb6120-1f8d-473e-b8f3-2c1b5f09f99a',
+  payload: { id_agregacao: 48401, id_equipamento: 1 }
+}
+[clientes/criar-proposta][522bae5e-b1ee-4c34-9a20-379936062613] webhook.response {
+  status: 200,
+  ok: true,
+  body: {
+    resposta: 'Proposta criada com e Agregação Atualizada com sucesso!',
+    fone: '51990006204'
+  }
+}
+[clientes/criar-proposta][522bae5e-b1ee-4c34-9a20-379936062613] request.success { duration_ms: 17026 }
+ POST /api/clientes/criar-proposta 200 in 17.7s (compile: 698ms, proxy.ts: 9ms, render: 17.0s)
+ GET /clientes?nome=Clayton 200 in 487ms (compile: 117ms, proxy.ts: 237ms, render: 133ms)
+[clientes/criar-proposta][0210436a-3712-4d5f-a59d-7047e27b8717] request.received 
+[clientes/criar-proposta][0210436a-3712-4d5f-a59d-7047e27b8717] request.parsed_payload {
+  id_agregacao: 48476,
+  id_pessoa: 28042,
+  id_equipamento: 3,
+  id_usuario: 87
+}
+[clientes/criar-proposta][0210436a-3712-4d5f-a59d-7047e27b8717] resolve.id_agregacao.from_payload { value: 48476 }
+[clientes/criar-proposta][0210436a-3712-4d5f-a59d-7047e27b8717] webhook.request {
+  endpoint: 'https://whvtec2.verdetec.dev.br/webhook/68fb6120-1f8d-473e-b8f3-2c1b5f09f99a',
+  payload: { id_agregacao: 48476, id_equipamento: 3 }
+}
+ GET /clientes?nome=Clayton 200 in 252ms (compile: 62ms, proxy.ts: 52ms, render: 138ms)
+[clientes/criar-proposta][0210436a-3712-4d5f-a59d-7047e27b8717] webhook.response {
+  status: 200,
+  ok: true,
+  body: {
+    resposta: 'Proposta criada com e Agregação Atualizada com sucesso!',
+    fone: '91985691492'
+  }
+}
+[clientes/criar-proposta][0210436a-3712-4d5f-a59d-7047e27b8717] request.success { duration_ms: 17106 }
+ POST /api/clientes/criar-proposta 200 in 17.5s (compile: 262ms, proxy.ts: 116ms, render: 17.1s)
+ GET /clientes?nome=Clayton 200 in 1848ms (compile: 6ms, proxy.ts: 122ms, render: 1720ms)
+ GET /clientes?nome=Clayton 200 in 1143ms (compile: 12ms, proxy.ts: 102ms, render: 1028ms)
+ GET /clientes?nome=Clayton 200 in 1074ms (compile: 96ms, proxy.ts: 853ms, render: 126ms)
+ GET /clientes?nome=Clayton 200 in 139ms (compile: 8ms, proxy.ts: 67ms, render: 64ms)
+ GET /clientes?nome=Clayton 200 in 483ms (compile: 42ms, proxy.ts: 312ms, render: 129ms)
+ GET /clientes?nome=Clayton 200 in 343ms (compile: 26ms, proxy.ts: 194ms, render: 124ms)
+ GET /clientes?nome=Clayton 200 in 429ms (compile: 27ms, proxy.ts: 295ms, render: 107ms)
+ GET /clientes?nome=Clayton 200 in 337ms (compile: 47ms, proxy.ts: 199ms, render: 90ms)
+ GET /clientes?nome=Clayton 200 in 1997ms (compile: 25ms, proxy.ts: 426ms, render: 1546ms)
+[clientes/visualizar][59fd96f0-608c-4fac-ba93-f2e927fa44ed] request.received 
+[clientes/visualizar][59fd96f0-608c-4fac-ba93-f2e927fa44ed] request.parsed_payload { id_pessoa: 27356 }
+[clientes/visualizar][59fd96f0-608c-4fac-ba93-f2e927fa44ed] supabase.view.response { hasData: true, error: null }
+ POST /api/clientes/visualizar 200 in 1535ms (compile: 493ms, proxy.ts: 4ms, render: 1039ms)
+[clientes/visualizar][900f3685-1a79-430f-907b-769458a4f1fc] request.received 
+[clientes/visualizar][900f3685-1a79-430f-907b-769458a4f1fc] request.parsed_payload { id_pessoa: 28042 }
+[clientes/visualizar][900f3685-1a79-430f-907b-769458a4f1fc] supabase.view.response { hasData: true, error: null }
+ POST /api/clientes/visualizar 200 in 594ms (compile: 3ms, proxy.ts: 431ms, render: 160ms)
+[clientes/visualizar][d502d16e-9a54-405f-a572-2749d9165134] request.received 
+[clientes/visualizar][d502d16e-9a54-405f-a572-2749d9165134] request.parsed_payload { id_pessoa: 28042 }
+[clientes/visualizar][d502d16e-9a54-405f-a572-2749d9165134] supabase.view.response { hasData: true, error: null }
+ POST /api/clientes/visualizar 200 in 341ms (compile: 3ms, proxy.ts: 236ms, render: 102ms)
+ GET /clientes?nome=Clayton 200 in 411ms (compile: 56ms, proxy.ts: 211ms, render: 143ms)
+[clientes/visualizar][de24671b-6cd1-4e03-a13a-10c52fa2e665] request.received 
+[clientes/visualizar][de24671b-6cd1-4e03-a13a-10c52fa2e665] request.parsed_payload { id_pessoa: 28042 }
+[clientes/visualizar][de24671b-6cd1-4e03-a13a-10c52fa2e665] supabase.view.response { hasData: true, error: null }
+ POST /api/clientes/visualizar 200 in 365ms (compile: 11ms, proxy.ts: 198ms, render: 155ms)
+ GET /clientes?nome=Clayton 200 in 601ms (compile: 92ms, proxy.ts: 373ms, render: 136ms)
+ GET /clientes?nome=Clayton 200 in 2.6s (compile: 89ms, proxy.ts: 850ms, render: 1642ms)
+ GET /clientes?nome=Clayton 200 in 562ms (compile: 62ms, proxy.ts: 340ms, render: 160ms)
+ GET /clientes?nome=Clayton 200 in 774ms (compile: 80ms, proxy.ts: 522ms, render: 172ms)
+ GET /clientes?nome=Clayton 200 in 170ms (compile: 7ms, proxy.ts: 80ms, render: 82ms)
+ GET /clientes?nome=Clayton 200 in 340ms (compile: 32ms, proxy.ts: 206ms, render: 101ms)
+ GET /clientes?nome=Clayton 200 in 259ms (compile: 4ms, proxy.ts: 152ms, render: 103ms)
+[clientes/transferir-pessoas][b406cc80-0544-4cac-ba21-efb7b0a61818] request.received 
+[clientes/transferir-pessoas][b406cc80-0544-4cac-ba21-efb7b0a61818] request.parsed_payload { new_usuario: 56, ids_pessoas: [ 27356, 27357 ] }
+[clientes/transferir-pessoas][b406cc80-0544-4cac-ba21-efb7b0a61818] webhook.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/flutterFlow_transferir_pessoas',
+  payload: { new_usuario: 56, ids_pessoas: [ 27356, 27357 ] }
+}
+[clientes/transferir-pessoas][b406cc80-0544-4cac-ba21-efb7b0a61818] webhook.response { status: 200, ok: true, body: { message: 'Workflow was started' } }
+[clientes/transferir-pessoas][b406cc80-0544-4cac-ba21-efb7b0a61818] request.success { duration_ms: 885 }
+ POST /api/clientes/transferir-pessoas 200 in 1602ms (compile: 695ms, proxy.ts: 8ms, render: 899ms)
+[clientes/transferir-pessoas][4d4262f7-3db4-40bc-ab68-10c1da003a04] request.received 
+[clientes/transferir-pessoas][4d4262f7-3db4-40bc-ab68-10c1da003a04] request.parsed_payload { new_usuario: 56, ids_pessoas: [ 28042 ] }
+[clientes/transferir-pessoas][4d4262f7-3db4-40bc-ab68-10c1da003a04] webhook.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/flutterFlow_transferir_pessoas',
+  payload: { new_usuario: 56, ids_pessoas: [ 28042 ] }
+}
+[clientes/transferir-pessoas][4d4262f7-3db4-40bc-ab68-10c1da003a04] webhook.response { status: 200, ok: true, body: { message: 'Workflow was started' } }
+[clientes/transferir-pessoas][4d4262f7-3db4-40bc-ab68-10c1da003a04] request.success { duration_ms: 821 }
+ POST /api/clientes/transferir-pessoas 200 in 1236ms (compile: 5ms, proxy.ts: 403ms, render: 827ms)
+ GET /clientes?nome=Clayton 200 in 2.1s (compile: 36ms, proxy.ts: 65ms, render: 2.0s)
+ GET /clientes?nome=Clayton 200 in 1192ms (compile: 8ms, proxy.ts: 69ms, render: 1115ms)
+ GET /clientes?nome=Clayton 200 in 668ms (compile: 92ms, proxy.ts: 473ms, render: 103ms)
+ GET /clientes?nome=Clayton 200 in 301ms (compile: 4ms, proxy.ts: 223ms, render: 74ms)
+[clientes/transferir-pessoas][8b1c797d-0c58-4638-9187-99fcdefeddbd] request.received 
+[clientes/transferir-pessoas][8b1c797d-0c58-4638-9187-99fcdefeddbd] request.parsed_payload { new_usuario: 56, ids_pessoas: [ 28042 ] }
+[clientes/transferir-pessoas][8b1c797d-0c58-4638-9187-99fcdefeddbd] webhook.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/flutterFlow_transferir_pessoas',
+  payload: {
+    new_usuario: 56,
+    id_usuario_novo: 56,
+    ids_pessoas: [ 28042 ],
+    p_ids_pessoa: [ 28042 ],
+    autor: null
+  }
+}
+ GET /clientes?nome=Clayton 200 in 338ms (compile: 36ms, proxy.ts: 146ms, render: 156ms)
+[clientes/transferir-pessoas][8b1c797d-0c58-4638-9187-99fcdefeddbd] webhook.response { status: 200, ok: true, body: { message: 'Workflow was started' } }
+[clientes/transferir-pessoas][8b1c797d-0c58-4638-9187-99fcdefeddbd] request.success { duration_ms: 900 }
+ POST /api/clientes/transferir-pessoas 200 in 1339ms (compile: 421ms, proxy.ts: 9ms, render: 909ms)
+[clientes/transferir-pessoas][d780c185-2cdf-43f3-8d44-f6bb2ddd4a1b] request.received 
+[clientes/transferir-pessoas][d780c185-2cdf-43f3-8d44-f6bb2ddd4a1b] request.parsed_payload {
+  new_usuario: 56,
+  id_usuario_novo: 56,
+  ids_pessoas: [ 28042 ],
+  p_ids_pessoa: [ 28042 ],
+  autor: 87
+}
+[clientes/transferir-pessoas][d780c185-2cdf-43f3-8d44-f6bb2ddd4a1b] webhook.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/flutterFlow_transferir_pessoas',
+  payload: {
+    new_usuario: 56,
+    id_usuario_novo: 56,
+    ids_pessoas: [ 28042 ],
+    p_ids_pessoa: [ 28042 ],
+    autor: 87
+  }
+}
+[clientes/transferir-pessoas][d780c185-2cdf-43f3-8d44-f6bb2ddd4a1b] webhook.response { status: 200, ok: true, body: { message: 'Workflow was started' } }
+[clientes/transferir-pessoas][d780c185-2cdf-43f3-8d44-f6bb2ddd4a1b] request.success { duration_ms: 820 }
+ POST /api/clientes/transferir-pessoas 200 in 1059ms (compile: 2ms, proxy.ts: 231ms, render: 826ms)
+ GET /clientes?nome=Clayton 200 in 1522ms (compile: 3ms, proxy.ts: 58ms, render: 1461ms)
+ GET /clientes?nome=Clayton 200 in 1061ms (compile: 7ms, proxy.ts: 65ms, render: 989ms)
+ GET /clientes?usuario=56&nome=Clayton 200 in 3.3s (compile: 6ms, proxy.ts: 690ms, render: 2.6s)
+ GET /clientes?usuario=89&nome=Clayton 200 in 2.1s (compile: 7ms, proxy.ts: 70ms, render: 1979ms)
+ GET /clientes?usuario=89 200 in 2.4s (compile: 3ms, proxy.ts: 524ms, render: 1872ms)
+ GET /clientes?usuario=89 200 in 604ms (compile: 92ms, proxy.ts: 392ms, render: 120ms)
+ GET /empresas 200 in 933ms (compile: 650ms, proxy.ts: 72ms, render: 211ms)
+ GET /usuarios 200 in 1604ms (compile: 699ms, proxy.ts: 648ms, render: 257ms)
+ GET /usuarios 200 in 711ms (compile: 59ms, proxy.ts: 585ms, render: 68ms)
+ GET /usuarios 200 in 343ms (compile: 4ms, proxy.ts: 300ms, render: 39ms)
+ GET /usuarios 200 in 546ms (compile: 7ms, proxy.ts: 492ms, render: 47ms)
+ GET /usuarios 404 in 1126ms (compile: 963ms, proxy.ts: 124ms, render: 39ms)
+ GET /usuarios 404 in 92ms (compile: 6ms, proxy.ts: 71ms, render: 15ms)
+ GET /usuarios 404 in 273ms (compile: 9ms, proxy.ts: 164ms, render: 100ms)
+ GET /usuarios 200 in 1314ms (compile: 870ms, proxy.ts: 249ms, render: 195ms)
+ GET /usuarios 200 in 200ms (compile: 6ms, proxy.ts: 112ms, render: 81ms)
+ GET /usuarios 200 in 256ms (compile: 8ms, proxy.ts: 136ms, render: 112ms)
+ GET /usuarios 200 in 310ms (compile: 7ms, proxy.ts: 73ms, render: 229ms)
+ GET /usuarios 200 in 490ms (compile: 75ms, proxy.ts: 287ms, render: 128ms)
+ GET /usuarios 200 in 2.3s (compile: 191ms, proxy.ts: 1965ms, render: 140ms)
+ GET /usuarios 200 in 2.8s (compile: 86ms, proxy.ts: 1207ms, render: 1527ms)
+ GET /usuarios 200 in 277ms (compile: 9ms, proxy.ts: 199ms, render: 69ms)
+ GET /usuarios 200 in 578ms (compile: 243ms, proxy.ts: 124ms, render: 211ms)
+ GET /usuarios 200 in 299ms (compile: 58ms, proxy.ts: 152ms, render: 89ms)

@@ -23,7 +23,7 @@ const items = [
   { href: "/pedido", label: "Pedidos", icon: ClipboardList },
   { href: "/usuarios", label: "Usuários", icon: UserRound },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
-  { href: "/solicitacao-portal", label: "Portal", icon: ShieldCheck },
+  { href: "/solicitacao-portal", label: "Solicitacoes", icon: ShieldCheck },
   { href: "/invoice", label: "Invoice", icon: ReceiptText },
 ] as const;
 

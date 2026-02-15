@@ -16,6 +16,11 @@ export type ClienteRepresentanteOption = {
   nome: string;
 };
 
+export type ClienteEquipamentoOption = {
+  id: number;
+  nome: string;
+};
+
 export type ClientesControlFiltersValue = {
   usuario: string;
   telefone: string;
