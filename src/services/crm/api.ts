@@ -3218,5 +3218,81 @@ export async function getDashboardOrcamentosSnapshot(
   };
 }
 
+export type TintimLinkRow = {
+  id: string;
+  createdAt: string;
+  usuarioId: number | null;
+  pagina: string;
+  linkTintim: string;
+  frase: string;
+};
+
+export type TintimLinksSnapshot = {
+  rows: TintimLinkRow[];
+  hasNextPage: boolean;
+};
+
+export type TintimLinksFilters = {
+  limit?: number;
+  offset?: number;
+  usuarioId?: number | null;
+  utm?: string;
+};
+
+export async function getTintimLinksSnapshot(
+  filters: TintimLinksFilters = {},
+): Promise<TintimLinksSnapshot> {
+  const limit = Math.max(1, Math.trunc(asNumber(filters.limit, 10)));
+  const offset = Math.max(0, Math.trunc(asNumber(filters.offset, 0)));
+  const fetchSize = limit + 1;
+  const usuarioId = asNullablePositiveInt(filters.usuarioId);
+  const utm = asString(filters.utm).trim();
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    let query = supabase
+      .from("link_campanha_tintim")
+      .select("id,created_at,id_usuario,pagina,link_tintim,frase")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + fetchSize - 1);
+
+    if (usuarioId) {
+      query = query.eq("id_usuario", usuarioId);
+    }
+
+    if (utm.length > 0) {
+      query = query.ilike("pagina", `%${utm}%`);
+    }
+
+    const { data, error } = await query;
+    if (error || !data) {
+      return {
+        rows: [],
+        hasNextPage: false,
+      };
+    }
+
+    const mappedRows = (data as Array<Record<string, unknown>>).map((row) => ({
+      id: asString(row.id),
+      createdAt: normalizeDate(row.created_at),
+      usuarioId: asNullablePositiveInt(row.id_usuario),
+      pagina: asString(row.pagina),
+      linkTintim: asString(row.link_tintim),
+      frase: asString(row.frase),
+    }));
+
+    return {
+      rows: mappedRows.slice(0, limit),
+      hasNextPage: mappedRows.length > limit,
+    };
+  } catch {
+    return {
+      rows: [],
+      hasNextPage: false,
+    };
+  }
+}
+
 
 

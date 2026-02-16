@@ -368,3 +368,263 @@ TypeError: fetch failed
  GET /campanhas?tab=jornada&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 293ms (compile: 5ms, proxy.ts: 70ms, render: 218ms)
  GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 306ms (compile: 7ms, proxy.ts: 64ms, render: 234ms)
  GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 733ms (compile: 32ms, proxy.ts: 630ms, render: 70ms)
+ GET /campanhas?tab=analytics&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 873ms (compile: 5ms, proxy.ts: 556ms, render: 312ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 1079ms (compile: 4ms, proxy.ts: 714ms, render: 361ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 273ms (compile: 4ms, proxy.ts: 224ms, render: 45ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 169ms (compile: 4ms, proxy.ts: 132ms, render: 33ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 553ms (compile: 26ms, proxy.ts: 473ms, render: 55ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 237ms (compile: 3ms, proxy.ts: 202ms, render: 32ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 209ms (compile: 22ms, proxy.ts: 135ms, render: 52ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 167ms (compile: 4ms, proxy.ts: 124ms, render: 40ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 231ms (compile: 6ms, proxy.ts: 167ms, render: 58ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 300ms (compile: 6ms, proxy.ts: 217ms, render: 77ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 177ms (compile: 6ms, proxy.ts: 131ms, render: 41ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 293ms (compile: 26ms, proxy.ts: 195ms, render: 73ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 360ms (compile: 45ms, proxy.ts: 222ms, render: 94ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 729ms (compile: 5ms, proxy.ts: 366ms, render: 358ms)
+ GET /dashboard 200 in 279ms (compile: 4ms, proxy.ts: 149ms, render: 125ms)
+ GET /dashboard 200 in 5.4s (compile: 898ms, proxy.ts: 57ms, render: 4.5s)
+ GET /campanhas 200 in 152ms (compile: 6ms, proxy.ts: 123ms, render: 23ms)
+ GET /clientes 200 in 2.4s (compile: 11ms, proxy.ts: 159ms, render: 2.2s)
+ GET /empresas 200 in 229ms (compile: 5ms, proxy.ts: 109ms, render: 115ms)
+ GET /empresas 200 in 873ms (compile: 472ms, proxy.ts: 63ms, render: 338ms)
+ GET /pedido 200 in 144ms (compile: 5ms, proxy.ts: 58ms, render: 82ms)
+ GET /pedido 200 in 709ms (compile: 450ms, proxy.ts: 62ms, render: 197ms)
+ GET /usuarios 200 in 791ms (compile: 561ms, proxy.ts: 64ms, render: 166ms)
+ GET /usuarios 200 in 138ms (compile: 3ms, proxy.ts: 54ms, render: 81ms)
+ GET /agenda 200 in 874ms (compile: 473ms, proxy.ts: 62ms, render: 340ms)
+ GET /agenda 200 in 372ms (compile: 4ms, proxy.ts: 113ms, render: 256ms)
+ GET /solicitacao-portal 200 in 784ms (compile: 482ms, proxy.ts: 61ms, render: 241ms)
+ GET /solicitacao-portal 200 in 304ms (compile: 22ms, proxy.ts: 122ms, render: 161ms)
+ GET /invoice 200 in 455ms (compile: 357ms, proxy.ts: 71ms, render: 27ms)
+ GET /invoice 200 in 78ms (compile: 3ms, proxy.ts: 49ms, render: 26ms)
+ GET /campanhas 200 in 89ms (compile: 10ms, proxy.ts: 57ms, render: 23ms)
+ GET /clientes 200 in 1974ms (compile: 11ms, proxy.ts: 310ms, render: 1653ms)
+ GET /clientes 200 in 655ms (compile: 52ms, proxy.ts: 448ms, render: 155ms)
+ GET /clientes 200 in 452ms (compile: 27ms, proxy.ts: 321ms, render: 105ms)
+ GET /campanhas 200 in 1079ms (compile: 379ms, proxy.ts: 652ms, render: 48ms)
+ GET /campanhas 200 in 112ms (compile: 4ms, proxy.ts: 65ms, render: 43ms)
+ GET /campanhas 200 in 214ms (compile: 25ms, proxy.ts: 119ms, render: 70ms)
+ GET /campanhas 200 in 687ms (compile: 27ms, proxy.ts: 606ms, render: 54ms)
+ GET /campanhas 200 in 894ms (compile: 7ms, proxy.ts: 565ms, render: 322ms)
+ GET /clientes 200 in 1945ms (compile: 10ms, proxy.ts: 140ms, render: 1795ms)
+ GET /campanhas 200 in 104ms (compile: 4ms, proxy.ts: 79ms, render: 21ms)
+ GET /campanhas 200 in 669ms (compile: 27ms, proxy.ts: 587ms, render: 55ms)
+ GET /clientes 200 in 2.0s (compile: 8ms, proxy.ts: 112ms, render: 1897ms)
+ GET /clientes 200 in 453ms (compile: 31ms, proxy.ts: 308ms, render: 114ms)
+ GET /campanhas 200 in 105ms (compile: 6ms, proxy.ts: 76ms, render: 23ms)
+ GET /dashboard 200 in 4.5s (compile: 9ms, proxy.ts: 117ms, render: 4.3s)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 465ms (compile: 4ms, proxy.ts: 171ms, render: 291ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 893ms (compile: 21ms, proxy.ts: 823ms, render: 48ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 516ms (compile: 24ms, proxy.ts: 446ms, render: 47ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 476ms (compile: 23ms, proxy.ts: 408ms, render: 45ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 286ms (compile: 25ms, proxy.ts: 210ms, render: 51ms)
+ GET /campanhas?tab=cadastrar&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 1261ms (compile: 8ms, proxy.ts: 846ms, render: 407ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 279ms (compile: 7ms, proxy.ts: 60ms, render: 212ms)
+ GET /campanhas?tab=cadastrar&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 259ms (compile: 5ms, proxy.ts: 58ms, render: 196ms)
+ GET /campanhas?tab=filtros&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 266ms (compile: 3ms, proxy.ts: 57ms, render: 207ms)
+ GET /campanhas?tab=jornada&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 295ms (compile: 6ms, proxy.ts: 60ms, render: 228ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 339ms (compile: 2ms, proxy.ts: 87ms, render: 250ms)
+ GET /campanhas?tab=cadastrar&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 284ms (compile: 5ms, proxy.ts: 54ms, render: 225ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 296ms (compile: 4ms, proxy.ts: 59ms, render: 234ms)
+⨯ Error: Attempted to call normalizeCampanhaTab() from the server but normalizeCampanhaTab is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at CampanhasPage (src\app\(crm)\campanhas\page.tsx:42:41)
+  40 |   const params = await searchParams;
+  41 |   const defaultRange = getDefaultDateRange();
+> 42 |   const activeTab = normalizeCampanhaTab(getSearchValue(params.tab));
+     |                                         ^
+  43 |   const dataInicio = normalizeInputDate(getSearchValue(params.data_inicio), defaultRange.dataInicio);
+  44 |   const dataFim = normalizeInputDate(getSearchValue(params.data_fim), defaultRange.dataFim);
+  45 | {
+  digest: '3530821638'
+}
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 980ms (compile: 47ms, proxy.ts: 857ms, render: 77ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ Error: Attempted to call normalizeCampanhaTab() from the server but normalizeCampanhaTab is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at CampanhasPage (src\app\(crm)\campanhas\page.tsx:42:41)
+  40 |   const params = await searchParams;
+  41 |   const defaultRange = getDefaultDateRange();
+> 42 |   const activeTab = normalizeCampanhaTab(getSearchValue(params.tab));
+     |                                         ^
+  43 |   const dataInicio = normalizeInputDate(getSearchValue(params.data_inicio), defaultRange.dataInicio);
+  44 |   const dataFim = normalizeInputDate(getSearchValue(params.data_fim), defaultRange.dataFim);
+  45 | {
+  digest: '3530821638'
+}
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 1962ms (compile: 1190ms, proxy.ts: 696ms, render: 75ms)
+⨯ Error: Attempted to call normalizeCampanhaTab() from the server but normalizeCampanhaTab is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at CampanhasPage (src\app\(crm)\campanhas\page.tsx:42:41)
+  40 |   const params = await searchParams;
+  41 |   const defaultRange = getDefaultDateRange();
+> 42 |   const activeTab = normalizeCampanhaTab(getSearchValue(params.tab));
+     |                                         ^
+  43 |   const dataInicio = normalizeInputDate(getSearchValue(params.data_inicio), defaultRange.dataInicio);
+  44 |   const dataFim = normalizeInputDate(getSearchValue(params.data_fim), defaultRange.dataFim);
+  45 | {
+  digest: '3530821638'
+}
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 500 in 555ms (compile: 5ms, proxy.ts: 214ms, render: 336ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ Error: Attempted to call normalizeCampanhaTab() from the server but normalizeCampanhaTab is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at CampanhasPage (src\app\(crm)\campanhas\page.tsx:42:41)
+  40 |   const params = await searchParams;
+  41 |   const defaultRange = getDefaultDateRange();
+> 42 |   const activeTab = normalizeCampanhaTab(getSearchValue(params.tab));
+     |                                         ^
+  43 |   const dataInicio = normalizeInputDate(getSearchValue(params.data_inicio), defaultRange.dataInicio);
+  44 |   const dataFim = normalizeInputDate(getSearchValue(params.data_fim), defaultRange.dataFim);
+  45 | {
+  digest: '3530821638'
+}
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 500 in 1614ms (compile: 42ms, proxy.ts: 680ms, render: 891ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 794ms (compile: 26ms, proxy.ts: 464ms, render: 305ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 668ms (compile: 29ms, proxy.ts: 531ms, render: 109ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 970ms (compile: 7ms, proxy.ts: 629ms, render: 334ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 838ms (compile: 4ms, proxy.ts: 808ms, render: 26ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 1145ms (compile: 26ms, proxy.ts: 731ms, render: 388ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 368ms (compile: 26ms, proxy.ts: 298ms, render: 44ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 725ms (compile: 6ms, proxy.ts: 397ms, render: 323ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 802ms (compile: 26ms, proxy.ts: 618ms, render: 158ms)
+ POST /api/campanhas/tintim/cadastrar 200 in 1521ms (compile: 650ms, proxy.ts: 627ms, render: 244ms)
+ POST /api/campanhas/tintim/cadastrar 200 in 531ms (compile: 3ms, proxy.ts: 327ms, render: 200ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 910ms (compile: 27ms, proxy.ts: 538ms, render: 346ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 355ms (compile: 4ms, proxy.ts: 318ms, render: 33ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 612ms (compile: 97ms, proxy.ts: 140ms, render: 375ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 484ms (compile: 52ms, proxy.ts: 302ms, render: 129ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 732ms (compile: 56ms, proxy.ts: 304ms, render: 372ms)
+ POST /api/campanhas/tintim/cadastrar 200 in 1541ms (compile: 628ms, proxy.ts: 653ms, render: 259ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 1308ms (compile: 89ms, proxy.ts: 1150ms, render: 69ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 843ms (compile: 47ms, proxy.ts: 448ms, render: 348ms)
+⨯ ./src/components/campanhas/campanhas-dash-shell.tsx
+Error:   x Expected '</', got ':'
+     ,-[C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\campanhas\campanhas-dash-shell.tsx:682:1]
+ 679 |                 </button>
+ 680 |               </td>
+ 681 |             </tr>
+ 682 |                   )) : (
+     :                      ^
+ 683 |                     <tr className="border-t border-[#d8dddf] bg-[#f4f6f6]">
+ 684 |                       <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#466568]">
+ 685 |                         Nenhum registro Tintim encontrado.
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/campanhas/campanhas-dash-shell.tsx
+./src/app/(crm)/campanhas/page.tsx
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 500 in 554ms (compile: 4ms, proxy.ts: 532ms, render: 18ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 500 in 72ms (compile: 4ms, proxy.ts: 61ms, render: 7ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 592ms (compile: 35ms, proxy.ts: 153ms, render: 403ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=2 200 in 512ms (compile: 3ms, proxy.ts: 337ms, render: 173ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=2 200 in 208ms (compile: 4ms, proxy.ts: 166ms, render: 37ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=2 200 in 411ms (compile: 29ms, proxy.ts: 63ms, render: 319ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=3 200 in 211ms (compile: 4ms, proxy.ts: 70ms, render: 136ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=2 200 in 288ms (compile: 4ms, proxy.ts: 111ms, render: 173ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 196ms (compile: 4ms, proxy.ts: 53ms, render: 139ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=2 200 in 270ms (compile: 4ms, proxy.ts: 123ms, render: 143ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=3 200 in 194ms (compile: 4ms, proxy.ts: 56ms, render: 134ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=4 200 in 226ms (compile: 6ms, proxy.ts: 57ms, render: 163ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=3 200 in 206ms (compile: 5ms, proxy.ts: 57ms, render: 144ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=2 200 in 203ms (compile: 4ms, proxy.ts: 65ms, render: 135ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 252ms (compile: 4ms, proxy.ts: 110ms, render: 138ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1&tintim_usuario=89 200 in 684ms (compile: 3ms, proxy.ts: 499ms, render: 182ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 262ms (compile: 3ms, proxy.ts: 120ms, render: 140ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1&tintim_utm=LT-CLIENTES-E-PRIME-50-AMS 200 in 269ms (compile: 4ms, proxy.ts: 116ms, render: 148ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 364ms (compile: 4ms, proxy.ts: 166ms, render: 193ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 624ms (compile: 6ms, proxy.ts: 557ms, render: 61ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 818ms (compile: 27ms, proxy.ts: 464ms, render: 327ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 434ms (compile: 27ms, proxy.ts: 298ms, render: 110ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 724ms (compile: 28ms, proxy.ts: 277ms, render: 419ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 2.4s (compile: 26ms, proxy.ts: 2.3s, render: 117ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 5.7s (compile: 30ms, proxy.ts: 2.3s, render: 3.4s)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 1956ms (compile: 1294ms, proxy.ts: 550ms, render: 112ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 159ms (compile: 23ms, proxy.ts: 97ms, render: 39ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 1222ms (compile: 836ms, proxy.ts: 298ms, render: 88ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 153ms (compile: 7ms, proxy.ts: 88ms, render: 58ms)
+ POST /api/campanhas/tintim/editar 200 in 1596ms (compile: 724ms, proxy.ts: 666ms, render: 207ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 365ms (compile: 26ms, proxy.ts: 71ms, render: 268ms)
+ POST /api/campanhas/tintim/deletar 200 in 686ms (compile: 296ms, proxy.ts: 153ms, render: 238ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 380ms (compile: 25ms, proxy.ts: 86ms, render: 268ms)
+⨯ ./src/components/layout/app-sidebar.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-sidebar.tsx
+    1: O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Import trace for requested module:
+./src/components/layout/app-sidebar.tsx
+⨯ ./src/components/layout/app-sidebar.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-sidebar.tsx
+    1: O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Import trace for requested module:
+./src/components/layout/app-sidebar.tsx
+./src/components/layout/app-shell.tsx
+./src/layouts/crm-layout.tsx
+./src/app/(crm)/layout.tsx
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 500 in 663ms (compile: 8ms, proxy.ts: 644ms, render: 11ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 500 in 64ms (compile: 4ms, proxy.ts: 54ms, render: 7ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16&tintim_page=1 200 in 687ms (compile: 124ms, proxy.ts: 148ms, render: 415ms)
+ GET /mix-sementes 404 in 1202ms (compile: 1024ms, proxy.ts: 126ms, render: 52ms)
+ GET /mix-sementes 404 in 114ms (compile: 4ms, proxy.ts: 64ms, render: 46ms)
+ GET /mix-sementes 200 in 1399ms (compile: 965ms, proxy.ts: 285ms, render: 148ms)
+ GET /mix-sementes 200 in 149ms (compile: 5ms, proxy.ts: 116ms, render: 29ms)
+ GET /mix-sementes 200 in 561ms (compile: 3ms, proxy.ts: 141ms, render: 418ms)
+ GET /mix-sementes 200 in 456ms (compile: 5ms, proxy.ts: 62ms, render: 389ms)
+ GET /widgets/mix-sementes.html 404 in 109ms (compile: 15ms, proxy.ts: 59ms, render: 34ms)
+ GET /mix-sementes 200 in 804ms (compile: 5ms, proxy.ts: 547ms, render: 253ms)
+⨯ ./src/components/layout/app-sidebar.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-sidebar.tsx
+    1: O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Import trace for requested module:
+./src/components/layout/app-sidebar.tsx
+⨯ ./src/components/layout/app-sidebar.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\layout\app-sidebar.tsx
+    1: O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Import trace for requested module:
+./src/components/layout/app-sidebar.tsx
+./src/components/layout/app-shell.tsx
+./src/layouts/crm-layout.tsx
+./src/app/(crm)/layout.tsx
+ GET /mix-sementes 500 in 703ms (compile: 6ms, proxy.ts: 686ms, render: 11ms)
+ GET /mix-sementes 500 in 66ms (compile: 3ms, proxy.ts: 58ms, render: 6ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /mix-sementes 200 in 713ms (compile: 91ms, proxy.ts: 91ms, render: 532ms)
+ GET /mix-sementes 200 in 395ms (compile: 40ms, proxy.ts: 287ms, render: 68ms)

@@ -1,0 +1,577 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora - Mix de Sementes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --pri: #00A859;
+      --sec: #006437;
+      --bg: #F7F7F7;
+      --txt: #333;
+      --card: #fff;
+      --bd: #E0E0E0;
+      --warning-color: #ff9800;
+      --error-color: #d32f2f;
+      --success-color: #388e3c;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Montserrat, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      color: var(--sec);
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-pri {
+      background: var(--pri);
+      color: #fff;
+    }
+
+    .btn-sec {
+      background: #e9ecef;
+      color: var(--txt);
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: #fff;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .g2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .g4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      margin: 0 0 6px;
+      color: #555;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--txt);
+      transition: border-color 0.3s;
+    }
+
+    select {
+      min-width: 150px;
+      width: auto;
+      padding: 10px;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8.825L1.175 4 2.05 3.125 6 7.075 9.95 3.125 10.825 4z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 30px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    select option {
+      white-space: normal;
+      padding: 5px;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--pri);
+    }
+
+    .table-container {
+      overflow-x: auto;
+      margin-bottom: 18px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      min-width: 980px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid var(--bd);
+    }
+
+    thead th {
+      background: #f1f3f5;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: #555;
+    }
+
+    tr:hover {
+      background: #fafafa;
+    }
+
+    .total {
+      font-weight: 700;
+    }
+
+    .resumo {
+      border: 2px solid var(--pri);
+      border-radius: 12px;
+      padding: 16px;
+      background: var(--card);
+    }
+
+    .right {
+      text-align: right;
+    }
+
+    .small {
+      font-size: 13px;
+      color: #777;
+      margin: 4px 0 12px;
+    }
+
+    .logo {
+      height: 36px;
+    }
+
+    @media (max-width: 768px) {
+      .g2, .g4 {
+        grid-template-columns: 1fr;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      select {
+        font-size: 14px;
+        padding: 8px 30px 8px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Calculadora - Mix de Sementes</h1>
+    </div>
+
+    <div class="card">
+      <div class="grid g4">
+        <div>
+          <label>Total de kg no mix</label>
+          <input type="number" id="totalKg" value="10" min="0" step="0.1">
+        </div>
+        <div>
+          <label>Modo de percentual</label>
+          <select id="percentMode">
+            <option value="0.01">0-1 (ex: 0.35)</option>
+            <option value="1" selected>0-100 (ex: 35%)</option>
+          </select>
+        </div>
+        <div>
+          <label>Qtd/KG proposta VTEC-500</label>
+          <input type="number" id="vtec500" value="0.875" min="0" step="0.001">
+        </div>
+        <div>
+          <label>Qtd/KG proposta VTEC-2000</label>
+          <input type="number" id="vtec2000" value="3.5" min="0" step="0.001">
+        </div>
+      </div>
+
+      <div class="small">Configure o desconto aplicavel ao valor total</div>
+      <div class="grid g2">
+        <div>
+          <label>Desconto (%)</label>
+          <input type="number" id="desconto" value="0" min="0" max="100" step="0.01">
+        </div>
+        <div style="display: flex; align-items: flex-end; gap: 10px;">
+          <button id="addRowBtn" class="btn btn-pri">Adicionar Especie</button>
+          <!--<button id="exportCsvBtn" class="btn btn-sec">Exportar CSV</button>-->
+        </div>
+      </div>
+    </div>
+
+    <div class="card table-container">
+      <table class="table" id="mixTable">
+        <thead>
+          <tr>
+            <th>Especie</th>
+            <th>% no mix</th>
+            <th>Kg (calculado)</th>
+            <th>Valor (R$/kg)</th>
+            <th>Tam. Pacote (kg)</th>
+            <th>Qtd embalagens</th>
+            <th>Valor total (R$)</th>
+            <th>Qtd/KG VTEC-500</th>
+            <th>Qtd/KG VTEC-2000</th>
+            <th>Acoes</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr class="total">
+            <td>Total</td>
+            <td id="totalPercent" class="right"></td>
+            <td id="totalKgCalc" class="right"></td>
+            <td></td>
+            <td></td>
+            <td id="totalPackages" class="right"></td>
+            <td id="grandTotal" class="right"></td>
+            <td id="totalBatches500" class="right"></td>
+            <td id="totalBatches2000" class="right"></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="resumo" id="summary">
+      <h3>Resumo do Mix</h3>
+      <p>Soma das porcentagens: <span id="sumPercent" class="total">0%</span></p>
+      <p>Valor total das especies: R$ <span id="valorTotalEspecies" class="total">0,00</span></p>
+      <p>Valor total com desconto: R$ <span id="valorComDesconto" class="total">0,00</span></p>
+      <p>Valor medio por kg: R$ <span id="valorMedioKg" class="total">0,00</span></p>
+    </div>
+  </div>
+
+<script>
+const MixCalculator = {
+  speciesInfo: {
+    "Decumbens": {price: 28, pack: 20},
+    "Ruziziensis": {price: 15, pack: 20},
+    "Estilozantes": {price: 55, pack: 20},
+    "Dormideira": {price: 11.4, pack: 10},
+    "Corda de Viola": {price: 9, pack: 20},
+    "Aveia Preta": {price: 8, pack: 20},
+    "Bermuda": {price: 79, pack: 20},
+    "Pensacola": {price: 55, pack: 5},
+    "Azevem": {price: 9, pack: 20},
+    "Festuca": {price: 55, pack: 20},
+    "Sao Carlos": {price: 145, pack: 5},
+    "Brizantha": {price: 29, pack: 15},
+    "Gordura": {price: 45, pack: 20},
+    "Crot. Juncea": {price: 18, pack: 20},
+    "Crotalaria Ochro.": {price: 12, pack: 20},
+    "Mombaca": {price: 16.5, pack: 20},
+    "Capim Custodio": {price: 14, pack: 20},
+    "Mucuna Preta/Cinza": {price: 12, pack: 20},
+    "Feijao Guandu": {price: 12, pack: 20},
+    "Nabo Forrageiro": {price: 8, pack: 20},
+    "Milheto": {price: 4, pack: 20},
+    "Girassol": {price: 9, pack: 20},
+    "Fedegoso": {price: 9, pack: 20},
+    "Andropogon": {price: 15, pack: 7},
+    "Batatais": {price: 70, pack: 20},
+    "Apaga Fogo": {price: 18, pack: 20},
+    "Painco": {price: 5, pack: 20}
+  },
+
+  elements: {},
+
+  init: function() {
+    this.cacheElements();
+    this.setupEventListeners();
+    this.addInitialRow();
+  },
+
+  cacheElements: function() {
+    this.elements = {
+      tbody: document.getElementById('tbody'),
+      totalKg: document.getElementById('totalKg'),
+      vtec500: document.getElementById('vtec500'),
+      vtec2000: document.getElementById('vtec2000'),
+      percentMode: document.getElementById('percentMode'),
+      desconto: document.getElementById('desconto'),
+      addRowBtn: document.getElementById('addRowBtn'),
+      exportCsvBtn: document.getElementById('exportCsvBtn'),
+      totalPercent: document.getElementById('totalPercent'),
+      totalKgCalc: document.getElementById('totalKgCalc'),
+      totalPackages: document.getElementById('totalPackages'),
+      grandTotal: document.getElementById('grandTotal'),
+      totalBatches500: document.getElementById('totalBatches500'),
+      totalBatches2000: document.getElementById('totalBatches2000'),
+      sumPercent: document.getElementById('sumPercent'),
+      valorTotalEspecies: document.getElementById('valorTotalEspecies'),
+      valorComDesconto: document.getElementById('valorComDesconto'),
+      valorMedioKg: document.getElementById('valorMedioKg')
+    };
+  },
+
+  setupEventListeners: function() {
+    this.elements.addRowBtn.addEventListener('click', () => this.addRow());
+
+    if (this.elements.exportCsvBtn) {
+      this.elements.exportCsvBtn.addEventListener('click', () => this.exportToCsv());
+    }
+
+    ['totalKg', 'vtec500', 'vtec2000', 'percentMode', 'desconto'].forEach(id => {
+      this.elements[id].addEventListener('input', () => this.recalculate());
+    });
+  },
+
+  formatNumber: function(n) {
+    try {
+      return (Math.round(n * 100) / 100).toLocaleString('pt-BR');
+    } catch (e) {
+      console.error('Erro ao formatar numero:', e);
+      return '0';
+    }
+  },
+
+  getSafeNumber: function(value, defaultValue = 0) {
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? defaultValue : parsed;
+  },
+
+  createRow: function() {
+    const tr = document.createElement('tr');
+
+    let optionsHtml = '<option value="">-- selecione --</option>';
+    Object.keys(this.speciesInfo).sort().forEach(species => {
+      const info = this.speciesInfo[species];
+      optionsHtml += `<option value="${species}" data-price="${info.price}" data-pack="${info.pack}">${species}</option>`;
+    });
+    optionsHtml += '<option value="custom">Personalizado...</option>';
+
+    tr.innerHTML = `
+      <td><select class="name">${optionsHtml}</select></td>
+      <td><input class="pct" type="number" step="0.01" value="0" min="0"></td>
+      <td class="kg right"></td>
+      <td><input class="price" type="number" step="0.01" min="0"></td>
+      <td><input class="pack" type="number" step="0.01" min="0.01"></td>
+      <td class="qtd right"></td>
+      <td class="val right"></td>
+      <td class="b500 right"></td>
+      <td class="b2000 right"></td>
+      <td><button class="del btn btn-danger">Remover</button></td>
+    `;
+
+    tr.querySelector('.del').addEventListener('click', () => {
+      tr.remove();
+      this.recalculate();
+    });
+
+    const select = tr.querySelector('.name');
+    select.addEventListener('change', () => {
+      const v = select.value;
+      if (this.speciesInfo[v]) {
+        tr.querySelector('.price').value = this.speciesInfo[v].price;
+        tr.querySelector('.pack').value = this.speciesInfo[v].pack;
+      }
+      this.recalculate();
+    });
+
+    ['pct', 'price', 'pack'].forEach(cl => {
+      tr.querySelector('.' + cl).addEventListener('input', () => this.recalculate());
+    });
+
+    return tr;
+  },
+
+  addRow: function() {
+    this.elements.tbody.appendChild(this.createRow());
+    this.recalculate();
+  },
+
+  addInitialRow: function() {
+    if (this.elements.tbody.children.length === 0) {
+      this.addRow();
+    }
+    this.recalculate();
+  },
+
+  recalculate: function() {
+    try {
+      const totalKg = this.getSafeNumber(this.elements.totalKg.value);
+      const vtec500 = this.getSafeNumber(this.elements.vtec500.value);
+      const vtec2000 = this.getSafeNumber(this.elements.vtec2000.value);
+      const isPercentMode = this.elements.percentMode.value === "1";
+
+      let totalPct = 0,
+          totalKgCalc = 0,
+          totalPackages = 0,
+          grandTotal = 0,
+          totalB500 = 0,
+          totalB2000 = 0;
+
+      document.querySelectorAll('#tbody tr').forEach(tr => {
+        try {
+          let pct = this.getSafeNumber(tr.querySelector('.pct').value);
+
+          if (!isPercentMode) pct *= 100;
+
+          const kg = totalKg * (pct / 100);
+          const pack = this.getSafeNumber(tr.querySelector('.pack').value, 1);
+          const price = this.getSafeNumber(tr.querySelector('.price').value);
+          const qtdEmb = kg / pack;
+          const val = kg * price;
+          const b500 = pct / 100 * vtec500;
+          const b2000 = pct / 100 * vtec2000;
+
+          tr.querySelector('.kg').textContent = this.formatNumber(kg);
+          tr.querySelector('.qtd').textContent = this.formatNumber(qtdEmb);
+          tr.querySelector('.val').textContent = this.formatNumber(val);
+          tr.querySelector('.b500').textContent = this.formatNumber(b500);
+          tr.querySelector('.b2000').textContent = this.formatNumber(b2000);
+
+          totalPct += pct;
+          totalKgCalc += kg;
+          totalPackages += qtdEmb;
+          grandTotal += val;
+          totalB500 += b500;
+          totalB2000 += b2000;
+        } catch (e) {
+          console.error('Erro ao processar linha:', e);
+        }
+      });
+
+      this.updateTotals(totalPct, totalKgCalc, totalPackages, grandTotal, totalB500, totalB2000);
+      this.updateSummary(totalPct, grandTotal, totalKg);
+    } catch (e) {
+      console.error('Erro ao recalcular:', e);
+    }
+  },
+
+  updateTotals: function(totalPct, totalKgCalc, totalPackages, grandTotal, totalB500, totalB2000) {
+    this.elements.totalPercent.textContent = this.formatNumber(totalPct) + '%';
+    this.elements.totalKgCalc.textContent = this.formatNumber(totalKgCalc) + ' kg';
+    this.elements.totalPackages.textContent = this.formatNumber(totalPackages);
+    this.elements.grandTotal.textContent = 'R$ ' + this.formatNumber(grandTotal);
+    this.elements.totalBatches500.textContent = this.formatNumber(totalB500);
+    this.elements.totalBatches2000.textContent = this.formatNumber(totalB2000);
+  },
+
+  updateSummary: function(totalPct, grandTotal, totalKg) {
+    this.elements.sumPercent.textContent = this.formatNumber(totalPct) + '%';
+
+    if (totalPct < 100) {
+      this.elements.sumPercent.style.color = 'var(--warning-color)';
+    } else if (totalPct > 100) {
+      this.elements.sumPercent.style.color = 'var(--error-color)';
+    } else {
+      this.elements.sumPercent.style.color = 'var(--success-color)';
+    }
+
+    this.elements.valorTotalEspecies.textContent = this.formatNumber(grandTotal);
+
+    const desconto = this.getSafeNumber(this.elements.desconto.value);
+    const valorComDesc = grandTotal * (1 - desconto / 100);
+    this.elements.valorComDesconto.textContent = this.formatNumber(valorComDesc);
+
+    const valorMedio = totalKg > 0 ? valorComDesc / totalKg : 0;
+    this.elements.valorMedioKg.textContent = this.formatNumber(valorMedio);
+  },
+
+  exportToCsv: function() {
+    try {
+      const headers = ['Especie', '% no mix', 'Kg', 'Valor R$/kg', 'Tam pacote kg', 'Qtd embalagens', 'Valor total R$', 'Qtd/KG VTEC-500', 'Qtd/KG VTEC-2000'];
+      const rows = [headers];
+
+      if (this.elements.tbody.children.length === 0) {
+        alert('Nao ha dados para exportar. Adicione pelo menos uma especie.');
+        return;
+      }
+
+      document.querySelectorAll('#tbody tr').forEach(tr => {
+        const vals = [
+          tr.querySelector('.name').value,
+          tr.querySelector('.pct').value,
+          tr.querySelector('.kg').textContent,
+          tr.querySelector('.price').value,
+          tr.querySelector('.pack').value,
+          tr.querySelector('.qtd').textContent,
+          tr.querySelector('.val').textContent,
+          tr.querySelector('.b500').textContent,
+          tr.querySelector('.b2000').textContent
+        ];
+        rows.push(vals);
+      });
+
+      const csv = rows.map(r => r.map(c => '"' + String(c || '').replace(/"/g, '""') + '"').join(',')).join('\n');
+      const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mix_sementes.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Erro ao exportar CSV:', e);
+      alert('Ocorreu um erro ao exportar os dados. Por favor, tente novamente.');
+    }
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  MixCalculator.init();
+});
+</script>
+</body>
+</html>

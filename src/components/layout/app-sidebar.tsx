@@ -7,7 +7,9 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
+  Gauge,
   LayoutDashboard,
+  Leaf,
   Megaphone,
   ReceiptText,
   ShieldCheck,
@@ -34,6 +36,8 @@ const items = [
   { href: "/usuarios", label: "Usuários", icon: UserRound },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
   { href: "/solicitacao-portal", label: "Solicitações", icon: ShieldCheck },
+  { href: "/mix-sementes", label: "Mix de sementes", icon: Leaf },
+  { href: "/verde-score", label: "Verde Score", icon: Gauge },
   { href: "/invoice", label: "Invoice", icon: ReceiptText },
 ] as const;
 
@@ -42,7 +46,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-56 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-primary-soft)] px-3 py-4 lg:flex">
-      <div className="mx-1 mb-5 flex items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm shrink-0">
+      <div className="mx-1 mb-5 flex shrink-0 items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm">
         <div className="shrink-0 rounded-md border border-[var(--brand-border)] bg-white p-1">
           {profile.organizationLogoUrl ? (
             <img
@@ -102,7 +106,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
         </ul>
       </nav>
 
-      <div className="mx-1 mt-3 rounded-xl border border-[var(--brand-border)] bg-white px-2.5 py-2 shrink-0">
+      <div className="mx-1 mt-3 shrink-0 rounded-xl border border-[var(--brand-border)] bg-white px-2.5 py-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Ambiente</p>
         <p className="mt-1 whitespace-normal break-words text-sm leading-snug font-medium text-slate-900">
           {profile.organizationName}
@@ -111,3 +115,4 @@ export function AppSidebar({ profile }: AppSidebarProps) {
     </aside>
   );
 }
+
