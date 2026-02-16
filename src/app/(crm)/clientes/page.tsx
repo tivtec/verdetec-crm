@@ -214,13 +214,13 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
           : fallbackRows;
 
   return (
-    <PageContainer className="space-y-5 bg-[#eceef0]">
+    <PageContainer className="flex h-full min-h-0 flex-col gap-5 bg-[#eceef0]">
       <header>
         <h1 className="text-5xl font-semibold text-[#30343a]">Controle de Clientes</h1>
       </header>
 
-      <div className="rounded-2xl bg-[#e4e6e8] p-4">
-        <div className="max-h-[calc(100vh-230px)] overflow-auto">
+      <div className="min-h-0 flex-1 rounded-2xl bg-[#e4e6e8] p-4">
+        <div className="h-full overflow-hidden">
           <ClientesControlShell
             key={`${selectedUsuario}:${telefone}:${nome}:${etiqueta}`}
             initialRows={rows}

@@ -397,7 +397,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         )}
 
         {activeView === "dashboard" ? (
-          <div className="max-h-[calc(100vh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+          <div className="h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
             <table className="w-full table-fixed border-collapse">
               <thead className="bg-[#d6d6d8]">
                 <tr>
@@ -448,7 +448,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </table>
           </div>
         ) : activeView === "retrato" ? (
-          <div className="max-h-[calc(100vh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+          <div className="h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
             <table className="w-full table-fixed border-collapse">
               <thead className="bg-[#d6d6d8]">
                 <tr>
@@ -491,7 +491,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </table>
           </div>
         ) : (
-          <div className="max-h-[calc(100vh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+          <div className="h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
             <table className="w-full table-fixed border-collapse">
               <thead className="bg-[#d6d6d8]">
                 <tr>

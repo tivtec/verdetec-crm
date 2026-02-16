@@ -942,6 +942,194 @@ const mockEmpresas: Empresa[] = [
   },
 ];
 
+type EmpresaControleRpcPayload = {
+  p_limit_text: string;
+  p_offset_text: string;
+  p_search_text: string;
+  p_user_id_text: string | null;
+};
+
+type EmpresaControleRpcRow = {
+  id?: string | number | null;
+  nome?: string | null;
+  created_at?: string | null;
+  status?: boolean | string | null;
+  id_usuario?: string | number | null;
+  endereco?: string | null;
+  id_consistem?: string | number | null;
+  email?: string | null;
+  fone?: string | null;
+  whatsapp?: string | null;
+  cnpj?: string | null;
+  cep?: string | null;
+  link_ista?: string | null;
+};
+
+export type EmpresaControleApiRow = {
+  id: string;
+  nome: string;
+  data: string;
+  status: string;
+  usuario: string;
+  endereco: string;
+  idUsuario?: number | null;
+  representanteId?: number | null;
+  codigoCliente?: string | null;
+  email?: string | null;
+  telefone?: string | null;
+  whatsapp?: string | null;
+  cnpj?: string | null;
+  cep?: string | null;
+  linkInstagram?: string | null;
+};
+
+export type EmpresaControleApiFilters = {
+  searchText?: string;
+  limit?: number;
+  offset?: number;
+  userIdText?: string | number | null;
+};
+
+const EMPRESAS_CONTROLE_RPC_ENDPOINT =
+  process.env.EMPRESAS_CONTROLE_RPC_ENDPOINT ??
+  "https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/flutterflow_listar_empresas2";
+
+const EMPRESAS_CONTROLE_API_KEY =
+  process.env.EMPRESAS_CONTROLE_API_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvc2R4dW50dmhyemp1dG12ZHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY4NTE3MDQsImV4cCI6MjA0MjQyNzcwNH0.Yz9v10j4W3jG4lkHjuYj_ca3dp66PGcLlVJllQVrYUY";
+
+async function fetchUsuariosNomesByIds(ids: number[]) {
+  if (!ids.length) {
+    return new Map<number, string>();
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id,nome")
+      .in("id", ids)
+      .not("nome", "is", null)
+      .limit(Math.max(ids.length, 1));
+
+    if (error || !data?.length) {
+      return new Map<number, string>();
+    }
+
+    const map = new Map<number, string>();
+    for (const row of data as Array<Record<string, unknown>>) {
+      const id = Math.max(0, Math.trunc(asNumber(row.id, 0)));
+      const nome = asString(row.nome, "").trim();
+      if (id > 0 && nome.length > 0) {
+        map.set(id, nome);
+      }
+    }
+
+    return map;
+  } catch {
+    return new Map<number, string>();
+  }
+}
+
+function mapEmpresasControleRows(
+  rows: EmpresaControleRpcRow[],
+  usuariosNomesById: Map<number, string>,
+) {
+  return rows.map((row, index) => {
+    const nome = asString(row.nome, "").trim();
+    const endereco = asString(row.endereco, "").trim();
+    const idUsuario = Math.max(0, Math.trunc(asNumber(row.id_usuario, 0)));
+    const statusAtivo = asBoolean(row.status, true);
+    const usuarioNome = idUsuario > 0 ? asString(usuariosNomesById.get(idUsuario), "").trim() : "";
+    const usuarioDisplay = usuarioNome || (idUsuario > 0 ? String(idUsuario) : "usuario");
+
+    return {
+      id: asString(row.id, String(index + 1)),
+      nome: nome || "[s.nome]",
+      data: formatDateTime(normalizeDate(row.created_at)),
+      status: statusAtivo ? "Ativo" : "Inativo",
+      usuario: usuarioDisplay,
+      endereco: endereco || "[s.endereco]",
+      idUsuario: idUsuario > 0 ? idUsuario : null,
+      representanteId: idUsuario > 0 ? idUsuario : null,
+      codigoCliente: asNullableString(row.id_consistem),
+      email: asNullableString(row.email),
+      telefone: asNullableString(row.fone),
+      whatsapp: asNullableString(row.whatsapp),
+      cnpj: asNullableString(row.cnpj),
+      cep: asNullableString(row.cep),
+      linkInstagram: asNullableString(row.link_ista),
+    } satisfies EmpresaControleApiRow;
+  });
+}
+
+async function fetchEmpresasControleRpcRows(payload: EmpresaControleRpcPayload) {
+  const response = await fetch(EMPRESAS_CONTROLE_RPC_ENDPOINT, {
+    method: "POST",
+    headers: {
+      apikey: EMPRESAS_CONTROLE_API_KEY,
+      Authorization: `Bearer ${EMPRESAS_CONTROLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return [] as EmpresaControleRpcRow[];
+  }
+
+  const text = await response.text();
+  if (!text.trim()) {
+    return [] as EmpresaControleRpcRow[];
+  }
+
+  const json = JSON.parse(text) as unknown;
+  if (Array.isArray(json)) {
+    return json as EmpresaControleRpcRow[];
+  }
+
+  if (json && typeof json === "object") {
+    return [json as EmpresaControleRpcRow];
+  }
+
+  return [] as EmpresaControleRpcRow[];
+}
+
+export async function getEmpresasControleRows(filters: EmpresaControleApiFilters = {}) {
+  const limit = Math.max(0, Math.trunc(filters.limit ?? 500));
+  const offset = Math.max(0, Math.trunc(filters.offset ?? 0));
+  const searchText = (filters.searchText ?? "").trim();
+  const userIdTextRaw = asString(filters.userIdText, "").trim();
+
+  const payload: EmpresaControleRpcPayload = {
+    p_limit_text: String(limit),
+    p_offset_text: String(offset),
+    p_search_text: searchText,
+    p_user_id_text: userIdTextRaw || null,
+  };
+
+  try {
+    const rows = await fetchEmpresasControleRpcRows(payload);
+    if (!rows.length) {
+      return [] as EmpresaControleApiRow[];
+    }
+
+    const usuarioIds = Array.from(
+      new Set(
+        rows
+          .map((row) => Math.max(0, Math.trunc(asNumber(row.id_usuario, 0))))
+          .filter((id) => id > 0),
+      ),
+    );
+    const usuariosNomesById = await fetchUsuariosNomesByIds(usuarioIds);
+
+    return mapEmpresasControleRows(rows, usuariosNomesById);
+  } catch {
+    return [] as EmpresaControleApiRow[];
+  }
+}
+
 export async function getEmpresas() {
   try {
     const supabase = await createServerSupabaseClient();
@@ -977,7 +1165,189 @@ const mockPedidos: Pedido[] = [
   },
 ];
 
+type PedidoControleRpcPayload = {
+  limit: string;
+  offset: string;
+  user_id: string;
+};
+
+type PedidoControleRpcRow = {
+  id?: string | number | null;
+  pedido_uuid?: string | null;
+  uuid?: string | null;
+  nome?: string | null;
+  nome_pessoa?: string | null;
+  pessoa_nome?: string | null;
+  cliente?: string | null;
+  telefone?: string | null;
+  fone?: string | null;
+  whatsapp?: string | null;
+  pessoa_telefone?: string | null;
+  data?: string | null;
+  data_criacao?: string | null;
+  created_at?: string | null;
+  criado_em?: string | null;
+  inicio_reuniao?: string | null;
+  status?: string | boolean | null;
+  ativo?: string | boolean | null;
+  agendamento_ativo?: string | boolean | null;
+};
+
+export type PedidoControleApiRow = {
+  id: string;
+  nome: string;
+  telefone: string;
+  data: string;
+  status: string;
+};
+
+export type PedidoControleApiFilters = {
+  limit?: number;
+  offset?: number;
+  userId?: number | null;
+};
+
+const PEDIDOS_CONTROLE_RPC_ENDPOINT =
+  process.env.PEDIDOS_CONTROLE_RPC_ENDPOINT ??
+  "https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/fluterflow_listar_pedidos2";
+
+const PEDIDOS_CONTROLE_API_KEY =
+  process.env.PEDIDOS_CONTROLE_API_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvc2R4dW50dmhyemp1dG12ZHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY4NTE3MDQsImV4cCI6MjA0MjQyNzcwNH0.Yz9v10j4W3jG4lkHjuYj_ca3dp66PGcLlVJllQVrYUY";
+
+function formatPedidosControleDate(value: unknown) {
+  const raw = asString(value).trim();
+  if (!raw) {
+    return "-";
+  }
+
+  if (/^\d{2}\/\d{2}\/\d{4}(?:\s+\d{2}:\d{2})?$/.test(raw)) {
+    return raw;
+  }
+
+  const parsed = parseDateInput(raw);
+  if (!parsed) {
+    return raw;
+  }
+
+  return formatDateTime(parsed.toISOString());
+}
+
+function mapPedidosControleStatus(row: PedidoControleRpcRow) {
+  const explicitStatus = asString(row.status).trim();
+  if (explicitStatus) {
+    return explicitStatus;
+  }
+
+  if (typeof row.status === "boolean") {
+    return row.status ? "Ativo" : "Inativo";
+  }
+
+  if (typeof row.ativo === "boolean") {
+    return row.ativo ? "Ativo" : "Inativo";
+  }
+
+  if (typeof row.agendamento_ativo === "boolean") {
+    return row.agendamento_ativo ? "Ativo" : "Inativo";
+  }
+
+  return "-";
+}
+
+function mapPedidosControleRows(rows: PedidoControleRpcRow[]): PedidoControleApiRow[] {
+  return rows.map((row, index) => ({
+    id: asString(row.id ?? row.pedido_uuid ?? row.uuid, String(index + 1)),
+    nome: asString(row.nome ?? row.nome_pessoa ?? row.pessoa_nome ?? row.cliente, "").trim() || "-",
+    telefone:
+      asString(row.telefone ?? row.fone ?? row.whatsapp ?? row.pessoa_telefone, "").trim() || "-",
+    data: formatPedidosControleDate(
+      row.data ?? row.data_criacao ?? row.created_at ?? row.criado_em ?? row.inicio_reuniao,
+    ),
+    status: mapPedidosControleStatus(row),
+  }));
+}
+
+async function fetchPedidosControleRpcRows(payload: PedidoControleRpcPayload) {
+  const response = await fetch(PEDIDOS_CONTROLE_RPC_ENDPOINT, {
+    method: "POST",
+    headers: {
+      apikey: PEDIDOS_CONTROLE_API_KEY,
+      Authorization: `Bearer ${PEDIDOS_CONTROLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return [] as PedidoControleRpcRow[];
+  }
+
+  const text = await response.text();
+  if (!text.trim()) {
+    return [] as PedidoControleRpcRow[];
+  }
+
+  const json = JSON.parse(text) as unknown;
+  if (Array.isArray(json)) {
+    return json as PedidoControleRpcRow[];
+  }
+
+  if (json && typeof json === "object") {
+    return [json as PedidoControleRpcRow];
+  }
+
+  return [] as PedidoControleRpcRow[];
+}
+
+export async function getPedidosControleRows(filters: PedidoControleApiFilters = {}) {
+  const limit = Math.max(0, Math.trunc(filters.limit ?? 0));
+  const offset = Math.max(0, Math.trunc(filters.offset ?? 0));
+  const resolvedUserId =
+    typeof filters.userId === "number" ? filters.userId : await getCurrentUsuarioLegacyId();
+  const userId = Math.max(0, Math.trunc(asNumber(resolvedUserId, 0)));
+
+  const payload: PedidoControleRpcPayload = {
+    limit: String(limit),
+    offset: String(offset),
+    user_id: String(userId),
+  };
+
+  try {
+    const rows = await fetchPedidosControleRpcRows(payload);
+    if (!rows.length) {
+      return [] as PedidoControleApiRow[];
+    }
+
+    return mapPedidosControleRows(rows);
+  } catch {
+    return [] as PedidoControleApiRow[];
+  }
+}
+
 export async function getPedidos() {
+  try {
+    const rows = await getPedidosControleRows({ limit: 0, offset: 0 });
+    if (!rows.length) {
+      return mockPedidos;
+    }
+
+    return rows.map(
+      (row) =>
+        ({
+          id: row.id,
+          cliente: row.nome,
+          status: row.status,
+          valor_total: 0,
+          created_at: normalizeDate(row.data),
+        }) satisfies Pedido,
+    );
+  } catch {
+    return mockPedidos;
+  }
+}
+
+export async function getPedidosLegacyFallback() {
   try {
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase
@@ -999,6 +1369,213 @@ export async function getPedidos() {
     })) satisfies Pedido[];
   } catch {
     return mockPedidos;
+  }
+}
+
+type SolicitacoesPortalRpcPayload = {
+  limit: string;
+  offset: string;
+  user_id: string;
+  busca: string;
+};
+
+type SolicitacoesPortalRpcRow = {
+  id?: string | number | null;
+  pedido_uuid?: string | null;
+  uuid?: string | null;
+  data?: string | null;
+  data_criacao?: string | null;
+  created_at?: string | null;
+  criado_em?: string | null;
+  nome?: string | null;
+  pessoa_nome?: string | null;
+  nome_cliente?: string | null;
+  cliente?: string | null;
+  cep?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  uf_estado?: string | null;
+  uf?: string | null;
+  metragem?: string | number | null;
+  sqm?: string | number | null;
+};
+
+export type SolicitacoesPortalApiRow = {
+  id: string;
+  data: string;
+  nome: string;
+  cep: string;
+  cidade: string;
+  estado: string;
+  metragem: string;
+};
+
+export type SolicitacoesPortalApiFilters = {
+  limit?: number;
+  offset?: number;
+  userId?: number | null;
+  busca?: string;
+};
+
+export type SolicitacoesPortalPageSnapshot = {
+  rows: SolicitacoesPortalApiRow[];
+  hasNextPage: boolean;
+};
+
+const SOLICITACOES_PORTAL_RPC_ENDPOINT =
+  process.env.SOLICITACOES_PORTAL_RPC_ENDPOINT ??
+  "https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/flutterflow_listar_pedidos3";
+
+const SOLICITACOES_PORTAL_API_KEY =
+  process.env.SOLICITACOES_PORTAL_API_KEY ??
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvc2R4dW50dmhyemp1dG12ZHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY4NTE3MDQsImV4cCI6MjA0MjQyNzcwNH0.Yz9v10j4W3jG4lkHjuYj_ca3dp66PGcLlVJllQVrYUY";
+
+function formatSolicitacoesDate(value: unknown) {
+  const raw = asString(value).trim();
+  if (!raw) {
+    return "0";
+  }
+
+  if (/^\d{2}\/\d{2}\/\d{4}(?:\s+\d{2}:\d{2})?$/.test(raw)) {
+    return raw;
+  }
+
+  const parsed = parseDateInput(raw);
+  if (!parsed) {
+    return raw;
+  }
+
+  return formatDateTime(parsed.toISOString());
+}
+
+function formatSolicitacoesMetragem(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return `${value} m2`;
+  }
+
+  const raw = asString(value).trim();
+  if (!raw) {
+    return "[1] m2";
+  }
+
+  if (/[a-zA-Z]/.test(raw)) {
+    return raw;
+  }
+
+  return `${raw} m2`;
+}
+
+function mapSolicitacoesPortalRows(rows: SolicitacoesPortalRpcRow[]): SolicitacoesPortalApiRow[] {
+  return rows.map((row, index) => ({
+    id: asString(row.id ?? row.pedido_uuid ?? row.uuid, String(index + 1)),
+    data: formatSolicitacoesDate(row.data ?? row.data_criacao ?? row.created_at ?? row.criado_em),
+    nome: asString(row.nome ?? row.pessoa_nome ?? row.nome_cliente ?? row.cliente, "").trim() || "nome",
+    cep: asString(row.cep, "").trim() || "cep",
+    cidade: asString(row.cidade, "").trim() || "cidade",
+    estado: asString(row.estado ?? row.uf_estado ?? row.uf, "").trim() || "estado",
+    metragem: formatSolicitacoesMetragem(row.metragem ?? row.sqm),
+  }));
+}
+
+async function fetchSolicitacoesPortalRpcRows(payload: SolicitacoesPortalRpcPayload) {
+  const response = await fetch(SOLICITACOES_PORTAL_RPC_ENDPOINT, {
+    method: "POST",
+    headers: {
+      apikey: SOLICITACOES_PORTAL_API_KEY,
+      Authorization: `Bearer ${SOLICITACOES_PORTAL_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return [] as SolicitacoesPortalRpcRow[];
+  }
+
+  const text = await response.text();
+  if (!text.trim()) {
+    return [] as SolicitacoesPortalRpcRow[];
+  }
+
+  const json = JSON.parse(text) as unknown;
+  if (Array.isArray(json)) {
+    return json as SolicitacoesPortalRpcRow[];
+  }
+
+  if (json && typeof json === "object") {
+    return [json as SolicitacoesPortalRpcRow];
+  }
+
+  return [] as SolicitacoesPortalRpcRow[];
+}
+
+export async function getSolicitacoesPortalRows(filters: SolicitacoesPortalApiFilters = {}) {
+  const limit = Math.max(0, Math.trunc(filters.limit ?? 10));
+  const offset = Math.max(0, Math.trunc(filters.offset ?? 0));
+  const resolvedUserId =
+    typeof filters.userId === "number" ? filters.userId : await getCurrentUsuarioLegacyId();
+  const userId = Math.max(0, Math.trunc(asNumber(resolvedUserId, 0)));
+  const busca = asString(filters.busca, "").trim();
+
+  const payload: SolicitacoesPortalRpcPayload = {
+    limit: String(limit),
+    offset: String(offset),
+    user_id: String(userId),
+    busca,
+  };
+
+  try {
+    const rows = await fetchSolicitacoesPortalRpcRows(payload);
+    if (!rows.length) {
+      return [] as SolicitacoesPortalApiRow[];
+    }
+
+    return mapSolicitacoesPortalRows(rows);
+  } catch {
+    return [] as SolicitacoesPortalApiRow[];
+  }
+}
+
+export async function getSolicitacoesPortalPageSnapshot(
+  filters: SolicitacoesPortalApiFilters = {},
+): Promise<SolicitacoesPortalPageSnapshot> {
+  const limit = Math.max(1, Math.trunc(filters.limit ?? 10));
+  const offset = Math.max(0, Math.trunc(filters.offset ?? 0));
+  const resolvedUserId =
+    typeof filters.userId === "number" ? filters.userId : await getCurrentUsuarioLegacyId();
+  const userId = Math.max(0, Math.trunc(asNumber(resolvedUserId, 0)));
+  const busca = asString(filters.busca, "").trim();
+
+  const currentPayload: SolicitacoesPortalRpcPayload = {
+    limit: String(limit),
+    offset: String(offset),
+    user_id: String(userId),
+    busca,
+  };
+
+  const nextPageProbePayload: SolicitacoesPortalRpcPayload = {
+    limit: "1",
+    offset: String(offset + limit),
+    user_id: String(userId),
+    busca,
+  };
+
+  try {
+    const [rows, probe] = await Promise.all([
+      fetchSolicitacoesPortalRpcRows(currentPayload),
+      fetchSolicitacoesPortalRpcRows(nextPageProbePayload),
+    ]);
+
+    return {
+      rows: mapSolicitacoesPortalRows(rows).slice(0, limit),
+      hasNextPage: probe.length > 0,
+    };
+  } catch {
+    return {
+      rows: [],
+      hasNextPage: false,
+    };
   }
 }
 

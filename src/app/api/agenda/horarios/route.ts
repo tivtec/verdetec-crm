@@ -5,6 +5,8 @@ const HORARIOS_ENDPOINT =
   "https://webh.verdetec.dev.br/webhook/f5bbcdb8-9950-4795-bc63-53fd92da8a18";
 
 const DEFAULT_VERTICAL_ID = "0ec7796e-16d8-469f-a098-6c33063d7384";
+const DEFAULT_BATCH_LIMIT = 500;
+const MAX_BATCHES = 30;
 
 type HorariosRequestPayload = {
   id_usuario?: number | string | null;
@@ -20,6 +22,13 @@ type HorarioRow = {
   dataInicio: string;
   dataInicioIso: string;
   representantes: string;
+};
+
+type HorariosAttemptBase = {
+  id_usuario?: number;
+  data_inicio: string | null;
+  data_fim: string | null;
+  id_vertical: string;
 };
 
 function asString(value: unknown, fallback = "") {
@@ -245,6 +254,16 @@ function mapWebhookRows(rows: Array<Record<string, unknown>>): HorarioRow[] {
   return mapped.filter((row) => row.dataInicio !== "--" || row.representantes !== "-");
 }
 
+function extractTotalRegistros(rows: Array<Record<string, unknown>>) {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const first = rows[0];
+  const total = asNonNegativeInt(first.total_registros);
+  return typeof total === "number" ? total : null;
+}
+
 async function parseResponseBody(response: Response) {
   const text = await response.text();
   if (!text.trim()) {
@@ -264,11 +283,9 @@ function buildAttempts(payload: HorariosRequestPayload) {
   const dataFim = formatDateForInput(payload.data_fim ?? null);
   const idVertical = asString(payload.id_vertical, "").trim() || DEFAULT_VERTICAL_ID;
 
-  const base = {
+  const base: Omit<HorariosAttemptBase, "id_usuario"> = {
     data_inicio: dataInicio,
     data_fim: dataFim,
-    limit: "0",
-    offset: "0",
     id_vertical: idVertical,
   };
 
@@ -299,39 +316,94 @@ export async function POST(request: NextRequest) {
   }
 
   const attempts = buildAttempts(payload);
+  const requestedLimit = asNonNegativeInt(payload.limit);
+  const requestedOffset = asNonNegativeInt(payload.offset) ?? 0;
+  const shouldLoadAll = requestedLimit === null || requestedLimit === 0;
+  const effectiveLimit = shouldLoadAll ? DEFAULT_BATCH_LIMIT : requestedLimit;
   let lastOkRows: HorarioRow[] | null = null;
   let lastOkSent: Record<string, unknown> | null = null;
 
-  for (const webhookPayload of attempts) {
-    try {
-      const response = await fetch(HORARIOS_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(webhookPayload),
-        cache: "no-store",
-      });
+  for (const basePayload of attempts) {
+    let currentOffset = requestedOffset;
+    let allRows: HorarioRow[] = [];
+    let batches = 0;
+    let lastTotal: number | null = null;
+    let lastSent: Record<string, unknown> | null = null;
+    let attemptHadSuccess = false;
 
-      const parsed = await parseResponseBody(response);
+    while (batches < MAX_BATCHES) {
+      const webhookPayload = {
+        ...basePayload,
+        limit: String(effectiveLimit),
+        offset: String(currentOffset),
+      };
 
-      if (!response.ok) {
-        continue;
-      }
-
-      const rows = mapWebhookRows(extractRows(parsed));
-      lastOkRows = rows;
-      lastOkSent = webhookPayload;
-
-      if (rows.length > 0) {
-        return NextResponse.json({
-          ok: true,
-          rows,
-          sent: webhookPayload,
+      try {
+        const response = await fetch(HORARIOS_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(webhookPayload),
+          cache: "no-store",
         });
+
+        const parsed = await parseResponseBody(response);
+        if (!response.ok) {
+          break;
+        }
+
+        attemptHadSuccess = true;
+        lastSent = webhookPayload;
+
+        const rawRows = extractRows(parsed);
+        const mappedRows = mapWebhookRows(rawRows);
+        const totalRegistros = extractTotalRegistros(rawRows);
+        lastTotal = totalRegistros;
+
+        if (mappedRows.length > 0) {
+          allRows = allRows.concat(mappedRows);
+        }
+
+        if (!shouldLoadAll) {
+          break;
+        }
+
+        if (totalRegistros === null || totalRegistros <= 0) {
+          break;
+        }
+
+        currentOffset += effectiveLimit;
+        batches += 1;
+
+        if (currentOffset >= totalRegistros) {
+          break;
+        }
+      } catch {
+        break;
       }
-    } catch {
-      // try next strategy
+    }
+
+    if (!attemptHadSuccess) {
+      continue;
+    }
+
+    // Normalize order to keep recent schedule first.
+    allRows.sort((a, b) => {
+      const aTime = parseDateInput(a.dataInicioIso)?.getTime() ?? 0;
+      const bTime = parseDateInput(b.dataInicioIso)?.getTime() ?? 0;
+      return bTime - aTime;
+    });
+
+    lastOkRows = allRows;
+    lastOkSent = lastSent;
+
+    if (allRows.length > 0 || (lastTotal !== null && lastTotal === 0)) {
+      return NextResponse.json({
+        ok: true,
+        rows: allRows,
+        sent: lastSent,
+      });
     }
   }
 

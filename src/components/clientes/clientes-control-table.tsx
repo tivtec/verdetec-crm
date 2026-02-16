@@ -782,8 +782,8 @@ export function ClientesControlTable({
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        <div className="rounded-xl bg-[#e5e7ea] p-2">
+      <div className="flex h-full min-h-0 flex-col gap-4">
+        <div className="min-h-0 flex-1 overflow-auto rounded-xl bg-[#e5e7ea] p-2">
           <table className="w-full border-separate border-spacing-y-1">
             <thead>
               <tr className="rounded-xl bg-[#d5d5d7] text-left">

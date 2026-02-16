@@ -216,7 +216,7 @@ export function ClientesControlShell({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       {batchSuccessAlert ? (
         <div className="fixed top-6 right-6 z-[80] rounded-lg bg-[#0f5050] px-4 py-2 text-sm font-medium text-white shadow-lg">
           {batchSuccessAlert}
@@ -251,17 +251,19 @@ export function ClientesControlShell({
         </div>
       </div>
 
-      <ClientesControlTable
-        rows={initialRows}
-        representantes={representantes}
-        equipamentos={equipamentos}
-        page={safePage}
-        pageSize={PAGE_SIZE}
-        currentUserId={currentUserId}
-        selectedIds={selectedIds}
-        onPageChange={handlePageChange}
-        onToggleSelect={handleToggleSelect}
-      />
+      <div className="min-h-0 flex-1">
+        <ClientesControlTable
+          rows={initialRows}
+          representantes={representantes}
+          equipamentos={equipamentos}
+          page={safePage}
+          pageSize={PAGE_SIZE}
+          currentUserId={currentUserId}
+          selectedIds={selectedIds}
+          onPageChange={handlePageChange}
+          onToggleSelect={handleToggleSelect}
+        />
+      </div>
 
       {isBatchRepresentanteModalOpen ? (
         <div

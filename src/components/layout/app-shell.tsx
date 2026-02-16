@@ -9,9 +9,9 @@ export async function AppShell({ children }: AppShellProps) {
   const profile = await getSidebarProfile();
 
   return (
-    <div className="h-screen bg-[var(--brand-surface)]">
+    <div className="h-dvh bg-[var(--brand-surface)]">
       <AppSidebar profile={profile} />
-      <div className="h-screen w-full lg:pl-56">
+      <div className="h-dvh w-full lg:pl-56">
         <main className="flex h-full flex-col overflow-hidden">{children}</main>
       </div>
     </div>

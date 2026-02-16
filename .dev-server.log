@@ -9,3 +9,362 @@
 
 ✓ Starting...
 ✓ Ready in 1468ms
+ GET / 307 in 1546ms (compile: 1276ms, proxy.ts: 149ms, render: 122ms)
+ GET /splash 307 in 481ms (compile: 371ms, proxy.ts: 5ms, render: 105ms)
+ GET /login 200 in 1266ms (compile: 1069ms, proxy.ts: 5ms, render: 192ms)
+ GET /dashboard 200 in 5.7s (compile: 898ms, proxy.ts: 145ms, render: 4.7s)
+ POST /api/agenda/horarios 200 in 3.3s (compile: 379ms, proxy.ts: 10ms, render: 2.9s)
+ GET /dashboard 200 in 373ms (compile: 76ms, proxy.ts: 177ms, render: 120ms)
+ GET /dashboard 200 in 232ms (compile: 24ms, proxy.ts: 119ms, render: 89ms)
+ POST /api/agenda/horarios 200 in 1416ms (compile: 227ms, proxy.ts: 4ms, render: 1185ms)
+ POST /api/agenda/horarios 200 in 1208ms (compile: 3ms, proxy.ts: 5ms, render: 1200ms)
+ GET /agenda 200 in 1084ms (compile: 582ms, proxy.ts: 241ms, render: 261ms)
+ POST /api/agenda/horarios 200 in 1313ms (compile: 8ms, proxy.ts: 60ms, render: 1245ms)
+ POST /api/agenda/horarios 200 in 1215ms (compile: 2ms, proxy.ts: 101ms, render: 1111ms)
+ GET /solicitacao-portal 200 in 1731ms (compile: 1019ms, proxy.ts: 656ms, render: 56ms)
+ GET /solicitacao-portal 200 in 104ms (compile: 5ms, proxy.ts: 60ms, render: 38ms)
+ GET /invoice 200 in 690ms (compile: 537ms, proxy.ts: 67ms, render: 86ms)
+ GET /invoice 200 in 94ms (compile: 5ms, proxy.ts: 50ms, render: 38ms)
+ GET /invoice 200 in 412ms (compile: 51ms, proxy.ts: 282ms, render: 78ms)
+ GET /empresas 200 in 1629ms (compile: 814ms, proxy.ts: 520ms, render: 295ms)
+ GET /empresas 200 in 195ms (compile: 6ms, proxy.ts: 124ms, render: 65ms)
+ GET /pedido 200 in 546ms (compile: 313ms, proxy.ts: 60ms, render: 173ms)
+ GET /empresas 200 in 156ms (compile: 9ms, proxy.ts: 55ms, render: 92ms)
+ GET /empresas 200 in 526ms (compile: 7ms, proxy.ts: 455ms, render: 65ms)
+ GET /empresas 200 in 484ms (compile: 5ms, proxy.ts: 437ms, render: 43ms)
+ GET /empresas 200 in 480ms (compile: 51ms, proxy.ts: 343ms, render: 86ms)
+ GET /empresas 200 in 476ms (compile: 54ms, proxy.ts: 328ms, render: 94ms)
+ GET /empresas 200 in 520ms (compile: 26ms, proxy.ts: 252ms, render: 242ms)
+ GET /empresas 200 in 387ms (compile: 25ms, proxy.ts: 294ms, render: 68ms)
+ GET /empresas 200 in 323ms (compile: 28ms, proxy.ts: 234ms, render: 60ms)
+ GET /empresas 200 in 772ms (compile: 5ms, proxy.ts: 392ms, render: 376ms)
+ GET /empresas?search=hidrossemeadura 200 in 293ms (compile: 8ms, proxy.ts: 153ms, render: 132ms)
+ GET /empresas?search=plant 200 in 238ms (compile: 3ms, proxy.ts: 123ms, render: 112ms)
+ GET /empresas?search=plant 200 in 300ms (compile: 52ms, proxy.ts: 159ms, render: 89ms)
+ GET /empresas?search=plant+oeste 200 in 641ms (compile: 5ms, proxy.ts: 403ms, render: 233ms)
+ GET /empresas 200 in 349ms (compile: 7ms, proxy.ts: 126ms, render: 216ms)
+ GET /empresas 200 in 1103ms (compile: 50ms, proxy.ts: 905ms, render: 148ms)
+ GET /empresas 200 in 669ms (compile: 5ms, proxy.ts: 619ms, render: 45ms)
+ GET /empresas 200 in 708ms (compile: 27ms, proxy.ts: 616ms, render: 65ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: RefreshCcw is not defined
+    at eval (src\components\empresas\empresas-control-shell.tsx:265:28)
+    at Array.map (<anonymous>)
+    at EmpresasControlShell (src\components\empresas\empresas-control-shell.tsx:244:26)
+  263 |                           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#5a5f61] hover:bg-[#dde3e5]"
+  264 |                         >
+> 265 |                           <RefreshCcw className="h-4 w-4" />
+      |                            ^
+  266 |                         </button>
+  267 |                       </div>
+  268 |                     </td> {
+  digest: '63027875'
+}
+ GET /empresas 500 in 1166ms (compile: 50ms, proxy.ts: 572ms, render: 544ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: RefreshCcw is not defined
+    at eval (src\components\empresas\empresas-control-shell.tsx:355:28)
+    at Array.map (<anonymous>)
+    at EmpresasControlShell (src\components\empresas\empresas-control-shell.tsx:334:26)
+  353 |                           className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#5a5f61] hover:bg-[#dde3e5]"
+  354 |                         >
+> 355 |                           <RefreshCcw className="h-4 w-4" />
+      |                            ^
+  356 |                         </button>
+  357 |                       </div>
+  358 |                     </td> {
+  digest: '2073769237'
+}
+ GET /empresas 500 in 676ms (compile: 24ms, proxy.ts: 286ms, render: 367ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /empresas 200 in 481ms (compile: 26ms, proxy.ts: 123ms, render: 332ms)
+ GET /empresas 200 in 712ms (compile: 24ms, proxy.ts: 625ms, render: 64ms)
+ GET /empresas 200 in 208ms (compile: 27ms, proxy.ts: 108ms, render: 72ms)
+ GET /empresas 200 in 1199ms (compile: 26ms, proxy.ts: 935ms, render: 239ms)
+ GET /empresas 200 in 543ms (compile: 24ms, proxy.ts: 454ms, render: 65ms)
+ GET /empresas 200 in 430ms (compile: 25ms, proxy.ts: 339ms, render: 65ms)
+ GET /empresas 200 in 753ms (compile: 432ms, proxy.ts: 192ms, render: 129ms)
+ GET /empresas 200 in 115ms (compile: 3ms, proxy.ts: 74ms, render: 38ms)
+ POST /api/empresas/cadastrar 400 in 460ms (compile: 444ms, proxy.ts: 5ms, render: 12ms)
+ POST /api/empresas/cadastrar 200 in 305ms (compile: 3ms, proxy.ts: 89ms, render: 213ms)
+ GET /empresas 200 in 484ms (compile: 47ms, proxy.ts: 58ms, render: 379ms)
+ GET /empresas?search=empresa+teste 200 in 629ms (compile: 4ms, proxy.ts: 478ms, render: 147ms)
+ GET /empresas?search=empresa+teste 200 in 1244ms (compile: 175ms, proxy.ts: 991ms, render: 79ms)
+ GET /empresas?search=empresa+teste 200 in 310ms (compile: 30ms, proxy.ts: 206ms, render: 75ms)
+ GET /empresas?search=empresa+teste 200 in 337ms (compile: 26ms, proxy.ts: 250ms, render: 62ms)
+ GET /empresas?search=empresa+teste 200 in 345ms (compile: 26ms, proxy.ts: 249ms, render: 71ms)
+ GET /empresas?search=empresa+teste 200 in 567ms (compile: 28ms, proxy.ts: 464ms, render: 75ms)
+ GET /empresas?search=empresa+teste 200 in 142ms (compile: 4ms, proxy.ts: 103ms, render: 35ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: buildPedidosPlaceholderRows is not defined
+    at EmpresasControlShell.useMemo[pedidosPlaceholderRows] (src\components\empresas\empresas-control-shell.tsx:153:48)
+    at EmpresasControlShell (src\components\empresas\empresas-control-shell.tsx:153:41)
+  151 |   }, [representantes]);
+  152 |
+> 153 |   const pedidosPlaceholderRows = useMemo(() => buildPedidosPlaceholderRows(pedidosEmpresa), [pedidosEmpresa]);
+      |                                                ^
+  154 |
+  155 |   useEffect(() => {
+  156 |     if (!feedback) { {
+  digest: '1078190902'
+}
+ GET /empresas?search=empresa+teste 500 in 1150ms (compile: 25ms, proxy.ts: 579ms, render: 546ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /empresas?search=empresa+teste 200 in 478ms (compile: 29ms, proxy.ts: 115ms, render: 334ms)
+ POST /api/empresas/editar 200 in 621ms (compile: 444ms, proxy.ts: 103ms, render: 74ms)
+ GET /empresas?search=empresa+teste 200 in 367ms (compile: 27ms, proxy.ts: 50ms, render: 290ms)
+ GET /empresas?search=empresa+teste 200 in 288ms (compile: 48ms, proxy.ts: 162ms, render: 77ms)
+ GET /empresas?search=empresa+teste 200 in 385ms (compile: 27ms, proxy.ts: 291ms, render: 67ms)
+ GET /empresas?search=empresa+teste 200 in 404ms (compile: 29ms, proxy.ts: 307ms, render: 68ms)
+ POST /api/empresas/editar 200 in 171ms (compile: 7ms, proxy.ts: 61ms, render: 103ms)
+ GET /empresas?search=empresa+teste 200 in 297ms (compile: 5ms, proxy.ts: 55ms, render: 236ms)
+ GET /empresas?search=empresa+teste 200 in 721ms (compile: 441ms, proxy.ts: 173ms, render: 107ms)
+ GET /empresas?search=empresa+teste 200 in 129ms (compile: 4ms, proxy.ts: 83ms, render: 42ms)
+ GET /empresas 200 in 599ms (compile: 5ms, proxy.ts: 148ms, render: 446ms)
+ GET /empresas 200 in 183ms (compile: 29ms, proxy.ts: 62ms, render: 92ms)
+ POST /api/empresas/pedidos 200 in 1778ms (compile: 416ms, proxy.ts: 151ms, render: 1211ms)
+ POST /api/empresas/pedidos 200 in 1216ms (compile: 6ms, proxy.ts: 117ms, render: 1093ms)
+ POST /api/empresas/pedidos 200 in 1425ms (compile: 3ms, proxy.ts: 319ms, render: 1102ms)
+ GET /empresas?search=empresa+teste 200 in 310ms (compile: 4ms, proxy.ts: 178ms, render: 128ms)
+ POST /api/empresas/pedidos 200 in 1252ms (compile: 3ms, proxy.ts: 57ms, render: 1193ms)
+ POST /api/empresas/pedidos 200 in 1169ms (compile: 1907µs, proxy.ts: 123ms, render: 1044ms)
+ POST /api/empresas/pedidos 200 in 696ms (compile: 1998µs, proxy.ts: 149ms, render: 546ms)
+ POST /api/empresas/pedidos 200 in 1330ms (compile: 3ms, proxy.ts: 120ms, render: 1207ms)
+ GET /pedido 200 in 465ms (compile: 16ms, proxy.ts: 296ms, render: 152ms)
+ GET /empresas 200 in 383ms (compile: 3ms, proxy.ts: 57ms, render: 322ms)
+ POST /api/empresas/pedidos 200 in 1730ms (compile: 3ms, proxy.ts: 231ms, render: 1497ms)
+ GET /empresas 200 in 288ms (compile: 36ms, proxy.ts: 181ms, render: 72ms)
+ GET /empresas 200 in 667ms (compile: 78ms, proxy.ts: 514ms, render: 75ms)
+ GET /empresas 200 in 151ms (compile: 30ms, proxy.ts: 62ms, render: 60ms)
+ POST /api/empresas/pedidos 200 in 1711ms (compile: 463ms, proxy.ts: 166ms, render: 1082ms)
+ POST /api/empresas/pedidos 200 in 1188ms (compile: 5ms, proxy.ts: 129ms, render: 1054ms)
+ POST /api/empresas/pedidos 200 in 749ms (compile: 3ms, proxy.ts: 190ms, render: 556ms)
+ POST /api/empresas/pedidos 200 in 1192ms (compile: 4ms, proxy.ts: 119ms, render: 1069ms)
+ POST /api/empresas/pedidos 200 in 664ms (compile: 1699µs, proxy.ts: 56ms, render: 606ms)
+ POST /api/empresas/pedidos 200 in 624ms (compile: 7ms, proxy.ts: 57ms, render: 561ms)
+ POST /api/empresas/pedidos 200 in 648ms (compile: 3ms, proxy.ts: 59ms, render: 585ms)
+ POST /api/empresas/pedidos 200 in 617ms (compile: 2ms, proxy.ts: 53ms, render: 561ms)
+ POST /api/empresas/pedidos 200 in 647ms (compile: 6ms, proxy.ts: 55ms, render: 586ms)
+ POST /api/empresas/pedidos 200 in 4.8s (compile: 3ms, proxy.ts: 468ms, render: 4.3s)
+ GET /empresas 200 in 498ms (compile: 80ms, proxy.ts: 314ms, render: 103ms)
+ GET /empresas 200 in 442ms (compile: 42ms, proxy.ts: 323ms, render: 77ms)
+ GET /empresas 200 in 434ms (compile: 24ms, proxy.ts: 341ms, render: 69ms)
+ GET /empresas 200 in 519ms (compile: 32ms, proxy.ts: 402ms, render: 85ms)
+ GET /empresas 200 in 353ms (compile: 28ms, proxy.ts: 253ms, render: 71ms)
+ GET /empresas 200 in 233ms (compile: 26ms, proxy.ts: 140ms, render: 67ms)
+ GET /empresas 200 in 156ms (compile: 26ms, proxy.ts: 62ms, render: 68ms)
+ POST /api/empresas/pedidos 200 in 2.4s (compile: 401ms, proxy.ts: 139ms, render: 1856ms)
+ GET /empresas 200 in 780ms (compile: 84ms, proxy.ts: 607ms, render: 89ms)
+ GET /empresas 200 in 393ms (compile: 38ms, proxy.ts: 279ms, render: 76ms)
+ GET /empresas 200 in 567ms (compile: 25ms, proxy.ts: 473ms, render: 70ms)
+ GET /empresas 200 in 682ms (compile: 46ms, proxy.ts: 563ms, render: 72ms)
+ GET /empresas 200 in 738ms (compile: 473ms, proxy.ts: 160ms, render: 105ms)
+ GET /empresas 200 in 108ms (compile: 3ms, proxy.ts: 69ms, render: 36ms)
+ POST /api/empresas/pedidos 200 in 1949ms (compile: 531ms, proxy.ts: 331ms, render: 1088ms)
+ POST /api/empresas/pedidos-proximos 200 in 933ms (compile: 264ms, proxy.ts: 77ms, render: 592ms)
+ GET /empresas 200 in 526ms (compile: 28ms, proxy.ts: 115ms, render: 383ms)
+ POST /api/empresas/pedidos 200 in 1439ms (compile: 5ms, proxy.ts: 108ms, render: 1326ms)
+ POST /api/empresas/pedidos-proximos 200 in 623ms (compile: 2ms, proxy.ts: 53ms, render: 568ms)
+ POST /api/empresas/pedidos-proximos 200 in 1745ms (compile: 3ms, proxy.ts: 663ms, render: 1078ms)
+ GET /empresas 200 in 1153ms (compile: 81ms, proxy.ts: 789ms, render: 283ms)
+ GET /empresas 200 in 430ms (compile: 41ms, proxy.ts: 308ms, render: 81ms)
+ GET /empresas 200 in 741ms (compile: 454ms, proxy.ts: 165ms, render: 122ms)
+ GET /empresas 200 in 162ms (compile: 3ms, proxy.ts: 117ms, render: 42ms)
+ GET /empresas 200 in 215ms (compile: 4ms, proxy.ts: 166ms, render: 46ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: feedback is not defined
+    at EmpresasControlShell (src\components\empresas\empresas-control-shell.tsx:622:8)
+  620 |   return (
+  621 |     <div className="space-y-4">
+> 622 |       {feedback ? (
+      |        ^
+  623 |         <div className="fixed top-6 right-6 z-[90] rounded-lg bg-[#0f5050] px-4 py-2 text-sm font-medium text-white shadow-lg">
+  624 |           {feedback}
+  625 |         </div> {
+  digest: '1755883874'
+}
+ GET /empresas 500 in 891ms (compile: 51ms, proxy.ts: 340ms, render: 500ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: feedback is not defined
+    at EmpresasControlShell (src\components\empresas\empresas-control-shell.tsx:622:8)
+  620 |   return (
+  621 |     <div className="space-y-4">
+> 622 |       {feedback ? (
+      |        ^
+  623 |         <div className="fixed top-6 right-6 z-[90] rounded-lg bg-[#0f5050] px-4 py-2 text-sm font-medium text-white shadow-lg">
+  624 |           {feedback}
+  625 |         </div> {
+  digest: '3336789972'
+}
+ GET /empresas 500 in 884ms (compile: 24ms, proxy.ts: 346ms, render: 513ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: feedback is not defined
+    at EmpresasControlShell (src\components\empresas\empresas-control-shell.tsx:627:8)
+  625 |   return (
+  626 |     <div className="space-y-4">
+> 627 |       {feedback ? (
+      |        ^
+  628 |         <div className="fixed top-6 right-6 z-[90] rounded-lg bg-[#0f5050] px-4 py-2 text-sm font-medium text-white shadow-lg">
+  629 |           {feedback}
+  630 |         </div> {
+  digest: '3336789972'
+}
+ GET /empresas 500 in 471ms (compile: 24ms, proxy.ts: 115ms, render: 331ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /empresas 200 in 493ms (compile: 27ms, proxy.ts: 148ms, render: 319ms)
+ GET /pedido 200 in 717ms (compile: 13ms, proxy.ts: 525ms, render: 179ms)
+ GET /pedido 200 in 722ms (compile: 4ms, proxy.ts: 678ms, render: 41ms)
+ GET /pedido 200 in 99ms (compile: 5ms, proxy.ts: 63ms, render: 31ms)
+ GET /pedido 200 in 650ms (compile: 63ms, proxy.ts: 495ms, render: 92ms)
+⨯ ./src/components/pedidos/pedidos-control-shell.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\pedidos\pedidos-control-shell.tsx
+    1: stream did not contain valid UTF-8
+
+Import trace for requested module:
+./src/components/pedidos/pedidos-control-shell.tsx
+./src/app/(crm)/pedido/page.tsx
+⨯ ./src/components/pedidos/pedidos-control-shell.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\pedidos\pedidos-control-shell.tsx
+    1: stream did not contain valid UTF-8
+
+Import trace for requested module:
+./src/components/pedidos/pedidos-control-shell.tsx
+./src/app/(crm)/pedido/page.tsx
+ GET /pedido 500 in 1749ms (compile: 1366ms, proxy.ts: 276ms, render: 106ms)
+ GET /pedido 500 in 129ms (compile: 58ms, proxy.ts: 57ms, render: 14ms)
+ GET /pedido 500 in 141ms (compile: 25ms, proxy.ts: 103ms, render: 13ms)
+○ Compiling /_error ...
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /pedido 200 in 535ms (compile: 78ms, proxy.ts: 104ms, render: 354ms)
+ GET /pedido 200 in 642ms (compile: 47ms, proxy.ts: 509ms, render: 87ms)
+ GET /pedido 200 in 684ms (compile: 27ms, proxy.ts: 474ms, render: 182ms)
+ GET /pedido 200 in 401ms (compile: 26ms, proxy.ts: 275ms, render: 100ms)
+ GET /usuarios 200 in 1734ms (compile: 1106ms, proxy.ts: 359ms, render: 269ms)
+ GET /usuarios 200 in 232ms (compile: 4ms, proxy.ts: 130ms, render: 98ms)
+ GET /agenda 200 in 792ms (compile: 17ms, proxy.ts: 63ms, render: 711ms)
+ GET /solicitacao-portal 200 in 974ms (compile: 851ms, proxy.ts: 77ms, render: 45ms)
+ GET /pedido 200 in 426ms (compile: 11ms, proxy.ts: 191ms, render: 224ms)
+ GET /solicitacao-portal 200 in 168ms (compile: 4ms, proxy.ts: 151ms, render: 13ms)
+ GET /solicitacao-portal 404 in 1505ms (compile: 986ms, proxy.ts: 491ms, render: 28ms)
+ GET /solicitacao-portal 404 in 76ms (compile: 6ms, proxy.ts: 60ms, render: 11ms)
+ GET /solicitacao-portal 404 in 162ms (compile: 4ms, proxy.ts: 112ms, render: 47ms)
+⨯ ./src/app/(crm)/solicitacao-portal/page.tsx:1:1
+Module not found: Can't resolve '@/components/solicitacoes/solicitacoes-control-shell'
+> 1 | import { SolicitacoesControlShell } from "@/components/solicitacoes/solicitacoes-control-shell";
+    | ^
+  2 | import type { SolicitacaoControleRow } from "@/components/solicitacoes/solicitacoes-control-shell";
+  3 | import { PageContainer } from "@/components/layout/page-container";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+⨯ ./src/app/(crm)/solicitacao-portal/page.tsx:1:1
+Module not found: Can't resolve '@/components/solicitacoes/solicitacoes-control-shell'
+> 1 | import { SolicitacoesControlShell } from "@/components/solicitacoes/solicitacoes-control-shell";
+    | ^
+  2 | import type { SolicitacaoControleRow } from "@/components/solicitacoes/solicitacoes-control-shell";
+  3 | import { PageContainer } from "@/components/layout/page-container";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+⨯ ./src/app/(crm)/solicitacao-portal/page.tsx:1:1
+Module not found: Can't resolve '@/components/solicitacoes/solicitacoes-control-shell'
+> 1 | import { SolicitacoesControlShell } from "@/components/solicitacoes/solicitacoes-control-shell";
+    | ^
+  2 | import type { SolicitacaoControleRow } from "@/components/solicitacoes/solicitacoes-control-shell";
+  3 | import { PageContainer } from "@/components/layout/page-container";
+  4 |
+
+https://nextjs.org/docs/messages/module-not-found
+ GET /solicitacao-portal 500 in 1355ms (compile: 1092ms, proxy.ts: 249ms, render: 15ms)
+ GET /solicitacao-portal 500 in 68ms (compile: 6ms, proxy.ts: 57ms, render: 5ms)
+ GET /solicitacao-portal 500 in 119ms (compile: 5ms, proxy.ts: 109ms, render: 5ms)
+○ Compiling /_error ...
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /solicitacao-portal 200 in 544ms (compile: 98ms, proxy.ts: 118ms, render: 329ms)
+ GET /solicitacao-portal 200 in 660ms (compile: 85ms, proxy.ts: 499ms, render: 76ms)
+⨯ ./src/components/solicitacoes/solicitacoes-control-shell.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\solicitacoes\solicitacoes-control-shell.tsx
+    1: O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Import trace for requested module:
+./src/components/solicitacoes/solicitacoes-control-shell.tsx
+./src/app/(crm)/solicitacao-portal/page.tsx
+⨯ ./src/components/solicitacoes/solicitacoes-control-shell.tsx
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\ti01\Desktop\Verdetec CRM\verdetec-crm\src\components\solicitacoes\solicitacoes-control-shell.tsx
+    1: O sistema não pode encontrar o arquivo especificado. (os error 2)
+
+Import trace for requested module:
+./src/components/solicitacoes/solicitacoes-control-shell.tsx
+./src/app/(crm)/solicitacao-portal/page.tsx
+ GET /solicitacao-portal 500 in 511ms (compile: 328ms, proxy.ts: 170ms, render: 13ms)
+ GET /solicitacao-portal 500 in 112ms (compile: 4ms, proxy.ts: 103ms, render: 6ms)
+ GET /solicitacao-portal 500 in 182ms (compile: 4ms, proxy.ts: 172ms, render: 6ms)
+○ Compiling /_error ...
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /solicitacao-portal 200 in 652ms (compile: 80ms, proxy.ts: 263ms, render: 309ms)
+ GET /solicitacao-portal 404 in 662ms (compile: 422ms, proxy.ts: 213ms, render: 28ms)
+ GET /solicitacao-portal 404 in 89ms (compile: 6ms, proxy.ts: 67ms, render: 16ms)
+ GET /solicitacao-portal 404 in 168ms (compile: 7ms, proxy.ts: 104ms, render: 57ms)
+ GET /solicitacao-portal 200 in 952ms (compile: 529ms, proxy.ts: 271ms, render: 153ms)
+ GET /solicitacao-portal 200 in 263ms (compile: 6ms, proxy.ts: 165ms, render: 92ms)
+ GET /solicitacao-portal 200 in 431ms (compile: 5ms, proxy.ts: 118ms, render: 308ms)
+ GET /solicitacao-portal 200 in 319ms (compile: 4ms, proxy.ts: 54ms, render: 262ms)
+ GET /solicitacao-portal 200 in 552ms (compile: 33ms, proxy.ts: 401ms, render: 117ms)
+ GET /solicitacao-portal 200 in 489ms (compile: 27ms, proxy.ts: 176ms, render: 286ms)
+ GET /solicitacao-portal 200 in 421ms (compile: 29ms, proxy.ts: 220ms, render: 173ms)
+ GET /solicitacao-portal 200 in 883ms (compile: 24ms, proxy.ts: 677ms, render: 182ms)
+ GET /solicitacao-portal 200 in 1283ms (compile: 6ms, proxy.ts: 1047ms, render: 231ms)
+ GET /solicitacao-portal 200 in 318ms (compile: 3ms, proxy.ts: 212ms, render: 103ms)
+ GET /solicitacao-portal 200 in 1517ms (compile: 708ms, proxy.ts: 233ms, render: 576ms)
+ GET /solicitacao-portal 200 in 743ms (compile: 3ms, proxy.ts: 459ms, render: 281ms)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: Error [ConnectTimeoutError]: Connect Timeout Error (attempted address: zosdxuntvhrzjutmvduu.supabase.co:443, timeout: 10000ms)
+      at ignore-listed frames {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: Error [ConnectTimeoutError]: Connect Timeout Error (attempted addresses: 104.18.38.10:443, 172.64.149.246:443, timeout: 10000ms)
+      at ignore-listed frames {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+ GET /login?next=%2Fsolicitacao-portal 200 in 11.3s (compile: 679ms, proxy.ts: 10.5s, render: 34ms)
+ GET /solicitacao-portal 200 in 553ms (compile: 15ms, proxy.ts: 142ms, render: 396ms)
+ GET /solicitacao-portal 200 in 379ms (compile: 4ms, proxy.ts: 114ms, render: 261ms)
+ GET /campanhas 200 in 882ms (compile: 700ms, proxy.ts: 122ms, render: 60ms)
+ GET /campanhas 200 in 105ms (compile: 4ms, proxy.ts: 59ms, render: 42ms)
+ GET /clientes 200 in 2.8s (compile: 8ms, proxy.ts: 116ms, render: 2.7s)
+ GET /clientes 200 in 4.1s (compile: 1068ms, proxy.ts: 148ms, render: 2.9s)
+ GET /campanhas 200 in 93ms (compile: 6ms, proxy.ts: 64ms, render: 23ms)
+ GET /campanhas 200 in 731ms (compile: 29ms, proxy.ts: 639ms, render: 63ms)
+ GET /campanhas?tab=analytics&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 618ms (compile: 5ms, proxy.ts: 254ms, render: 360ms)
+ GET /campanhas?tab=cadastrar&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 356ms (compile: 8ms, proxy.ts: 62ms, render: 285ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 357ms (compile: 6ms, proxy.ts: 64ms, render: 287ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 358ms (compile: 7ms, proxy.ts: 73ms, render: 277ms)
+ GET /campanhas?tab=filtros&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 322ms (compile: 5ms, proxy.ts: 59ms, render: 259ms)
+ GET /campanhas?tab=jornada&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 293ms (compile: 5ms, proxy.ts: 70ms, render: 218ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 306ms (compile: 7ms, proxy.ts: 64ms, render: 234ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 733ms (compile: 32ms, proxy.ts: 630ms, render: 70ms)

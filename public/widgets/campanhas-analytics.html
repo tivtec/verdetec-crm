@@ -1,0 +1,383 @@
+﻿<!-- VTC Analytics Widget – KPIs + gráficos com orçamento por período e CPL por dia -->
+<div id="vtc-analytics-mount"></div>
+
+<script>
+/* ==================== CONFIG ==================== */
+const N8N_URL = 'https://whvtec2.verdetec.dev.br/webhook/analytics/leads';
+const UI_BASE  = '#104444';
+
+/* ==================== Utils de data ==================== */
+function toYMDLocal(d){
+  const yy=d.getFullYear(), mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return `${yy}-${mm}-${dd}`;
+}
+function fmtDMY(s){
+  if(!s) return '';
+  const str = String(s);
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) { const [y,m,d]=str.slice(0,10).split('-'); return `${d}-${m}-${y}`; }
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) { const [d,m,y]=str.split('/'); return `${d}-${m}-${y}`; }
+  const dt=new Date(str); if(!isNaN(dt)) return fmtDMY(toYMDLocal(dt)); return str;
+}
+
+/* ==================== Carrega libs (Chart.js + DataLabels) ==================== */
+(function ensureLibs(){
+  function load(src, flag, cb){
+    if (window[flag]) { cb && cb(); return; }
+    const s=document.createElement('script'); s.src=src; s.async=true;
+    s.onload=()=>{ window[flag]=true; cb&&cb(); }; document.head.appendChild(s);
+  }
+  load('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js','__vtcChartLoaded',()=>{
+    load('https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2','__vtcDlblLoaded',()=>{
+      if (window.Chart && window.ChartDataLabels) Chart.register(window.ChartDataLabels);
+    });
+  });
+})();
+
+/* ==================== Paleta e helpers de cor ==================== */
+const SOLID_PALETTE=[
+  '#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#17becf','#bcbd22','#e377c2','#7f7f7f','#8c564b',
+  '#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc949','#af7aa1','#ff9da7','#9c755f','#bab0ab',
+  '#3366cc','#dc3912','#109618','#990099','#0099c6','#dd4477','#66aa00','#b82e2e','#316395','#994499'
+];
+function hashIdx(str, mod){ let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h)+str.charCodeAt(i); return Math.abs(h)%mod; }
+function hexToRgb(hex){ const m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:[16,68,68]; }
+function rgbToHex([r,g,b]){ return '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function darken(hex, f=.15){ const [r,g,b]=hexToRgb(hex); const d=v=>Math.max(0,Math.round(v*(1-f))); return rgbToHex([d(r),d(g),d(b)]); }
+function luminance(hex){ const [r,g,b]=hexToRgb(hex).map(v=>v/255); const a=[r,g,b].map(v=> v<=0.03928? v/12.92:Math.pow((v+0.055)/1.055,2.4)); return 0.2126*a[0]+0.7152*a[1]+0.0722*a[2]; }
+
+/* ==================== Normalização e detectores ==================== */
+function normName(name=''){
+  try { return String(name).normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }
+  catch { return String(name).toLowerCase(); }
+}
+function isOrganicName(name=''){
+  const n = normName(name);
+  return n.includes('organico') || n.includes('organic');
+}
+function isGoogleName(name=''){
+  return normName(name).includes('google');
+}
+const NF  = new Intl.NumberFormat('pt-BR');
+const BRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+
+/* ==================== Web Component ==================== */
+class VtcAnalyticsWidget extends HTMLElement{
+  constructor(){
+    super();
+    this.root=this.attachShadow({mode:'open'});
+    this.state={mode:'bar'};
+    this._last={series:[],metrics:{}};
+    this._budgetsByDay = {};
+    this._currentLabels = [];
+    this._renderShell();
+  }
+
+  connectedCallback(){
+    const wait=()=>{ if(!window.Chart||!window.ChartDataLabels){ requestAnimationFrame(wait); return; }
+      Chart.register(window.ChartDataLabels); this._initCharts();
+      const today=new Date(), end=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+      const start=new Date(end); start.setDate(start.getDate()-6);
+      const yStart=toYMDLocal(start), yEnd=toYMDLocal(end);
+      this.refs.start.value=yStart; this.refs.end.value=yEnd;
+      this._fetchAndRender({start:yStart,end:yEnd});
+    }; wait();
+  }
+
+  /* ---------- UI Shell ---------- */
+  _renderShell(){
+    const css=`
+      :host{ all:initial; display:block; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+      *{ box-sizing:border-box; }
+      .wrap{ color:#0e2c2c; }
+      .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin:8px 0 14px; }
+      .card{ background:linear-gradient(180deg,#0f3a3a 0%,#377b7b 100%); color:#fff; border-radius:16px; padding:18px 20px; box-shadow:0 8px 14px rgba(0,0,0,.15); min-height:86px; }
+      .card h4{ margin:0 0 8px; font-weight:600; opacity:.9; font-size:14px; }
+      .card .val{ font-size:28px; font-weight:800; letter-spacing:.2px; }
+
+      .filters{ display:flex; gap:22px; flex-wrap:wrap; align-items:flex-end; }
+      .block{ display:flex; flex-direction:column; gap:10px; }
+      .block label{ font-size:13px; color:#cc5a00; font-weight:700; }
+      .inputs{ display:flex; gap:10px; align-items:center; }
+      .input{ display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #d7e2e2; border-radius:10px; padding:8px 10px; min-width:160px; }
+      .input input{ all:unset; font-size:14px; color:#053; width:100%; }
+      .label-sm{ font-size:11px; color:#6b8; }
+      .btn{ background:${UI_BASE}; color:#fff; border:none; border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer; box-shadow:0 6px 14px rgba(0,0,0,.12); transition:.25s transform,.25s opacity; }
+      .btn:hover{ transform:translateY(-1px); }
+      .btn.secondary{ background:#bfc6ca; color:#223; }
+      .toolbar{ margin-left:auto; display:flex; gap:10px; align-items:center; }
+      .toggle{ display:flex; gap:8px; background:#eaf2f2; padding:6px; border-radius:999px; }
+      .opt{ background:transparent; border:none; color:#0f3a3a; padding:8px 12px; border-radius:999px; cursor:pointer; font-weight:800; }
+      .opt.active{ background:${UI_BASE}; color:#fff; box-shadow:0 8px 18px rgba(16,68,68,.28); }
+
+      .panel{ background:#fff; border:1px solid #e1eeee; border-radius:16px; padding:12px; }
+      .title{ font-weight:700; color:${UI_BASE}; font-size:18px; margin:6px 0 10px; }
+
+      .chartwrap{ position:relative; height:380px; z-index:0; }
+      canvas{ width:100%; height:100%; cursor:pointer; position:relative; z-index:1; }
+
+      .toast{ position:fixed; right:16px; bottom:16px; background:#111a; backdrop-filter:blur(6px); color:#fff; padding:10px 14px; border-radius:10px; opacity:0; transform:translateY(10px); transition:.25s; pointer-events:none; z-index:9999; max-width:min(92vw,520px); line-height:1.35; white-space:pre-line; }
+      .toast.show{ opacity:1; transform:translateY(0); }
+    `;
+    const html=`
+      <div class="wrap">
+        <div class="kpis">
+          <div class="card"><h4>Total de Leads</h4><div class="val" id="kpiLeadsTotal">—</div></div>
+          <div class="card"><h4>Total de Clicks</h4><div class="val" id="kpiClicks">—</div></div>
+          <div class="card"><h4>META</h4><div class="val" id="kpiMeta">—</div></div>
+          <div class="card"><h4>Leads Orgânicos</h4><div class="val" id="kpiOrg">—</div></div>
+          <div class="card"><h4>Leads Google</h4><div class="val" id="kpiGoogle">—</div></div>
+          <div class="card"><h4>Custo por Lead</h4><div class="val" id="kpiCpl">—</div></div>
+          <div class="card"><h4>Orçamento total</h4><div class="val" id="kpiBudget">—</div></div>
+        </div>
+
+        <div class="filters">
+          <div class="block">
+            <label>Dias pre definidos</label>
+            <div class="inputs">
+              <div class="input"><span class="label-sm">Início</span><input id="start" type="date"></div>
+              <div class="input"><span class="label-sm">Fim</span><input id="end" type="date"></div>
+              <button class="btn" id="btnBuscar">Buscar</button>
+              <button class="btn secondary" id="btnClear">Limpar</button>
+            </div>
+          </div>
+          <div class="toolbar">
+            <div class="toggle" id="toggle">
+              <button class="opt active" data-mode="bar">Barras</button>
+              <button class="opt" data-mode="line">Linhas</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="title">Leads por campanha no período</div>
+          <div class="chartwrap">
+            <canvas id="barChart"></canvas>
+            <canvas id="lineChart" style="display:none;"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="toast" id="toast">Carregando…</div>
+    `;
+    const style=document.createElement('style'); style.textContent=css;
+    const container=document.createElement('div'); container.innerHTML=html;
+    this.root.append(style,container);
+
+    this.refs={
+      kpiLeadsTotal:this.root.querySelector('#kpiLeadsTotal'),
+      kpiClicks:this.root.querySelector('#kpiClicks'),
+      kpiMeta:this.root.querySelector('#kpiMeta'),
+      kpiOrg:this.root.querySelector('#kpiOrg'),
+      kpiGoogle:this.root.querySelector('#kpiGoogle'),
+      kpiCpl:this.root.querySelector('#kpiCpl'),
+      kpiBudget:this.root.querySelector('#kpiBudget'),
+
+      start:this.root.querySelector('#start'),
+      end:this.root.querySelector('#end'),
+      btnBuscar:this.root.querySelector('#btnBuscar'),
+      btnClear:this.root.querySelector('#btnClear'),
+      toggle:this.root.querySelector('#toggle'),
+      toast:this.root.querySelector('#toast'),
+      barCanvas:this.root.querySelector('#barChart'),
+      lineCanvas:this.root.querySelector('#lineChart'),
+    };
+
+    this.refs.btnBuscar.addEventListener('click',()=>{
+      const start=this.refs.start.value, end=this.refs.end.value;
+      if(!start||!end) return this._notify('Selecione início e fim.');
+      this._fetchAndRender({start,end});
+    });
+    this.refs.btnClear.addEventListener('click',()=>{ this.refs.start.value=''; this.refs.end.value=''; });
+    this.refs.toggle.addEventListener('click',(e)=>{
+      const b=e.target.closest('.opt'); if(!b) return; this._setMode(b.dataset.mode);
+    });
+  }
+
+  _setMode(mode){
+    if(mode!=='bar'&&mode!=='line') return;
+    this.state.mode=mode;
+    this.refs.toggle.querySelectorAll('.opt').forEach(o=>o.classList.toggle('active',o.dataset.mode===mode));
+    this.refs.barCanvas.style.display=mode==='bar'?'block':'none';
+    this.refs.lineCanvas.style.display=mode==='line'?'block':'none';
+    this._render(this._last.series, this._last.metrics);
+  }
+
+  _showToast(on,text){ if(text) this.refs.toast.textContent=text; this.refs.toast.classList.toggle('show',!!on); }
+  _notify(msg){ this._showToast(true,msg); setTimeout(()=>this._showToast(false),1800); }
+
+  /* ---------- Data fetch + render ---------- */
+  async _fetchAndRender(params){
+    this._showToast(true,'Carregando…');
+    try{
+      const url=new URL(N8N_URL);
+      Object.entries(params||{}).forEach(([k,v])=>{ if(v!=null && String(v).length) url.searchParams.set(k,v); });
+      url.searchParams.set('_t',String(Date.now()));
+      const res=await fetch(url.toString(),{method:'GET',cache:'no-store'});
+      if(!res.ok) throw new Error(await res.text());
+      const payload=await res.json();
+      const series=Array.isArray(payload.series)?payload.series:[];
+      const metrics=(payload.metrics && typeof payload.metrics==='object')?payload.metrics:null;
+      const budgets = (payload.budgets_by_day && typeof payload.budgets_by_day==='object') ? payload.budgets_by_day : {};
+      this._last.series=series; this._last.metrics=metrics||{};
+      this._budgetsByDay = budgets;
+      this._render(series,metrics||{});
+    }catch(e){ console.error('fetch error',e); this._render(this._last.series,this._last.metrics); this._notify('Sem dados para o período ou erro de rede.'); }
+    finally{ setTimeout(()=>this._showToast(false),200); }
+  }
+
+  _render(series, metrics){
+    const m=this._computeMetrics(series,metrics);
+    this._updateKpis(m);
+    const {labels,datasets}=this._buildDatasets(series);
+    this._currentLabels  = labels;
+    this._updateBar(labels,datasets);
+    this._updateLine(labels,datasets);
+  }
+
+  /* ---------- KPIs ---------- */
+  _computeMetrics(series, metrics){
+    let totalAll=0, totalOrganic=0, totalGoogle=0;
+    for (const s of (series||[])){
+      const sum = (s?.data || []).reduce((acc,p)=> acc + Number(p?.y || 0), 0);
+      totalAll += sum;
+      if (isOrganicName(s?.name)) totalOrganic += sum;
+      if (isGoogleName(s?.name))  totalGoogle  += sum;
+    }
+    const leadsTotalCalc = totalAll;
+    const organicCalc    = totalOrganic;
+    const metaCalc       = Math.max(0, leadsTotalCalc - organicCalc);
+
+    const clicks  = Number(metrics?.clicks_total ?? 0);
+    const budget  = Number(metrics?.budget_total ?? 0);
+    const leadsMeta = Number(metrics?.leads_meta ?? metaCalc);
+    const cpl       = (metrics?.cpl != null) ? Number(metrics.cpl) :
+                      (leadsMeta > 0 ? budget / leadsMeta : null);
+
+    return {
+      leadsTotal: Number(metrics?.leads_total ?? leadsTotalCalc),
+      clicksTotal: clicks,
+      metaLeads: leadsMeta,
+      organicLeads: Number(metrics?.leads_organico ?? organicCalc),
+      googleLeads: totalGoogle,
+      budgetTotal: budget,
+      cpl
+    };
+  }
+
+  _updateKpis({leadsTotal, clicksTotal, metaLeads, organicLeads, googleLeads, budgetTotal, cpl}){
+    this.refs.kpiLeadsTotal.textContent = NF.format(leadsTotal ?? 0);
+    this.refs.kpiClicks.textContent     = NF.format(clicksTotal ?? 0);
+    this.refs.kpiMeta.textContent       = NF.format(metaLeads ?? 0);
+    this.refs.kpiOrg.textContent        = NF.format(organicLeads ?? 0);
+    this.refs.kpiGoogle.textContent     = NF.format(googleLeads ?? 0);
+    this.refs.kpiBudget.textContent     = BRL.format(budgetTotal ?? 0);
+    this.refs.kpiCpl.textContent        = (cpl!=null && isFinite(cpl)) ? BRL.format(cpl) : '—';
+  }
+
+  /* ---------- Datasets (filtra campanhas soma > 0) ---------- */
+  _buildDatasets(series){
+    const activeSeries=(series||[]).filter(s => (s?.data||[]).some(p => Number(p?.y||0) > 0));
+    const labelsSet=new Set();
+    activeSeries.forEach(s => (s.data||[]).forEach(p => labelsSet.add(String(p.x))));
+    const labels=Array.from(labelsSet).sort();
+    const datasets=activeSeries.map((s,i)=>{
+      const idx=hashIdx(s.name||String(i), SOLID_PALETTE.length);
+      const color=SOLID_PALETTE[idx];
+      const map=new Map((s.data||[]).map(p=>[String(p.x), Number(p.y||0)]));
+      const vals=labels.map(d=>map.get(d)??0);
+      return { label: s.name || `Série ${i+1}`, data: vals, _color: color };
+    });
+    return { labels, datasets };
+  }
+
+  /* ==================== Charts ==================== */
+  _initCharts(){
+    const ctxBar=this.refs.barCanvas.getContext('2d');
+    const ctxLine=this.refs.lineCanvas.getContext('2d');
+    const self=this;
+
+    const common={
+      responsive:true, maintainAspectRatio:false,
+      animation:{duration:600,easing:'easeInOutQuart'},
+      scales:{
+        x:{ticks:{color:'#123', callback:(val)=>fmtDMY(this._currentLabels?.[val]??val)}, grid:{color:'rgba(0,0,0,0.06)'}},
+        y:{beginAtZero:true, ticks:{color:'#123'}, grid:{color:'rgba(0,0,0,0.06)'}}
+      },
+      plugins:{
+        legend:{ labels:{ color:'#123', usePointStyle:true } },
+        tooltip:{
+          mode:'index', intersect:false,
+          callbacks:{
+            title:(items)=>fmtDMY(items?.[0]?.label??''),
+            label:(ctx)=>{
+              const name = ctx.dataset?.label || '';
+              const leads = Number(ctx.parsed?.y || 0);
+              const rawLabel = ctx.label ?? (this._currentLabels?.[ctx.dataIndex] ?? '');
+              const dayKey = fmtDMY(rawLabel);
+              const budgetDay = self._budgetsByDay?.[name]?.[dayKey] ?? 0;
+              let suffix = '';
+              if (budgetDay > 0 && leads > 0) {
+                const cplDay = budgetDay / leads;
+                suffix = ` (${BRL.format(cplDay)})`;
+              }
+              return `${name}: ${leads.toLocaleString('pt-BR')}${suffix}`;
+            },
+            footer:(items)=>'Total: '+items.reduce((s,it)=>s+(it.parsed.y||0),0).toLocaleString('pt-BR')
+          }
+        }
+      }
+    };
+
+    this.bar=new Chart(ctxBar,{type:'bar',data:{labels:[],datasets:[]},options:{
+      ...common,
+      datasets:{ bar:{ borderRadius:8, borderSkipped:false } },
+      plugins:{
+        ...common.plugins,
+        datalabels:{
+          display:(ctx)=>Number(ctx.dataset.data[ctx.dataIndex])>0,
+          formatter:(v)=>v.toLocaleString('pt-BR'),
+          anchor:'center', align:'center', clamp:true, padding:2,
+          font:{weight:'700', size:11},
+          color:(ctx)=>{ const bg=ctx.dataset.backgroundColor; const hex=Array.isArray(bg)?bg[ctx.dataIndex]:bg; return (luminance(hex)<0.6)?'#fff':'#123'; },
+          textStrokeColor:'#000', textStrokeWidth:0.8
+        }
+      }
+    }});
+
+    this.line=new Chart(ctxLine,{type:'line',data:{labels:[],datasets:[]},options:{
+      ...common,
+      elements:{ line:{tension:.35}, point:{radius:3, hoverRadius:6} }
+    }});
+  }
+
+  _updateBar(labels,datasets){
+    if(!this.bar) return; this._currentLabels=labels;
+    const ds=datasets.map(d=>(
+      {
+        label:d.label, data:d.data,
+        backgroundColor:d._color, borderColor:darken(d._color,.25), borderWidth:1.5
+      }
+    ));
+    this.bar.data.labels=labels; this.bar.data.datasets=ds; this.bar.update();
+  }
+
+  // >>> ALTERADO: sem background nas linhas (apenas traço)
+  _updateLine(labels,datasets){
+    if(!this.line) return; this._currentLabels=labels;
+    const ds=datasets.map(d=>(
+      {
+        label:d.label, data:d.data,
+        borderColor:d._color,
+        fill:false,
+        tension:.35, borderWidth:2,
+        pointBackgroundColor:d._color, pointBorderColor:'#fff'
+      }
+    ));
+    this.line.data.labels=labels; this.line.data.datasets=ds; this.line.update();
+  }
+}
+
+/* ==================== Montagem ==================== */
+customElements.define('vtc-analytics', VtcAnalyticsWidget);
+const mount=document.getElementById('vtc-analytics-mount');
+if(mount && !mount.__mounted){ mount.innerHTML='<vtc-analytics></vtc-analytics>'; mount.__mounted=true; }
+</script>

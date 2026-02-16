@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ClipboardList,
   LayoutDashboard,
+  Megaphone,
   ReceiptText,
   ShieldCheck,
   UserRound,
@@ -26,6 +27,7 @@ type AppSidebarProps = {
 
 const items = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/campanhas", label: "Campanhas", icon: Megaphone },
   { href: "/clientes", label: "Clientes", icon: UsersRound },
   { href: "/empresas", label: "Empresas", icon: Building2 },
   { href: "/pedido", label: "Pedidos", icon: ClipboardList },
@@ -39,7 +41,7 @@ export function AppSidebar({ profile }: AppSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden h-screen w-56 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-primary-soft)] px-3 py-4 lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-56 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-primary-soft)] px-3 py-4 lg:flex">
       <div className="mx-1 mb-5 flex items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm shrink-0">
         <div className="shrink-0 rounded-md border border-[var(--brand-border)] bg-white p-1">
           {profile.organizationLogoUrl ? (

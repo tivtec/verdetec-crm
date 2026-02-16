@@ -83,7 +83,7 @@ export default async function UsuariosPage() {
   return (
     <PageContainer className="space-y-5 bg-[#eceef0]">
       <div className="rounded-2xl bg-[#e4e6e8] p-4">
-        <div className="max-h-[calc(100vh-180px)] overflow-auto">
+        <div className="h-[calc(100dvh-180px)] overflow-auto">
           <UsuariosControlShell initialRows={rows} />
         </div>
       </div>

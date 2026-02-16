@@ -1,39 +1,17 @@
-import { ClipboardPlus, Link2 } from "lucide-react";
-
-import { AppHeader } from "@/components/layout/app-header";
+﻿import { PedidosControlShell } from "@/components/pedidos/pedidos-control-shell";
 import { PageContainer } from "@/components/layout/page-container";
-import { PedidosTable } from "@/components/tables/pedidos-table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { getPedidos } from "@/services/crm/api";
+import { getPedidosControleRows } from "@/services/crm/api";
 
 export default async function PedidoPage() {
-  const pedidos = await getPedidos();
+  const rows = await getPedidosControleRows({ limit: 0, offset: 0 });
 
   return (
-    <>
-      <AppHeader title="Pedidos" subtitle="Gestão de compras, orçamentos e integrações externas." />
-      <PageContainer className="space-y-4">
-        <Card>
-          <CardContent className="flex flex-wrap items-center gap-2 p-4">
-            <Badge tone="success">Integração Supabase</Badge>
-            <Badge tone="info">API externa ready</Badge>
-            <div className="ml-auto flex gap-2">
-              <Button variant="secondary" className="gap-2">
-                <Link2 className="h-4 w-4" />
-                Conectar ERP
-              </Button>
-              <Button className="gap-2">
-                <ClipboardPlus className="h-4 w-4" />
-                Novo pedido
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <PedidosTable data={pedidos} />
-      </PageContainer>
-    </>
+    <PageContainer className="space-y-5 bg-[#eceef0]">
+      <div className="rounded-2xl bg-[#e4e6e8] p-4">
+        <div className="h-[calc(100dvh-180px)] overflow-auto">
+          <PedidosControlShell initialRows={rows} />
+        </div>
+      </div>
+    </PageContainer>
   );
 }
