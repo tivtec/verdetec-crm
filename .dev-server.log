@@ -216,3 +216,12 @@ Import trace for requested module:
 ⚠ Fast Refresh had to perform a full reload due to a runtime error.
 ⚠ Fast Refresh had to perform a full reload due to a runtime error.
  GET /usuarios 200 in 624ms (compile: 99ms, proxy.ts: 102ms, render: 422ms)
+ GET /usuarios 200 in 995ms (compile: 72ms, proxy.ts: 820ms, render: 103ms)
+ GET /usuarios 200 in 119ms (compile: 7ms, proxy.ts: 63ms, render: 49ms)
+ GET /usuarios 200 in 992ms (compile: 10ms, proxy.ts: 715ms, render: 267ms)
+ GET /usuarios 200 in 541ms (compile: 8ms, proxy.ts: 484ms, render: 50ms)
+ GET /usuarios 200 in 341ms (compile: 76ms, proxy.ts: 128ms, render: 138ms)
+ GET /usuarios 200 in 1455ms (compile: 1077ms, proxy.ts: 257ms, render: 122ms)
+ GET /usuarios 200 in 124ms (compile: 4ms, proxy.ts: 74ms, render: 46ms)
+ GET /usuarios 200 in 1064ms (compile: 541ms, proxy.ts: 306ms, render: 217ms)
+ GET /usuarios 200 in 156ms (compile: 7ms, proxy.ts: 92ms, render: 57ms)

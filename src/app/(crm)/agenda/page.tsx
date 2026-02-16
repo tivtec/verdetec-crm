@@ -1,43 +1,29 @@
-import { CalendarCheck2, RefreshCcw } from "lucide-react";
-
-import { AppHeader } from "@/components/layout/app-header";
+import { AgendaControlShell } from "@/components/agenda/agenda-control-shell";
+import type { AgendaControleRow } from "@/components/agenda/types";
 import { PageContainer } from "@/components/layout/page-container";
-import { AgendaTable } from "@/components/tables/agenda-table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAgendaEvents } from "@/services/crm/api";
+import { getAgendaControleRows, getClientesRepresentantes } from "@/services/crm/api";
 
 export default async function AgendaPage() {
-  const events = await getAgendaEvents();
+  const [rows, representantes] = await Promise.all([getAgendaControleRows(), getClientesRepresentantes()]);
+
+  const allowedRepresentantes = Array.from(
+    new Set(
+      representantes
+        .map((representante) => representante.nome.trim())
+        .filter((nome) => nome.length > 0),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   return (
-    <>
-      <AppHeader
-        title="Agenda"
-        subtitle="Calendário operacional com reservas, slots e sincronização em tempo real."
-      />
-      <PageContainer className="space-y-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Agenda compartilhada</CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge tone="success">Realtime</Badge>
-              <Button variant="secondary" className="gap-2">
-                <RefreshCcw className="h-4 w-4" />
-                Sincronizar Google Calendar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="inline-flex items-center gap-2 text-sm text-slate-600">
-              <CalendarCheck2 className="h-4 w-4 text-[var(--brand-primary)]" />
-              Atualizações de agenda prontas para canais por `company_id`.
-            </p>
-            <AgendaTable data={events} />
-          </CardContent>
-        </Card>
-      </PageContainer>
-    </>
+    <PageContainer className="space-y-5 bg-[#eceef0]">
+      <div className="rounded-2xl bg-[#e4e6e8] p-4">
+        <div className="max-h-[calc(100vh-180px)] overflow-auto">
+          <AgendaControlShell
+            initialRows={rows as AgendaControleRow[]}
+            allowedRepresentantes={allowedRepresentantes}
+          />
+        </div>
+      </div>
+    </PageContainer>
   );
 }

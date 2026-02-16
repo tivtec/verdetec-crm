@@ -54,10 +54,71 @@ function asBoolean(value: unknown, fallback = false) {
   return fallback;
 }
 
+function parseDateInput(value: string) {
+  const direct = new Date(value);
+  if (!Number.isNaN(direct.getTime())) {
+    return direct;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  // Handles timestamps like 2026-02-13T13:00:00+00 / -03
+  const tzHourOnly = trimmed.match(/([+-]\d{2})$/);
+  if (tzHourOnly) {
+    const normalized = `${trimmed}:00`;
+    const parsed = new Date(normalized);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  // Handles timestamps like 2026-02-13T13:00:00-0300 / +0000
+  const tzCompact = trimmed.match(/([+-]\d{2})(\d{2})$/);
+  if (tzCompact) {
+    const normalized = `${trimmed.slice(0, -5)}${tzCompact[1]}:${tzCompact[2]}`;
+    const parsed = new Date(normalized);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  // Handles values like 13-02-2026 09:30 or 13-02-2026
+  const brazilianMatch = trimmed.match(
+    /^(\d{2})-(\d{2})-(\d{4})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/,
+  );
+  if (brazilianMatch) {
+    const [, dd, mm, yyyy, hh = "00", mi = "00", ss = "00"] = brazilianMatch;
+    const normalized = `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
+    const parsed = new Date(normalized);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
 function normalizeDate(value: unknown) {
-  if (typeof value === "string" && value.length > 0) {
+  if (value instanceof Date) {
+    if (!Number.isNaN(value.getTime())) {
+      return value.toISOString();
+    }
+    return new Date().toISOString();
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
     const parsed = new Date(value);
     if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+  }
+
+  if (typeof value === "string" && value.length > 0) {
+    const parsed = parseDateInput(value);
+    if (parsed) {
       return parsed.toISOString();
     }
   }
@@ -951,6 +1012,42 @@ const mockAgenda: AgendaEvent[] = [
   },
 ];
 
+export type AgendaControleApiRow = {
+  id: string;
+  inicioReuniao: string;
+  inicioReuniaoIso: string;
+  cliente: string;
+  fone: string;
+  representante: string;
+};
+
+const mockAgendaControleRows: AgendaControleApiRow[] = [
+  {
+    id: "1",
+    inicioReuniao: "05-01-2026 09:30",
+    inicioReuniaoIso: new Date("2026-01-05T09:30:00").toISOString(),
+    cliente: "Mario Sergio",
+    fone: "11975441418",
+    representante: "Ana S.",
+  },
+  {
+    id: "2",
+    inicioReuniao: "05-01-2026 09:30",
+    inicioReuniaoIso: new Date("2026-01-05T09:30:00").toISOString(),
+    cliente: "Erica Nogarah",
+    fone: "12982946875",
+    representante: "Ana S.",
+  },
+  {
+    id: "3",
+    inicioReuniao: "05-01-2026 09:30",
+    inicioReuniaoIso: new Date("2026-01-05T09:30:00").toISOString(),
+    cliente: "Bruno Jordao",
+    fone: "75999297026",
+    representante: "Ana S.",
+  },
+];
+
 type AgendaViewRow = {
   inicio_reuniao?: string | null;
   id_agendamento?: string | number | null;
@@ -961,6 +1058,21 @@ type AgendaViewRow = {
   nome_pessoa?: string | null;
   telefone_pessoa?: string | null;
 };
+
+function formatAgendaDashDate(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "--";
+  }
+
+  const day = String(parsed.getDate()).padStart(2, "0");
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const year = String(parsed.getFullYear());
+  const hours = String(parsed.getHours()).padStart(2, "0");
+  const minutes = String(parsed.getMinutes()).padStart(2, "0");
+
+  return `${day}-${month}-${year} ${hours}:${minutes}`;
+}
 
 function mapAgendaViewRow(row: AgendaViewRow, index: number): AgendaEvent {
   const startsAt = normalizeDate(row.inicio_reuniao);
@@ -974,6 +1086,18 @@ function mapAgendaViewRow(row: AgendaViewRow, index: number): AgendaEvent {
     starts_at: startsAt,
     ends_at: new Date(oneHourLater).toISOString(),
     status: "Ativo",
+  };
+}
+
+function mapAgendaControleViewRow(row: AgendaViewRow, index: number): AgendaControleApiRow {
+  const inicioIso = normalizeDate(row.inicio_reuniao);
+  return {
+    id: asString(row.id_agendamento, String(index + 1)),
+    inicioReuniao: formatAgendaDashDate(inicioIso),
+    inicioReuniaoIso: inicioIso,
+    cliente: asString(row.nome_pessoa, "Sem cliente"),
+    fone: asString(row.telefone_pessoa, "-"),
+    representante: asString(row.nome_usuario, "-"),
   };
 }
 
@@ -1012,8 +1136,8 @@ export async function getAgendaEvents() {
       .select(
         "inicio_reuniao,id_agendamento,id_usuario,nome_usuario,id_vertical,id_pessoa,nome_pessoa,telefone_pessoa",
       )
-      .order("inicio_reuniao", { ascending: true })
-      .limit(100);
+      .order("inicio_reuniao", { ascending: false })
+      .limit(1000);
 
     if (!detailedError && detailedData?.length) {
       return (detailedData as AgendaViewRow[]).map(mapAgendaViewRow);
@@ -1037,6 +1161,42 @@ export async function getAgendaEvents() {
     }) satisfies AgendaEvent[];
   } catch {
     return mockAgenda;
+  }
+}
+
+export async function getAgendaControleRows(): Promise<AgendaControleApiRow[]> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from("vw_agendamentos_detalhados2")
+      .select(
+        "inicio_reuniao,id_agendamento,id_usuario,nome_usuario,id_vertical,id_pessoa,nome_pessoa,telefone_pessoa",
+      )
+      .order("inicio_reuniao", { ascending: false })
+      .limit(5000);
+
+    if (!error && data?.length) {
+      return (data as AgendaViewRow[]).map(mapAgendaControleViewRow);
+    }
+
+    const events = await getAgendaEvents();
+    if (events.length > 0) {
+      return events.map((event) => {
+        const [cliente, representante] = event.title.split(" - ");
+        return {
+          id: event.id,
+          inicioReuniao: formatAgendaDashDate(event.starts_at),
+          inicioReuniaoIso: normalizeDate(event.starts_at),
+          cliente: asString(cliente, "Sem cliente"),
+          fone: "-",
+          representante: asString(representante, "-"),
+        } satisfies AgendaControleApiRow;
+      });
+    }
+
+    return mockAgendaControleRows;
+  } catch {
+    return mockAgendaControleRows;
   }
 }
 
