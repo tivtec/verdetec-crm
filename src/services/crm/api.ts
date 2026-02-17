@@ -2073,12 +2073,27 @@ export type DashboardFunilFilters = {
   tipoAcesso2?: string;
   usuarioId?: number;
   verticalId?: string;
+  allowedUsuarioIds?: number[];
+  allowedUsuarioNomes?: string[];
 };
 
 export type DashboardRepresentanteOption = {
   id: number;
   nome: string;
   verticalId: string;
+};
+
+export type DashboardViewerAccessScope = {
+  viewerUsuarioId: number;
+  viewerNome: string;
+  viewerTipoAcesso2: string;
+  viewerVerticalId: string;
+  viewerVerticalDescricao: string;
+  forcedTipoAcesso2: string;
+  allowTipoSelection: boolean;
+  allowUsuarioSelection: boolean;
+  isGerencia: boolean;
+  isGestor: boolean;
 };
 
 type DashboardWebhookPayload = {
@@ -2371,6 +2386,48 @@ function getTipoCandidates(tipoAcesso2: string) {
   return [tipoAcesso2];
 }
 
+function normalizeVerticalDescricao(value: unknown) {
+  const normalized = normalizeLoose(asString(value));
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized.includes("gerencia")) {
+    return "Gerencia";
+  }
+
+  if (normalized.includes("time de negocios") || normalized.includes("time negocios")) {
+    return "Time de Neg\u00f3cios";
+  }
+
+  if (normalized.includes("prime")) {
+    return "Prime";
+  }
+
+  return asString(value).trim();
+}
+
+function isGestorTipoAcesso2(value: string) {
+  return normalizeLoose(value).includes("gestor");
+}
+
+function normalizeDashboardViewerTipo(value: string, verticalDescricao: string) {
+  const normalizedTipo = normalizeTipoAcesso2(value);
+  if (normalizedTipo) {
+    return normalizedTipo;
+  }
+
+  if (verticalDescricao === "Time de Neg\u00f3cios") {
+    return "Time Neg\u00f3cios";
+  }
+
+  if (verticalDescricao === "Prime") {
+    return "Prime";
+  }
+
+  return "";
+}
+
 function resolveVerticalForPayload(selectedVertical: string, selectedTipo: string, contextVertical: string) {
   if (selectedVertical) {
     return selectedVertical;
@@ -2403,27 +2460,47 @@ function fallbackTipoByVertical(vertical: string) {
   return "";
 }
 
+type DashboardRepresentantesQueryOptions = {
+  verticalId?: string;
+  includeAllEligibleWhenTipoEmpty?: boolean;
+};
+
 export async function getDashboardRepresentantesByTipo(
   tipoAcesso2?: string,
+  options: DashboardRepresentantesQueryOptions = {},
 ): Promise<DashboardRepresentanteOption[]> {
   const normalizedTipo = normalizeTipoAcesso2(tipoAcesso2);
-  if (!normalizedTipo) {
+  const verticalId = asString(options.verticalId, "").trim();
+  const includeAllEligibleWhenTipoEmpty = Boolean(options.includeAllEligibleWhenTipoEmpty);
+
+  const selectedTipoCandidates =
+    normalizedTipo.length > 0
+      ? getTipoCandidates(normalizedTipo)
+      : includeAllEligibleWhenTipoEmpty
+        ? [...getTipoCandidates("Time Neg\u00f3cios"), "Prime"]
+        : [];
+
+  const allowedTipos = Array.from(new Set(selectedTipoCandidates));
+  if (!allowedTipos.length) {
     return [];
   }
 
   try {
     const supabase = await createServerSupabaseClient();
-    const candidates = getTipoCandidates(normalizedTipo);
     let query = supabase
       .from("usuarios")
       .select("id,nome,id_vertical,tipo_acesso_2")
       .eq("usuario_ativo", true)
       .limit(300);
 
-    if (candidates.length === 1) {
-      query = query.eq("tipo_acesso_2", candidates[0]);
+    if (allowedTipos.length === 1) {
+      query = query.eq("tipo_acesso_2", allowedTipos[0]);
     } else {
-      query = query.in("tipo_acesso_2", candidates);
+      query = query.in("tipo_acesso_2", allowedTipos);
+    }
+
+    if (verticalId.length > 0) {
+      query = query.eq("id_vertical", verticalId);
     }
 
     const { data, error } = await query;
@@ -2451,6 +2528,94 @@ export async function getDashboardRepresentantesByTipo(
     return Array.from(uniqueById.values()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   } catch {
     return [];
+  }
+}
+
+export async function getDashboardViewerAccessScope(): Promise<DashboardViewerAccessScope> {
+  const fallback: DashboardViewerAccessScope = {
+    viewerUsuarioId: 0,
+    viewerNome: "",
+    viewerTipoAcesso2: "",
+    viewerVerticalId: "",
+    viewerVerticalDescricao: "",
+    forcedTipoAcesso2: "",
+    allowTipoSelection: true,
+    allowUsuarioSelection: true,
+    isGerencia: true,
+    isGestor: false,
+  };
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return fallback;
+    }
+
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select(
+        `
+          id,
+          nome,
+          tipo_acesso_2,
+          id_vertical,
+          verticais:verticais!usuarios_id_vertical_fkey(descricao)
+        `,
+      )
+      .eq("uuid_user", user.id)
+      .order("id", { ascending: false })
+      .limit(1);
+
+    if (error || !data?.length) {
+      return fallback;
+    }
+
+    const row = data[0] as Record<string, unknown>;
+    const verticalRelation =
+      (row.verticais as { descricao?: string | null } | Array<{ descricao?: string | null }> | null) ?? null;
+    const verticalDescricaoRaw = Array.isArray(verticalRelation)
+      ? verticalRelation[0]?.descricao
+      : verticalRelation?.descricao;
+    const viewerVerticalDescricao = normalizeVerticalDescricao(verticalDescricaoRaw);
+    const viewerTipoAcesso2 = normalizeDashboardViewerTipo(
+      asString(row.tipo_acesso_2, ""),
+      viewerVerticalDescricao,
+    );
+    const isGerencia = viewerVerticalDescricao === "Gerencia";
+    const isGestor = isGestorTipoAcesso2(asString(row.tipo_acesso_2, ""));
+
+    let forcedTipoAcesso2 = "";
+    if (!isGerencia) {
+      if (viewerVerticalDescricao === "Time de Neg\u00f3cios") {
+        forcedTipoAcesso2 = "Time Neg\u00f3cios";
+      } else if (viewerVerticalDescricao === "Prime") {
+        forcedTipoAcesso2 = "Prime";
+      } else {
+        forcedTipoAcesso2 = viewerTipoAcesso2;
+      }
+    }
+
+    const allowTipoSelection = isGerencia;
+    const allowUsuarioSelection = isGerencia || isGestor;
+
+    return {
+      viewerUsuarioId: asNumber(row.id, 0),
+      viewerNome: asString(row.nome, "").trim(),
+      viewerTipoAcesso2,
+      viewerVerticalId: asString(row.id_vertical, "").trim(),
+      viewerVerticalDescricao,
+      forcedTipoAcesso2,
+      allowTipoSelection,
+      allowUsuarioSelection,
+      isGerencia,
+      isGestor,
+    };
+  } catch {
+    return fallback;
   }
 }
 
@@ -2484,29 +2649,119 @@ function sumBy(rows: DashboardFunilRow[], key: keyof DashboardFunilRow) {
   return rows.reduce((acc, row) => acc + asNumber(row[key], 0), 0);
 }
 
-function buildDashboardTotals(rows: DashboardFunilRow[], payloadRows: DashboardWebhookRow[]) {
+function parseDashboardDurationToSeconds(value: string) {
+  const match = value.trim().match(/^(\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) {
+    return 0;
+  }
+
+  const hours = Number.parseInt(match[1], 10);
+  const minutes = Number.parseInt(match[2], 10);
+  const seconds = Number.parseInt(match[3], 10);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+    return 0;
+  }
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function formatDashboardDuration(secondsTotal: number) {
+  const safeSeconds = Math.max(0, Math.trunc(secondsTotal));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function buildDashboardTotals(
+  rows: DashboardFunilRow[],
+  payloadRows: DashboardWebhookRow[],
+  options?: { usePayloadSourceTotals?: boolean },
+) {
+  const usePayloadSourceTotals = options?.usePayloadSourceTotals ?? true;
   const source = payloadRows.find((row) => Object.keys(row).length > 0) ?? {};
+  const summedMinSeconds = rows.reduce((acc, row) => acc + parseDashboardDurationToSeconds(row.min), 0);
+  const avgTv = rows.length > 0 ? rows.reduce((acc, row) => acc + asNumber(row.tv, 0), 0) / rows.length : 0;
+  const summedLead = sumBy(rows, "lead");
+  const summedN00 = sumBy(rows, "n00");
+  const summedN10 = sumBy(rows, "n10");
+  const summedN21 = sumBy(rows, "n21");
+  const summedN05 = sumBy(rows, "n05");
+  const summedN30 = sumBy(rows, "n30");
+  const summedN40 = sumBy(rows, "n40");
+  const summedN50 = sumBy(rows, "n50");
+  const summedN60 = sumBy(rows, "n60");
+  const summedN61 = sumBy(rows, "n61");
+  const summedN62 = sumBy(rows, "n62");
+  const summedN66 = sumBy(rows, "n66");
+  const summedQtd = sumBy(rows, "qtd");
+  const summedUmbler = sumBy(rows, "umbler");
 
   return {
-    lead: asNumber(source.total_leads_qualificados_geral, sumBy(rows, "lead")),
+    lead: usePayloadSourceTotals ? asNumber(source.total_leads_qualificados_geral, summedLead) : summedLead,
     plusL100: "-",
     l100: "-",
-    n00: asNumber(source.total_etiqueta_00, sumBy(rows, "n00")),
-    n10: asNumber(source.total_etiqueta_10, sumBy(rows, "n10")),
-    n21: asNumber(source.total_etiqueta_21, sumBy(rows, "n21")),
-    n05: asNumber(source.total_etiqueta_05, sumBy(rows, "n05")),
-    n30: asNumber(source.total_etiqueta_30, sumBy(rows, "n30")),
-    n40: asNumber(source.total_etiqueta_40, sumBy(rows, "n40")),
-    n50: asNumber(source.total_etiqueta_50, sumBy(rows, "n50")),
-    n60: asNumber(source.total_etiqueta_60, sumBy(rows, "n60")),
-    n61: asNumber(source.total_etiqueta_61, sumBy(rows, "n61")),
-    n62: asNumber(source.total_etiqueta_62, sumBy(rows, "n62")),
-    n66: asNumber(source.total_etiqueta_66, sumBy(rows, "n66")),
-    tv: asNumber(source.media_dias_entre_entrada_e_conversao, 0),
-    min: asString(source.total_des_dur_falada, "00:00:00"),
-    qtd: asNumber(source.total_quantidade_linhas, sumBy(rows, "qtd")),
-    umbler: asNumber(source.total_mensagens_gerais, sumBy(rows, "umbler")),
+    n00: usePayloadSourceTotals ? asNumber(source.total_etiqueta_00, summedN00) : summedN00,
+    n10: usePayloadSourceTotals ? asNumber(source.total_etiqueta_10, summedN10) : summedN10,
+    n21: usePayloadSourceTotals ? asNumber(source.total_etiqueta_21, summedN21) : summedN21,
+    n05: usePayloadSourceTotals ? asNumber(source.total_etiqueta_05, summedN05) : summedN05,
+    n30: usePayloadSourceTotals ? asNumber(source.total_etiqueta_30, summedN30) : summedN30,
+    n40: usePayloadSourceTotals ? asNumber(source.total_etiqueta_40, summedN40) : summedN40,
+    n50: usePayloadSourceTotals ? asNumber(source.total_etiqueta_50, summedN50) : summedN50,
+    n60: usePayloadSourceTotals ? asNumber(source.total_etiqueta_60, summedN60) : summedN60,
+    n61: usePayloadSourceTotals ? asNumber(source.total_etiqueta_61, summedN61) : summedN61,
+    n62: usePayloadSourceTotals ? asNumber(source.total_etiqueta_62, summedN62) : summedN62,
+    n66: usePayloadSourceTotals ? asNumber(source.total_etiqueta_66, summedN66) : summedN66,
+    tv: usePayloadSourceTotals ? asNumber(source.media_dias_entre_entrada_e_conversao, avgTv) : avgTv,
+    min: usePayloadSourceTotals
+      ? asString(source.total_des_dur_falada, formatDashboardDuration(summedMinSeconds))
+      : formatDashboardDuration(summedMinSeconds),
+    qtd: usePayloadSourceTotals ? asNumber(source.total_quantidade_linhas, summedQtd) : summedQtd,
+    umbler: usePayloadSourceTotals ? asNumber(source.total_mensagens_gerais, summedUmbler) : summedUmbler,
   } satisfies DashboardFunilTotals;
+}
+
+function normalizeDashboardComparableName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function rowBelongsToAllowedDashboardUsers(
+  row: DashboardWebhookRow,
+  allowedIds: Set<number>,
+  allowedNames: Set<string>,
+) {
+  const nomeUsuario = asString(row.nome_usuario).trim();
+  if (!nomeUsuario) {
+    return false;
+  }
+
+  const rowId = asNumber(
+    row.id_usuario ??
+      row.usuario_id ??
+      row.id_user ??
+      row.idUsuario ??
+      row.id,
+    0,
+  );
+
+  if (allowedIds.size > 0 && rowId > 0) {
+    return allowedIds.has(rowId);
+  }
+
+  if (allowedNames.size > 0) {
+    return allowedNames.has(normalizeDashboardComparableName(nomeUsuario));
+  }
+
+  if (allowedIds.size > 0) {
+    return false;
+  }
+
+  return true;
 }
 
 async function fetchDashboardWebhookRows(payload: DashboardWebhookPayload) {
@@ -2613,9 +2868,35 @@ function buildPayloadAttempts(
         p_tipo_acesso_2: "",
       });
     }
+  } else {
+    for (const candidateTipo of getTipoCandidates(basePayload.p_tipo_acesso_2)) {
+      if (candidateTipo === basePayload.p_tipo_acesso_2) {
+        continue;
+      }
+
+      attempts.push({
+        ...basePayload,
+        p_id_usuario: options.strictUsuario ? basePayload.p_id_usuario : 0,
+        p_tipo_acesso_2: candidateTipo,
+      });
+    }
   }
 
-  return attempts;
+  const uniqueAttempts = new Map<string, DashboardWebhookPayload>();
+  for (const attempt of attempts) {
+    const key = [
+      attempt.p_data_inicio,
+      attempt.p_data_fim,
+      attempt.vertical,
+      attempt.p_tipo_acesso_2,
+      String(attempt.p_id_usuario),
+    ].join("|");
+    if (!uniqueAttempts.has(key)) {
+      uniqueAttempts.set(key, attempt);
+    }
+  }
+
+  return Array.from(uniqueAttempts.values());
 }
 
 export async function getDashboardFunilSnapshot(
@@ -2628,13 +2909,27 @@ export async function getDashboardFunilSnapshot(
   const selectedTipo = normalizeTipoAcesso2(filters.tipoAcesso2);
   const selectedUsuario = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
   const selectedVertical = asString(filters.verticalId, "").trim();
+  const allowedIds = new Set<number>(
+    (filters.allowedUsuarioIds ?? [])
+      .map((id) => Math.max(0, Math.trunc(asNumber(id, 0))))
+      .filter((id) => id > 0),
+  );
+  const allowedNames = new Set<string>(
+    (filters.allowedUsuarioNomes ?? [])
+      .map((nome) => normalizeDashboardComparableName(asString(nome)))
+      .filter((nome) => nome.length > 0),
+  );
+  const hasEligibilityFilter = allowedIds.size > 0 || allowedNames.size > 0;
+  const hasExplicitVerticalFilter = typeof filters.verticalId !== "undefined";
   const strictTipo = selectedTipo.length > 0;
   const strictUsuario = selectedUsuario > 0;
 
   const basePayload: DashboardWebhookPayload = {
     p_data_inicio: toWebhookDate(dataInicioInput),
     p_data_fim: toWebhookDate(dataFimInput),
-    vertical: resolveVerticalForPayload(selectedVertical, selectedTipo, context.vertical),
+    vertical: hasExplicitVerticalFilter
+      ? selectedVertical
+      : resolveVerticalForPayload(selectedVertical, selectedTipo, context.vertical),
     p_tipo_acesso_2: selectedTipo,
     p_id_usuario: selectedUsuario,
   };
@@ -2643,6 +2938,9 @@ export async function getDashboardFunilSnapshot(
 
   for (const payload of buildPayloadAttempts(basePayload, { strictTipo, strictUsuario })) {
     payloadRows = await fetchDashboardWebhookRows(payload);
+    if (hasEligibilityFilter) {
+      payloadRows = payloadRows.filter((row) => rowBelongsToAllowedDashboardUsers(row, allowedIds, allowedNames));
+    }
     if (hasUsableDashboardRows(payloadRows)) {
       break;
     }
@@ -2680,7 +2978,9 @@ export async function getDashboardFunilSnapshot(
 
   return {
     rows,
-    totals: buildDashboardTotals(rows, payloadRows),
+    totals: buildDashboardTotals(rows, payloadRows, {
+      usePayloadSourceTotals: !hasEligibilityFilter,
+    }),
   };
 }
 
@@ -2715,6 +3015,7 @@ export type DashboardRetratoSnapshot = {
 export type DashboardRetratoFilters = {
   tipoAcesso2?: string;
   usuarioId?: number;
+  verticalId?: string;
 };
 
 type DashboardRetratoWebhookPayload = {
@@ -2849,9 +3150,10 @@ async function fetchDashboardRetratoWebhookRows(payload: DashboardRetratoWebhook
   return [] as DashboardRetratoWebhookRow[];
 }
 
-async function getDashboardRetratoAllowedUserIds(tipoAcesso2?: string) {
+async function getDashboardRetratoAllowedUserIds(tipoAcesso2?: string, verticalId?: string) {
   try {
     const normalizedTipo = normalizeTipoAcesso2(tipoAcesso2);
+    const normalizedVerticalId = asString(verticalId, "").trim();
     const selectedTipoCandidates =
       normalizedTipo.length > 0
         ? getTipoCandidates(normalizedTipo)
@@ -2860,12 +3162,18 @@ async function getDashboardRetratoAllowedUserIds(tipoAcesso2?: string) {
     const allowedTipos = Array.from(new Set(selectedTipoCandidates));
 
     const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from("usuarios")
       .select("id")
       .eq("usuario_ativo", true)
       .in("tipo_acesso_2", allowedTipos)
       .limit(5000);
+
+    if (normalizedVerticalId.length > 0) {
+      query = query.eq("id_vertical", normalizedVerticalId);
+    }
+
+    const { data, error } = await query;
 
     if (error || !data?.length) {
       return new Set<number>();
@@ -2919,6 +3227,7 @@ export async function getDashboardRetratoSnapshot(
 ): Promise<DashboardRetratoSnapshot> {
   const selectedTipo = normalizeTipoAcesso2(filters.tipoAcesso2);
   const selectedUsuario = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
+  const selectedVerticalId = asString(filters.verticalId, "").trim();
   const strictTipo = selectedTipo.length > 0;
   const strictUsuario = selectedUsuario > 0;
 
@@ -2935,7 +3244,7 @@ export async function getDashboardRetratoSnapshot(
     }
   }
 
-  const allowedUserIds = await getDashboardRetratoAllowedUserIds(selectedTipo);
+  const allowedUserIds = await getDashboardRetratoAllowedUserIds(selectedTipo, selectedVerticalId);
   const eligibilityFilterApplied = allowedUserIds !== null;
 
   if (allowedUserIds) {
@@ -3022,6 +3331,7 @@ export type DashboardOrcamentosFilters = {
   dataInicioInput?: string;
   dataFimInput?: string;
   tipoRepre?: string;
+  usuarioId?: number;
 };
 
 type DashboardOrcamentosWebhookPayload = {
@@ -3201,6 +3511,8 @@ export async function getDashboardOrcamentosSnapshot(
   const dataInicioInput = normalizeInputDate(filters.dataInicioInput, defaultDateRange.dataInicio);
   const dataFimInput = normalizeInputDate(filters.dataFimInput, defaultDateRange.dataFim);
   const tipoRepre = normalizeTipoRepre(filters.tipoRepre);
+  const selectedUsuarioId = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
+  const strictUsuario = selectedUsuarioId > 0;
   const payloadBase = {
     data_inicio: toWebhookDate(dataInicioInput),
     data_fim: toWebhookDate(dataFimInput),
@@ -3226,6 +3538,10 @@ export async function getDashboardOrcamentosSnapshot(
 
   if (allowedUserIds) {
     rows = rows.filter((row) => row.idUsuario > 0 && allowedUserIds.has(row.idUsuario));
+  }
+
+  if (strictUsuario) {
+    rows = rows.filter((row) => row.idUsuario === selectedUsuarioId);
   }
 
   if (!rows.length) {

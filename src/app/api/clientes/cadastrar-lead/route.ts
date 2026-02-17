@@ -9,6 +9,8 @@ type CadastrarLeadPayload = {
   email?: string | null;
   nome?: string | null;
   id_usuario?: number | string | null;
+  id_user?: number | string | null;
+  id_usuario_param?: number | string | null;
   label?: string | null;
 };
 
@@ -63,8 +65,11 @@ export async function POST(request: NextRequest) {
   const fone = asString(payload.fone).trim();
   const email = asString(payload.email).trim();
   const nome = asString(payload.nome).trim();
-  const idUsuario = asPositiveInt(payload.id_usuario);
-  const label = asString(payload.label || "10").trim() || "10";
+  const idUsuario =
+    asPositiveInt(payload.id_usuario) ??
+    asPositiveInt(payload.id_user) ??
+    asPositiveInt(payload.id_usuario_param);
+  const label = asString(payload.label || "21").trim() || "21";
 
   if (!nome) {
     return NextResponse.json({ ok: false, error: "nome obrigatorio." }, { status: 400 });
@@ -83,6 +88,8 @@ export async function POST(request: NextRequest) {
     email,
     nome,
     id_usuario: idUsuario,
+    id_user: idUsuario,
+    id_usuario_param: idUsuario,
     label,
   };
 

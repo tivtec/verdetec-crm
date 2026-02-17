@@ -14,6 +14,8 @@ type DashboardFiltersFormProps = {
   selectedTipoAcesso: string;
   selectedUsuario: number;
   representantes: DashboardRepresentanteOption[];
+  lockTipoSelection?: boolean;
+  lockUsuarioSelection?: boolean;
 };
 
 const tipoAcessoOptions = [
@@ -27,6 +29,8 @@ export function DashboardFiltersForm({
   selectedTipoAcesso,
   selectedUsuario,
   representantes,
+  lockTipoSelection = false,
+  lockUsuarioSelection = false,
 }: DashboardFiltersFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [tipoAcesso, setTipoAcesso] = useState(selectedTipoAcesso);
@@ -35,6 +39,10 @@ export function DashboardFiltersForm({
   const [dataFim, setDataFim] = useState(dataFimInput);
 
   const handleTipoChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    if (lockTipoSelection) {
+      return;
+    }
+
     const form = formRef.current;
     setTipoAcesso(event.target.value);
     setUsuario("");
@@ -58,7 +66,8 @@ export function DashboardFiltersForm({
           name="tipo_acesso_2"
           value={tipoAcesso}
           onChange={handleTipoChange}
-          className="h-12 min-w-[220px] appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700"
+          disabled={lockTipoSelection}
+          className="h-12 min-w-[220px] appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100"
         >
           <option value="">Selecione</option>
           {tipoAcessoOptions.map((option) => (
@@ -67,6 +76,7 @@ export function DashboardFiltersForm({
             </option>
           ))}
         </select>
+        {lockTipoSelection ? <input type="hidden" name="tipo_acesso_2" value={tipoAcesso} /> : null}
         <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-500" />
       </div>
 
@@ -75,7 +85,7 @@ export function DashboardFiltersForm({
           name="usuario"
           value={usuario}
           onChange={(event) => setUsuario(event.target.value)}
-          disabled={!tipoAcesso}
+          disabled={lockUsuarioSelection || representantes.length === 0}
           className="h-12 min-w-[220px] appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100"
         >
           <option value="">Selecione</option>
@@ -85,6 +95,7 @@ export function DashboardFiltersForm({
             </option>
           ))}
         </select>
+        {lockUsuarioSelection && usuario ? <input type="hidden" name="usuario" value={usuario} /> : null}
         <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-500" />
       </div>
 

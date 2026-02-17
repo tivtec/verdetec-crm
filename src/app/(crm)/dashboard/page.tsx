@@ -10,6 +10,7 @@ import {
   getDashboardOrcamentosSnapshot,
   getDashboardRepresentantesByTipo,
   getDashboardRetratoSnapshot,
+  getDashboardViewerAccessScope,
   type DashboardFunilRow,
   type DashboardFunilTotals,
   type DashboardOrcamentosRow,
@@ -114,11 +115,11 @@ const orcamentosColumns: OrcamentosColumn[] = [
   { key: "nome", label: "Nome", widthClass: "w-[18%]" },
   { key: "carteira", label: "Carteira", widthClass: "w-[9%]" },
   { key: "atend", label: "Atend.", widthClass: "w-[9%]" },
-  { key: "orcAbertos", label: "Orç. Abertos", widthClass: "w-[9%]" },
+  { key: "orcAbertos", label: "Or\u00e7. Abertos", widthClass: "w-[9%]" },
   { key: "n10", label: "#10", widthClass: "w-[9%]" },
-  { key: "orcFeitos", label: "Orç. Feitos", widthClass: "w-[9%]" },
-  { key: "orcAprovado", label: "Orç. Aprovado", widthClass: "w-[9%]" },
-  { key: "orcRep", label: "Orç. Rep", widthClass: "w-[9%]" },
+  { key: "orcFeitos", label: "Or\u00e7. Feitos", widthClass: "w-[9%]" },
+  { key: "orcAprovado", label: "Or\u00e7. Aprovado", widthClass: "w-[9%]" },
+  { key: "orcRep", label: "Or\u00e7. Rep", widthClass: "w-[9%]" },
   { key: "perfGanhosFeitos", label: "Perf. Ganhos/Feitos", widthClass: "w-[10%]" },
   { key: "umbler", label: "Umbler", widthClass: "w-[9%]" },
 ];
@@ -215,6 +216,72 @@ function normalizeCarteiraSelection(value: string | undefined) {
   return "";
 }
 
+const ORCAMENTOS_VERTICAL_IDS = {
+  prime: "b9ba82ab-b666-4b6f-a084-32be9577830a",
+  timeNegocios: "31ab857a-bac4-415b-b9bd-7cf811e40601",
+  crv: "122019f0-5160-4774-8779-efaf484afdbc",
+} as const;
+
+function resolveForcedOrcamentosVertical(
+  viewerVerticalDescricao: string,
+  viewerTipoAcesso2: string,
+  viewerVerticalId: string,
+) {
+  const normalizedVertical = viewerVerticalDescricao
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  const normalizedTipo = viewerTipoAcesso2
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+  const normalizedVerticalId = viewerVerticalId.trim();
+
+  if (normalizedVerticalId === ORCAMENTOS_VERTICAL_IDS.prime) {
+    return "Prime";
+  }
+
+  if (
+    normalizedVerticalId === ORCAMENTOS_VERTICAL_IDS.crv ||
+    normalizedVerticalId === ORCAMENTOS_VERTICAL_IDS.timeNegocios
+  ) {
+    return "CRV";
+  }
+
+  if (normalizedVertical.includes("prime")) {
+    return "Prime";
+  }
+
+  if (normalizedVertical.includes("crv")) {
+    return "CRV";
+  }
+
+  if (normalizedVertical.includes("time de negocios") || normalizedVertical.includes("time negocios")) {
+    return "CRV";
+  }
+
+  if (normalizedVertical.includes("gerencia")) {
+    return "";
+  }
+
+  if (normalizedTipo === "prime") {
+    return "Prime";
+  }
+
+  if (
+    normalizedTipo === "crv" ||
+    normalizedTipo === "time de negocios" ||
+    normalizedTipo === "time negocios" ||
+    normalizedTipo === "gestor"
+  ) {
+    return "CRV";
+  }
+
+  return "";
+}
+
 function getFunilRowCellValue(row: DashboardFunilRow, key: FunilColumnKey) {
   return row[key];
 }
@@ -271,25 +338,130 @@ type DashboardPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+function normalizeDashboardVerticalScope(
+  verticalDescricao: string,
+): "gerencia" | "prime" | "crv" | "time-negocios" | "other" {
+  const normalized = verticalDescricao
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  if (normalized.includes("gerencia")) {
+    return "gerencia";
+  }
+
+  if (normalized.includes("prime")) {
+    return "prime";
+  }
+
+  if (normalized.includes("crv")) {
+    return "crv";
+  }
+
+  if (normalized.includes("time de negocios") || normalized.includes("time negocios")) {
+    return "time-negocios";
+  }
+
+  return "other";
+}
+
+function getVisibleDashboardViews(verticalDescricao: string): DashboardView[] {
+  const scope = normalizeDashboardVerticalScope(verticalDescricao);
+
+  if (scope === "gerencia" || scope === "prime") {
+    return ["dashboard", "retrato", "orcamentos"];
+  }
+
+  if (scope === "crv") {
+    return ["orcamentos"];
+  }
+
+  if (scope === "time-negocios") {
+    return ["dashboard", "retrato"];
+  }
+
+  return ["dashboard", "retrato", "orcamentos"];
+}
+
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const params = await searchParams;
-  const activeView = normalizeViewSelection(getSearchValue(params.view));
+  const requestedView = normalizeViewSelection(getSearchValue(params.view));
   const defaultRange = getDefaultDateRangeInput();
   const dataInicioInput = normalizeInputDate(getSearchValue(params.data_inicio), defaultRange.dataInicio);
   const dataFimInput = normalizeInputDate(getSearchValue(params.data_fim), defaultRange.dataFim);
-  const selectedTipoAcesso = normalizeTipoAcessoSelection(getSearchValue(params.tipo_acesso_2));
+  const requestedTipoAcesso = normalizeTipoAcessoSelection(getSearchValue(params.tipo_acesso_2));
   const requestedUsuario = normalizeUsuarioSelection(getSearchValue(params.usuario));
-  const selectedTipoRepre = normalizeCarteiraSelection(
+  const requestedTipoRepre = normalizeCarteiraSelection(
     getSearchValue(params.tipo_repre) ?? getSearchValue(params.carteira),
   );
+  const dashboardAccessScope = await getDashboardViewerAccessScope();
+  const visibleViews = getVisibleDashboardViews(dashboardAccessScope.viewerVerticalDescricao);
+  const activeView = visibleViews.includes(requestedView) ? requestedView : visibleViews[0] ?? "dashboard";
+  const canViewOrcamentosAllVertical = dashboardAccessScope.isGerencia;
+  const forcedOrcamentosVertical = resolveForcedOrcamentosVertical(
+    dashboardAccessScope.viewerVerticalDescricao,
+    dashboardAccessScope.viewerTipoAcesso2,
+    dashboardAccessScope.viewerVerticalId,
+  );
+  const selectedTipoRepre = canViewOrcamentosAllVertical
+    ? requestedTipoRepre
+    : forcedOrcamentosVertical || requestedTipoRepre;
+  const orcamentosScopedUsuarioId =
+    dashboardAccessScope.isGerencia || dashboardAccessScope.isGestor
+      ? undefined
+      : Math.max(0, Math.trunc(dashboardAccessScope.viewerUsuarioId || 0));
 
-  const representantes = selectedTipoAcesso
-    ? await getDashboardRepresentantesByTipo(selectedTipoAcesso)
-    : [];
+  const selectedTipoAcesso = dashboardAccessScope.allowTipoSelection
+    ? requestedTipoAcesso
+    : dashboardAccessScope.forcedTipoAcesso2;
 
-  const selectedRepresentante = representantes.find((representante) => representante.id === requestedUsuario);
-  const selectedUsuario = selectedRepresentante?.id ?? 0;
-  const selectedVerticalId = selectedRepresentante?.verticalId ?? representantes[0]?.verticalId ?? "";
+  const baseRepresentantes = dashboardAccessScope.allowTipoSelection
+    ? await getDashboardRepresentantesByTipo(selectedTipoAcesso, { includeAllEligibleWhenTipoEmpty: true })
+    : await getDashboardRepresentantesByTipo(dashboardAccessScope.forcedTipoAcesso2, {
+        verticalId: dashboardAccessScope.viewerVerticalId,
+      });
+
+  const representantes = !dashboardAccessScope.allowUsuarioSelection
+    ? (() => {
+        const selfId = Math.max(0, Math.trunc(dashboardAccessScope.viewerUsuarioId));
+        if (selfId <= 0) {
+          return [] as typeof baseRepresentantes;
+        }
+
+        const selfRow = baseRepresentantes.find((representante) => representante.id === selfId);
+        if (selfRow) {
+          return [selfRow];
+        }
+
+        return [
+          {
+            id: selfId,
+            nome: dashboardAccessScope.viewerNome || "Representante",
+            verticalId: dashboardAccessScope.viewerVerticalId,
+          },
+        ];
+      })()
+    : baseRepresentantes;
+
+  const requestedUsuarioAllowed =
+    requestedUsuario > 0 && representantes.some((representante) => representante.id === requestedUsuario);
+
+  const selectedUsuario = dashboardAccessScope.allowUsuarioSelection
+    ? requestedUsuarioAllowed
+      ? requestedUsuario
+      : 0
+    : Math.max(0, Math.trunc(dashboardAccessScope.viewerUsuarioId));
+
+  const selectedRepresentante = representantes.find((representante) => representante.id === selectedUsuario);
+  const selectedVerticalId =
+    selectedUsuario > 0
+      ? selectedRepresentante?.verticalId || dashboardAccessScope.viewerVerticalId
+      : dashboardAccessScope.allowTipoSelection
+        ? selectedTipoAcesso
+          ? (representantes[0]?.verticalId ?? "")
+          : ""
+        : dashboardAccessScope.viewerVerticalId;
 
   let dashboardSnapshot: Awaited<ReturnType<typeof getDashboardFunilSnapshot>> | null = null;
   let retratoSnapshot: Awaited<ReturnType<typeof getDashboardRetratoSnapshot>> | null = null;
@@ -301,19 +473,23 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       dataFimInput,
       tipoAcesso2: selectedTipoAcesso,
       usuarioId: selectedUsuario || undefined,
-      verticalId: selectedVerticalId || undefined,
+      verticalId: selectedVerticalId,
+      allowedUsuarioIds: representantes.map((representante) => representante.id),
+      allowedUsuarioNomes: representantes.map((representante) => representante.nome),
     });
   } else {
     if (activeView === "retrato") {
       retratoSnapshot = await getDashboardRetratoSnapshot({
         tipoAcesso2: selectedTipoAcesso,
         usuarioId: selectedUsuario || undefined,
+        verticalId: selectedVerticalId || undefined,
       });
     } else {
       orcamentosSnapshot = await getDashboardOrcamentosSnapshot({
         dataInicioInput,
         dataFimInput,
         tipoRepre: selectedTipoRepre,
+        usuarioId: orcamentosScopedUsuarioId,
       });
     }
   }
@@ -328,30 +504,36 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       <PageContainer className="space-y-5 bg-[#eef0f2]">
         <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/dashboard"
-            className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
-              activeView === "dashboard" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
-            }`}
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/dashboard?view=retrato"
-            className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
-              activeView === "retrato" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
-            }`}
-          >
-            Retrato
-          </Link>
-          <Link
-            href="/dashboard?view=orcamentos"
-            className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
-              activeView === "orcamentos" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
-            }`}
-          >
-            Orçamentos
-          </Link>
+          {visibleViews.includes("dashboard") ? (
+            <Link
+              href="/dashboard"
+              className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+                activeView === "dashboard" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+              }`}
+            >
+              Dashboard
+            </Link>
+          ) : null}
+          {visibleViews.includes("retrato") ? (
+            <Link
+              href="/dashboard?view=retrato"
+              className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+                activeView === "retrato" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+              }`}
+            >
+              Retrato
+            </Link>
+          ) : null}
+          {visibleViews.includes("orcamentos") ? (
+            <Link
+              href="/dashboard?view=orcamentos"
+              className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+                activeView === "orcamentos" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+              }`}
+            >
+              {"Or\u00e7amentos"}
+            </Link>
+          ) : null}
         </div>
 
         <div>
@@ -359,7 +541,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             {activeView === "retrato"
               ? "Retrato"
               : activeView === "orcamentos"
-                ? "Orçamentos"
+                ? "Or\u00e7amentos"
                 : "Funil comercial"}
           </h2>
           {activeView === "dashboard" ? (
@@ -369,35 +551,40 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
         {activeView === "dashboard" ? (
           <DashboardFiltersForm
-            key={`${dataInicioInput}:${dataFimInput}:${selectedTipoAcesso}:${selectedUsuario}:dashboard`}
+            key={`${dataInicioInput}:${dataFimInput}:${selectedTipoAcesso}:${selectedUsuario}:${dashboardAccessScope.allowTipoSelection}:${dashboardAccessScope.allowUsuarioSelection}:dashboard`}
             dataInicioInput={dataInicioInput}
             dataFimInput={dataFimInput}
             selectedTipoAcesso={selectedTipoAcesso}
             selectedUsuario={selectedUsuario}
             representantes={representantes}
+            lockTipoSelection={!dashboardAccessScope.allowTipoSelection}
+            lockUsuarioSelection={!dashboardAccessScope.allowUsuarioSelection}
           />
         ) : (
           <>
             {activeView === "retrato" ? (
               <RetratoFiltersForm
-                key={`${selectedTipoAcesso}:${selectedUsuario}:retrato`}
+                key={`${selectedTipoAcesso}:${selectedUsuario}:${dashboardAccessScope.allowTipoSelection}:${dashboardAccessScope.allowUsuarioSelection}:retrato`}
                 selectedTipoAcesso={selectedTipoAcesso}
                 selectedUsuario={selectedUsuario}
                 representantes={representantes}
+                lockTipoSelection={!dashboardAccessScope.allowTipoSelection}
+                lockUsuarioSelection={!dashboardAccessScope.allowUsuarioSelection}
               />
             ) : (
               <OrcamentosFiltersForm
-                key={`${selectedTipoRepre}:${dataInicioInput}:${dataFimInput}:orcamentos`}
+                key={`${selectedTipoRepre}:${dataInicioInput}:${dataFimInput}:${canViewOrcamentosAllVertical}:orcamentos`}
                 selectedTipoRepre={selectedTipoRepre}
                 dataInicioInput={dataInicioInput}
                 dataFimInput={dataFimInput}
+                lockTipoRepreSelection={!canViewOrcamentosAllVertical}
               />
             )}
           </>
         )}
 
         {activeView === "dashboard" ? (
-          <div className="h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
             <table className="w-full table-fixed border-collapse">
               <thead className="bg-[#d6d6d8]">
                 <tr>
@@ -448,7 +635,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </table>
           </div>
         ) : activeView === "retrato" ? (
-          <div className="h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
             <table className="w-full table-fixed border-collapse">
               <thead className="bg-[#d6d6d8]">
                 <tr>
@@ -491,7 +678,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </table>
           </div>
         ) : (
-          <div className="h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
             <table className="w-full table-fixed border-collapse">
               <thead className="bg-[#d6d6d8]">
                 <tr>
@@ -521,11 +708,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                       </tr>
                     ))}
                   </>
-                ) : (
-                  <tr className="border-t border-[#e5e7ea] bg-[#c6c6c8]">
-                    <td colSpan={orcamentosColumns.length} className="h-[460px] px-0 py-0" />
-                  </tr>
-                )}
+                ) : null}
               </tbody>
               {orcamentosSnapshot!.rows.length > 0 ? (
                 <tfoot>
@@ -540,7 +723,18 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     ))}
                   </tr>
                 </tfoot>
-              ) : null}
+              ) : (
+                <tfoot>
+                  <tr className="border-t border-[#e5e7ea] bg-[#f4f4f5]">
+                    <td
+                      colSpan={orcamentosColumns.length}
+                      className="px-4 py-8 text-center text-sm text-slate-500"
+                    >
+                      Nenhum registro encontrado para os filtros selecionados.
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         )}

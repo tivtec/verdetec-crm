@@ -197,7 +197,9 @@ export function ClientesControlShell({
           email,
           nome,
           id_usuario: Math.trunc(idUsuario),
-          label: "10",
+          id_user: Math.trunc(idUsuario),
+          id_usuario_param: Math.trunc(idUsuario),
+          label: "21",
         }),
       });
 

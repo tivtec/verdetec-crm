@@ -7,6 +7,7 @@ type OrcamentosFiltersFormProps = {
   selectedTipoRepre: string;
   dataInicioInput: string;
   dataFimInput: string;
+  lockTipoRepreSelection?: boolean;
 };
 
 const carteiraOptions = [
@@ -19,12 +20,17 @@ export function OrcamentosFiltersForm({
   selectedTipoRepre,
   dataInicioInput,
   dataFimInput,
+  lockTipoRepreSelection = false,
 }: OrcamentosFiltersFormProps) {
   const [tipoRepre, setTipoRepre] = useState(selectedTipoRepre);
   const [dataInicio, setDataInicio] = useState(dataInicioInput);
   const [dataFim, setDataFim] = useState(dataFimInput);
 
   const handleTipoRepreChange = (value: string, form: HTMLFormElement | null) => {
+    if (lockTipoRepreSelection) {
+      return;
+    }
+
     setTipoRepre(value);
     form?.requestSubmit();
   };
@@ -38,7 +44,8 @@ export function OrcamentosFiltersForm({
           name="tipo_repre"
           value={tipoRepre}
           onChange={(event) => handleTipoRepreChange(event.target.value, event.currentTarget.form)}
-          className="h-12 min-w-[150px] appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700"
+          disabled={lockTipoRepreSelection}
+          className="h-12 min-w-[150px] appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100"
         >
           {carteiraOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -46,6 +53,7 @@ export function OrcamentosFiltersForm({
             </option>
           ))}
         </select>
+        {lockTipoRepreSelection ? <input type="hidden" name="tipo_repre" value={tipoRepre} /> : null}
         <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-slate-500" />
       </div>
 
