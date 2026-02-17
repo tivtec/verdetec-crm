@@ -34,10 +34,12 @@ export function AppHeader({
             >
               <Bell className="h-5 w-5" />
             </button>
-            <LogoutButton />
+            <div className="lg:hidden">
+              <LogoutButton />
+            </div>
           </div>
         ) : (
-          <div className="self-end">
+          <div className="self-end lg:hidden">
             <LogoutButton />
           </div>
         )}
