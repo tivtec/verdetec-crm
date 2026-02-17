@@ -6,6 +6,7 @@ import {
   getClientesControleRows,
   getClientesEquipamentos,
   getClientesRepresentantes,
+  getDashboardViewerAccessScope,
   getCurrentUsuarioLegacyId,
 } from "@/services/crm/api";
 import { formatDateTime } from "@/utils/format";
@@ -151,16 +152,69 @@ function normalizeEtiquetaFilterValue(value: string) {
   return digits.slice(0, 2).padStart(2, "0");
 }
 
+function normalizeUsuarioFilterValue(value: string) {
+  const raw = value.trim();
+  if (!raw) {
+    return "";
+  }
+
+  const parsed = Math.max(0, Math.trunc(Number(raw)));
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return "";
+  }
+
+  return String(parsed);
+}
+
 type ClientesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function ClientesPage({ searchParams }: ClientesPageProps) {
   const params = await searchParams;
-  const selectedUsuario = getSearchValue(params.usuario) ?? "";
+  const requestedUsuario = normalizeUsuarioFilterValue(getSearchValue(params.usuario) ?? "");
   const telefone = getSearchValue(params.telefone) ?? "";
   const nome = getSearchValue(params.nome) ?? "";
   const etiqueta = normalizeEtiquetaFilterValue(getSearchValue(params.etiqueta) ?? "");
+
+  const [dashboardAccessScope, equipamentos, currentUserId] = await Promise.all([
+    getDashboardViewerAccessScope(),
+    getClientesEquipamentos(),
+    getCurrentUsuarioLegacyId(),
+  ]);
+
+  const canSelectUsuario = dashboardAccessScope.isGerencia || dashboardAccessScope.isGestor;
+  const viewerUsuarioId = Math.max(0, Math.trunc(dashboardAccessScope.viewerUsuarioId));
+
+  let representantes = await getClientesRepresentantes(
+    dashboardAccessScope.isGerencia ? {} : { verticalId: dashboardAccessScope.viewerVerticalId },
+  );
+
+  if (!canSelectUsuario) {
+    if (viewerUsuarioId > 0) {
+      const selfRow = representantes.find((representante) => representante.id === viewerUsuarioId);
+      representantes = selfRow
+        ? [selfRow]
+        : [
+            {
+              id: viewerUsuarioId,
+              nome: dashboardAccessScope.viewerNome || "Representante",
+            },
+          ];
+    } else {
+      representantes = [];
+    }
+  }
+
+  const allowedRepresentanteIds = new Set<number>(representantes.map((representante) => representante.id));
+  const selectedUsuario =
+    !canSelectUsuario
+      ? viewerUsuarioId > 0
+        ? String(viewerUsuarioId)
+        : ""
+      : requestedUsuario.length > 0 && allowedRepresentanteIds.has(Number(requestedUsuario))
+        ? requestedUsuario
+        : "";
 
   const initialFilters: ClientesControlFiltersValue = {
     usuario: selectedUsuario,
@@ -169,17 +223,20 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
     etiqueta,
   };
 
-  const [webhookRows, representantes, equipamentos, currentUserId] = await Promise.all([
-    getClientesControleRows({
-      usuarioId: selectedUsuario,
-      telefone,
-      etiqueta,
-      nome,
-    }),
-    getClientesRepresentantes(),
-    getClientesEquipamentos(),
-    getCurrentUsuarioLegacyId(),
-  ]);
+  const webhookRowsRaw = await getClientesControleRows({
+    usuarioId: selectedUsuario,
+    telefone,
+    etiqueta,
+    nome,
+  });
+
+  const webhookRows =
+    dashboardAccessScope.isGerencia || selectedUsuario.trim().length > 0
+      ? webhookRowsRaw
+      : webhookRowsRaw.filter((row) => {
+          const rowUsuarioId = typeof row.usuarioId === "number" ? row.usuarioId : Number.NaN;
+          return Number.isFinite(rowUsuarioId) && allowedRepresentanteIds.has(rowUsuarioId);
+        });
 
   const hasFilters =
     selectedUsuario.trim().length > 0 ||
@@ -187,7 +244,8 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
     nome.trim().length > 0 ||
     etiqueta.trim().length > 0;
 
-  const clientes = webhookRows.length === 0 && !hasFilters ? await getClientes() : [];
+  const clientes =
+    dashboardAccessScope.isGerencia && webhookRows.length === 0 && !hasFilters ? await getClientes() : [];
 
   const fallbackRowsFromSupabase: ClienteControleRow[] = clientes.map((cliente, index) => {
     const etiquetaBase = normalizeEtiqueta(cliente.etiqueta);
@@ -228,6 +286,7 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
             equipamentos={equipamentos}
             initialFilters={initialFilters}
             currentUserId={currentUserId}
+            lockUsuarioSelection={!canSelectUsuario}
           />
         </div>
       </div>

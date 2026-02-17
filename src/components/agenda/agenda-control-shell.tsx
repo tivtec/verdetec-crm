@@ -14,6 +14,9 @@ type AgendaRepresentanteOption = {
 type AgendaControlShellProps = {
   initialRows: AgendaControleRow[];
   representantes?: AgendaRepresentanteOption[];
+  initialRepresentante?: string;
+  lockRepresentanteSelection?: boolean;
+  allowedRepresentanteNames?: string[];
 };
 
 const PAGE_SIZE = 10;
@@ -47,6 +50,33 @@ function hasRepresentanteFilter(value: string) {
   return normalized.length > 0 && normalized !== "selecione";
 }
 
+function splitRepresentanteNames(value: string) {
+  return value
+    .split(/[\/,;|]/)
+    .map((part) => normalizeName(part))
+    .filter((part) => part.length > 0);
+}
+
+function hasAllowedRepresentante(value: string, allowedNames: Set<string>) {
+  if (allowedNames.size === 0) {
+    return true;
+  }
+
+  const parts = splitRepresentanteNames(value);
+  if (parts.length > 0) {
+    return parts.some((part) => allowedNames.has(part));
+  }
+
+  const normalizedValue = normalizeName(value);
+  for (const allowedName of allowedNames) {
+    if (normalizedValue.includes(allowedName)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function parseAgendaDate(value: string) {
   const parsed = new Date(value);
   if (!Number.isNaN(parsed.getTime())) {
@@ -78,13 +108,13 @@ function formatInputDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function buildDefaultDateRangeFilters(): AgendaFilters {
+function buildDefaultDateRangeFilters(initialRepresentante = ""): AgendaFilters {
   const endDate = new Date();
   const startDate = new Date(endDate);
   startDate.setDate(startDate.getDate() - 30);
 
   return {
-    representante: "",
+    representante: initialRepresentante,
     dataInicio: formatInputDate(startDate),
     dataFim: formatInputDate(endDate),
   };
@@ -99,10 +129,21 @@ function mapAgendaRowsToHorarios(rows: AgendaControleRow[]): HorarioRow[] {
   }));
 }
 
-export function AgendaControlShell({ initialRows, representantes = [] }: AgendaControlShellProps) {
+export function AgendaControlShell({
+  initialRows,
+  representantes = [],
+  initialRepresentante = "",
+  lockRepresentanteSelection = false,
+  allowedRepresentanteNames = [],
+}: AgendaControlShellProps) {
+  const normalizedInitialRepresentante = initialRepresentante.trim();
   const [activeTab, setActiveTab] = useState<"agendamentos" | "horarios">("agendamentos");
-  const [draftFilters, setDraftFilters] = useState<AgendaFilters>(() => buildDefaultDateRangeFilters());
-  const [appliedFilters, setAppliedFilters] = useState<AgendaFilters>(() => buildDefaultDateRangeFilters());
+  const [draftFilters, setDraftFilters] = useState<AgendaFilters>(() =>
+    buildDefaultDateRangeFilters(normalizedInitialRepresentante),
+  );
+  const [appliedFilters, setAppliedFilters] = useState<AgendaFilters>(() =>
+    buildDefaultDateRangeFilters(normalizedInitialRepresentante),
+  );
   const [page, setPage] = useState(1);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -141,13 +182,25 @@ export function AgendaControlShell({ initialRows, representantes = [] }: AgendaC
   }, [isCreateModalOpen]);
 
   const representanteOptions = useMemo(() => {
+    const scopedOptions = Array.from(
+      new Set(
+        allowedRepresentanteNames
+          .map((value) => value.trim())
+          .filter((value) => value.length > 0),
+      ),
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+    if (scopedOptions.length > 0) {
+      return scopedOptions;
+    }
+
     const source =
       representantes.length > 0 ? representantes.map((item) => item.nome) : initialRows.map((row) => row.representante);
 
     return Array.from(new Set(source.map((value) => value.trim()).filter((value) => value.length > 0))).sort((a, b) =>
       a.localeCompare(b, "pt-BR"),
     );
-  }, [representantes, initialRows]);
+  }, [allowedRepresentanteNames, representantes, initialRows]);
 
   const representanteIdByName = useMemo(() => {
     const map = new Map<string, number>();
@@ -160,6 +213,16 @@ export function AgendaControlShell({ initialRows, representantes = [] }: AgendaC
     }
     return map;
   }, [representantes]);
+
+  const allowedRepresentanteNameSet = useMemo(
+    () =>
+      new Set(
+        allowedRepresentanteNames
+          .map((name) => normalizeName(name))
+          .filter((name) => name.length > 0),
+      ),
+    [allowedRepresentanteNames],
+  );
 
   const fetchHorarios = useCallback(
     async (filters: AgendaFilters) => {
@@ -216,6 +279,10 @@ export function AgendaControlShell({ initialRows, representantes = [] }: AgendaC
 
   const filteredAgendaRows = useMemo(() => {
     return initialRows.filter((row) => {
+      if (!hasAllowedRepresentante(row.representante, allowedRepresentanteNameSet)) {
+        return false;
+      }
+
       const selectedRepresentante = appliedFilters.representante.trim();
 
       if (
@@ -246,10 +313,14 @@ export function AgendaControlShell({ initialRows, representantes = [] }: AgendaC
 
       return true;
     });
-  }, [appliedFilters, initialRows]);
+  }, [allowedRepresentanteNameSet, appliedFilters, initialRows]);
 
   const filteredHorarioRows = useMemo(() => {
     return horarioRows.filter((row) => {
+      if (!hasAllowedRepresentante(row.representantes, allowedRepresentanteNameSet)) {
+        return false;
+      }
+
       const selectedRepresentante = appliedFilters.representante.trim();
       if (
         hasRepresentanteFilter(selectedRepresentante) &&
@@ -279,7 +350,7 @@ export function AgendaControlShell({ initialRows, representantes = [] }: AgendaC
 
       return true;
     });
-  }, [appliedFilters, horarioRows]);
+  }, [allowedRepresentanteNameSet, appliedFilters, horarioRows]);
 
   const totalItems = activeTab === "agendamentos" ? filteredAgendaRows.length : filteredHorarioRows.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -298,7 +369,7 @@ export function AgendaControlShell({ initialRows, representantes = [] }: AgendaC
   };
 
   const handleOpenCreateModal = () => {
-    setNewRepresentante("");
+    setNewRepresentante(lockRepresentanteSelection ? normalizedInitialRepresentante : "");
     setNewInicioReuniao("");
     setModalError(null);
     setIsCreateModalOpen(true);
@@ -310,7 +381,9 @@ export function AgendaControlShell({ initialRows, representantes = [] }: AgendaC
   };
 
   const handleSubmitCreate = () => {
-    if (!newRepresentante) {
+    const selectedRepresentante = lockRepresentanteSelection ? normalizedInitialRepresentante || newRepresentante : newRepresentante;
+
+    if (!selectedRepresentante) {
       setModalError("Selecione o representante.");
       return;
     }
@@ -379,10 +452,11 @@ export function AgendaControlShell({ initialRows, representantes = [] }: AgendaC
               id="agenda-representante"
               name="agenda-representante"
               value={draftFilters.representante}
+              disabled={lockRepresentanteSelection}
               onChange={(event) =>
                 setDraftFilters((current) => ({ ...current, representante: event.target.value }))
               }
-              className="h-11 w-full appearance-none rounded-xl border border-[#d0d4d8] bg-[#f4f6f6] px-4 pr-10 text-base text-[#4b5358] outline-none"
+              className="h-11 w-full appearance-none rounded-xl border border-[#d0d4d8] bg-[#f4f6f6] px-4 pr-10 text-base text-[#4b5358] outline-none disabled:cursor-not-allowed disabled:opacity-80"
             >
               <option value="">Representante</option>
               {representanteOptions.map((option) => (
@@ -588,11 +662,12 @@ export function AgendaControlShell({ initialRows, representantes = [] }: AgendaC
                     id="novo-horario-representante"
                     name="novo-horario-representante"
                     value={newRepresentante}
+                    disabled={lockRepresentanteSelection}
                     onChange={(event) => {
                       setNewRepresentante(event.target.value);
                       setModalError(null);
                     }}
-                    className="h-11 w-full appearance-none rounded-xl border border-[#d8dbe0] bg-[#f4f6f6] px-4 pr-10 text-base text-[#4b5358] outline-none"
+                    className="h-11 w-full appearance-none rounded-xl border border-[#d8dbe0] bg-[#f4f6f6] px-4 pr-10 text-base text-[#4b5358] outline-none disabled:cursor-not-allowed disabled:opacity-80"
                   >
                     <option value="">Representante</option>
                     {representanteOptions.map((option) => (

@@ -20,6 +20,7 @@ type ClientesControlShellProps = {
   equipamentos: ClienteEquipamentoOption[];
   initialFilters: ClientesControlFiltersValue;
   currentUserId: number | null;
+  lockUsuarioSelection?: boolean;
 };
 
 const PAGE_SIZE = 10;
@@ -30,6 +31,7 @@ export function ClientesControlShell({
   equipamentos,
   initialFilters,
   currentUserId,
+  lockUsuarioSelection = false,
 }: ClientesControlShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -328,6 +330,7 @@ export function ClientesControlShell({
         <ClientesControlFilters
           values={draftFilters}
           representantes={representantes}
+          lockUsuarioSelection={lockUsuarioSelection}
           onChange={setDraftFilters}
           onSearch={handleSearch}
         />

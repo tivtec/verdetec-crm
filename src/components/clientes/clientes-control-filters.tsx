@@ -13,6 +13,7 @@ import type {
 type ClientesControlFiltersProps = {
   values: ClientesControlFiltersValue;
   representantes: ClienteRepresentanteOption[];
+  lockUsuarioSelection?: boolean;
   onChange: (next: ClientesControlFiltersValue) => void;
   onSearch: (next: ClientesControlFiltersValue) => void;
 };
@@ -31,6 +32,7 @@ const etiquetaOptions = [
 export function ClientesControlFilters({
   values,
   representantes,
+  lockUsuarioSelection = false,
   onChange,
   onSearch,
 }: ClientesControlFiltersProps) {
@@ -42,7 +44,8 @@ export function ClientesControlFilters({
           name="usuario"
           value={values.usuario}
           onChange={(event) => onChange({ ...values, usuario: event.target.value })}
-          className="h-11 appearance-none rounded-xl border-[#d7dadd] bg-white pr-9 text-sm text-[#2a4f51]"
+          disabled={lockUsuarioSelection}
+          className="h-11 appearance-none rounded-xl border-[#d7dadd] bg-white pr-9 text-sm text-[#2a4f51] disabled:cursor-not-allowed disabled:bg-slate-100"
         >
           <option value="">Selecione</option>
           {representantes.map((representante) => (

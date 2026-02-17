@@ -848,7 +848,13 @@ export async function getClientesControleRows(
   return mappedRows.filter((row) => extractEtiquetaCode(row.etiqueta) === etiquetaCodeFilter);
 }
 
-export async function getClientesRepresentantes(): Promise<ClienteRepresentante[]> {
+type ClientesRepresentantesOptions = {
+  verticalId?: string;
+};
+
+export async function getClientesRepresentantes(
+  options: ClientesRepresentantesOptions = {},
+): Promise<ClienteRepresentante[]> {
   try {
     const isEligibleTipoAcesso2 = (value: unknown) => {
       const normalized = normalizeLoose(asString(value));
@@ -873,13 +879,20 @@ export async function getClientesRepresentantes(): Promise<ClienteRepresentante[
     };
 
     const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from("usuarios")
-      .select("id,nome,usuario_ativo,tipo_acesso_2")
+      .select("id,nome,usuario_ativo,tipo_acesso_2,id_vertical")
       .eq("usuario_ativo", true)
       .not("nome", "is", null)
       .order("nome", { ascending: true })
       .limit(5000);
+
+    const verticalId = asString(options.verticalId, "").trim();
+    if (verticalId.length > 0) {
+      query = query.eq("id_vertical", verticalId);
+    }
+
+    const { data, error } = await query;
 
     if (error || !data?.length) {
       return [];
