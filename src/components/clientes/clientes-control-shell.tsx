@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -43,12 +43,22 @@ export function ClientesControlShell({
   const [batchSuccessAlert, setBatchSuccessAlert] = useState<string | null>(null);
   const [isCadastrarLeadModalOpen, setIsCadastrarLeadModalOpen] = useState(false);
   const [leadFormData, setLeadFormData] = useState({ nome: "", telefone: "", email: "", representante: "" });
+  const [isSubmittingLead, setIsSubmittingLead] = useState(false);
+  const [leadFeedback, setLeadFeedback] = useState<string | null>(null);
+  const [leadSuccessAlert, setLeadSuccessAlert] = useState<string | null>(null);
 
   const triggerTransferListRefresh = () => {
     router.refresh();
     window.setTimeout(() => router.refresh(), 1200);
     window.setTimeout(() => router.refresh(), 2600);
     window.setTimeout(() => router.refresh(), 4200);
+  };
+
+  const triggerLeadListRefresh = () => {
+    router.refresh();
+    window.setTimeout(() => router.refresh(), 900);
+    window.setTimeout(() => router.refresh(), 2000);
+    window.setTimeout(() => router.refresh(), 3600);
   };
 
   useEffect(() => {
@@ -79,6 +89,18 @@ export function ClientesControlShell({
 
     return () => window.clearTimeout(timeout);
   }, [batchSuccessAlert]);
+
+  useEffect(() => {
+    if (!leadSuccessAlert) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setLeadSuccessAlert(null);
+    }, 2400);
+
+    return () => window.clearTimeout(timeout);
+  }, [leadSuccessAlert]);
 
   const totalPages = Math.max(1, Math.ceil(initialRows.length / PAGE_SIZE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
@@ -128,6 +150,75 @@ export function ClientesControlShell({
     setSelectedBatchRepresentanteId("");
     setIsSubmittingBatchRepresentante(false);
     setBatchRepresentanteFeedback(null);
+  };
+
+  const closeCadastrarLeadModal = () => {
+    setIsCadastrarLeadModalOpen(false);
+    setIsSubmittingLead(false);
+    setLeadFeedback(null);
+  };
+
+  const resetLeadForm = () => {
+    setLeadFormData({ nome: "", telefone: "", email: "", representante: "" });
+  };
+
+  const handleCadastrarLead = async () => {
+    const nome = leadFormData.nome.trim();
+    const fone = leadFormData.telefone.trim();
+    const email = leadFormData.email.trim();
+    const idUsuario = Number(leadFormData.representante);
+
+    if (!nome) {
+      setLeadFeedback("Preencha o nome do lead.");
+      return;
+    }
+
+    if (!fone) {
+      setLeadFeedback("Preencha o telefone do lead.");
+      return;
+    }
+
+    if (!Number.isFinite(idUsuario) || idUsuario <= 0) {
+      setLeadFeedback("Selecione um representante.");
+      return;
+    }
+
+    setIsSubmittingLead(true);
+    setLeadFeedback(null);
+
+    try {
+      const response = await fetch("/api/clientes/cadastrar-lead", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fone,
+          email,
+          nome,
+          id_usuario: Math.trunc(idUsuario),
+          label: "10",
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; details?: unknown }
+        | null;
+
+      if (!response.ok || !payload?.ok) {
+        setLeadFeedback(payload?.error ?? "Falha ao cadastrar lead.");
+        return;
+      }
+
+      closeCadastrarLeadModal();
+      resetLeadForm();
+      setLeadSuccessAlert("Lead cadastrado com sucesso.");
+      triggerLeadListRefresh();
+    } catch {
+      setLeadFeedback("Erro ao cadastrar lead.");
+    } finally {
+      setIsSubmittingLead(false);
+    }
   };
 
   const handleBatchRepresentanteSubmit = async () => {
@@ -225,6 +316,12 @@ export function ClientesControlShell({
         </div>
       ) : null}
 
+      {leadSuccessAlert ? (
+        <div className="fixed top-6 right-6 z-[80] rounded-lg bg-[#0f5050] px-4 py-2 text-sm font-medium text-white shadow-lg">
+          {leadSuccessAlert}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <ClientesControlFilters
           values={draftFilters}
@@ -246,7 +343,10 @@ export function ClientesControlShell({
 
           <Button
             type="button"
-            onClick={() => setIsCadastrarLeadModalOpen(true)}
+            onClick={() => {
+              setLeadFeedback(null);
+              setIsCadastrarLeadModalOpen(true);
+            }}
             className="h-11 min-w-[140px] rounded-xl border-0 bg-[#0f5050] text-base font-semibold text-white hover:bg-[#0c4343]"
           >
             Novo Leads
@@ -340,7 +440,7 @@ export function ClientesControlShell({
       {isCadastrarLeadModalOpen ? (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setIsCadastrarLeadModalOpen(false)}
+          onClick={closeCadastrarLeadModal}
           role="presentation"
         >
           <div
@@ -355,7 +455,7 @@ export function ClientesControlShell({
               <button
                 type="button"
                 aria-label="Fechar"
-                onClick={() => setIsCadastrarLeadModalOpen(false)}
+                onClick={closeCadastrarLeadModal}
                 className="text-slate-600 hover:text-slate-800"
               >
                 <X className="h-6 w-6" />
@@ -399,6 +499,8 @@ export function ClientesControlShell({
               <div className="rounded-lg bg-[#e6f3ef] p-4">
                 <label className="mb-2 block text-sm font-medium text-slate-700">Representante</label>
                 <select
+                  id="lead-representante-select"
+                  name="lead-representante-select"
                   value={leadFormData.representante}
                   onChange={(e) => setLeadFormData({ ...leadFormData, representante: e.target.value })}
                   className="w-full rounded-md border border-transparent bg-white px-4 py-3 text-slate-700"
@@ -413,9 +515,11 @@ export function ClientesControlShell({
               </div>
             </div>
 
+            {leadFeedback ? <p className="mt-3 text-sm text-[#7b2323]">{leadFeedback}</p> : null}
+
             <div className="mt-6 flex justify-end">
-              <Button variant="primary" size="md" onClick={() => { /* placeholder para ação de submit */ }}>
-                Cadastrar
+              <Button variant="primary" size="md" onClick={handleCadastrarLead} disabled={isSubmittingLead}>
+                {isSubmittingLead ? "Cadastrando..." : "Cadastrar"}
               </Button>
             </div>
           </div>
@@ -424,3 +528,5 @@ export function ClientesControlShell({
     </div>
   );
 }
+
+

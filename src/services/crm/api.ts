@@ -850,7 +850,27 @@ export async function getClientesControleRows(
 
 export async function getClientesRepresentantes(): Promise<ClienteRepresentante[]> {
   try {
-    const allowedTipos = new Set(["time negocios", "prime"]);
+    const isEligibleTipoAcesso2 = (value: unknown) => {
+      const normalized = normalizeLoose(asString(value));
+      if (!normalized) {
+        return false;
+      }
+
+      if (normalized === "time negocios" || normalized === "prime") {
+        return true;
+      }
+
+      const tokens = normalized
+        .split(/[,+/|;-]/)
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0);
+
+      if (tokens.includes("time negocios") || tokens.includes("prime")) {
+        return true;
+      }
+
+      return normalized.includes("time negocios") && normalized.includes("prime");
+    };
 
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase
@@ -865,14 +885,17 @@ export async function getClientesRepresentantes(): Promise<ClienteRepresentante[
       return [];
     }
 
-    return (data as Array<Record<string, unknown>>)
-      .map((row) => ({
-        id: asNumber(row.id, 0),
-        nome: asString(row.nome, "").trim(),
-        tipoAcesso2: normalizeLoose(asString(row.tipo_acesso_2)),
-      }))
-      .filter((row) => row.id > 0 && row.nome.length > 0 && allowedTipos.has(row.tipoAcesso2))
-      .map(({ id, nome }) => ({ id, nome }));
+    const map = new Map<number, ClienteRepresentante>();
+    for (const row of data as Array<Record<string, unknown>>) {
+      const id = Math.max(0, Math.trunc(asNumber(row.id, 0)));
+      const nome = asString(row.nome, "").trim();
+      if (id <= 0 || nome.length === 0 || !isEligibleTipoAcesso2(row.tipo_acesso_2)) {
+        continue;
+      }
+      map.set(id, { id, nome });
+    }
+
+    return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   } catch {
     return [];
   }
