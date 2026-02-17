@@ -275,6 +275,52 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["contratos"]["Insert"]>;
       };
+      crm_pages: {
+        Row: {
+          key: string;
+          path: string;
+          label: string;
+          sort_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          path: string;
+          label: string;
+          sort_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["crm_pages"]["Insert"]>;
+      };
+      crm_user_page_access: {
+        Row: {
+          id: number;
+          id_usuario: number;
+          id_organizacao: string;
+          page_key: string;
+          allow: boolean;
+          created_by: number | null;
+          updated_by: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          id_usuario: number;
+          id_organizacao: string;
+          page_key: string;
+          allow: boolean;
+          created_by?: number | null;
+          updated_by?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["crm_user_page_access"]["Insert"]>;
+      };
       roles: {
         Row: {
           id: string;
@@ -366,6 +412,12 @@ export type Database = {
           p_payload: Json;
         };
         Returns: null;
+      };
+      crm_can_access_path: {
+        Args: {
+          p_path: string;
+        };
+        Returns: boolean;
       };
     };
   };

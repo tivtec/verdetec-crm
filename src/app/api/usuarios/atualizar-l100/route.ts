@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { guardApiRouteAccess } from "@/services/access-control/api-guard";
 import { createAdminSupabaseClient } from "@/services/supabase/admin";
 
 type AtualizarL100Payload = {
@@ -43,6 +44,11 @@ function asInteger(value: unknown) {
 }
 
 export async function POST(request: NextRequest) {
+  const guardResponse = await guardApiRouteAccess("/usuarios");
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   const payload = (await request.json().catch(() => null)) as AtualizarL100Payload | null;
   if (!payload || typeof payload !== "object") {
     return NextResponse.json({ ok: false, error: "Payload invalido." }, { status: 400 });
@@ -106,6 +112,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const guardResponse = await guardApiRouteAccess("/usuarios");
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   const search = request.nextUrl.searchParams;
   const idUsuario =
     asPositiveInt(search.get("id_usuario")) ??

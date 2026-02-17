@@ -3,30 +3,8 @@
 import { createServerSupabaseClient } from "@/services/supabase/server";
 
 function resolveRouteByRole(role?: string | null, vertical?: string | null) {
-  if (!role) {
-    return "/dashboard";
-  }
-
-  const normalizedRole = role.toLowerCase();
-
-  if (normalizedRole === "superadm" || normalizedRole === "org_admin" || normalizedRole === "admin") {
-    return "/dashboard";
-  }
-
-  if (normalizedRole === "gestor" || normalizedRole === "manager") {
-    if (vertical?.toLowerCase().includes("hidro")) {
-      return "/dashboard-adm";
-    }
-    return "/empresas";
-  }
-
-  if (normalizedRole === "representante") {
-    if (vertical?.toLowerCase().includes("pedido")) {
-      return "/pedido";
-    }
-    return "/dashboard-representante";
-  }
-
+  void role;
+  void vertical;
   return "/dashboard";
 }
 

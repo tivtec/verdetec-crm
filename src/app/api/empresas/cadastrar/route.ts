@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { guardApiRouteAccess } from "@/services/access-control/api-guard";
 import { createAdminSupabaseClient } from "@/services/supabase/admin";
 import { createServerSupabaseClient } from "@/services/supabase/server";
 
@@ -117,6 +118,11 @@ async function resolveCurrentOrganizacaoId() {
 }
 
 export async function POST(request: NextRequest) {
+  const guardResponse = await guardApiRouteAccess("/empresas");
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   const payload = (await request.json().catch(() => null)) as CadastrarEmpresaPayload | null;
   if (!payload || typeof payload !== "object") {
     return NextResponse.json({ ok: false, error: "Payload invalido." }, { status: 400 });

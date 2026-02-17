@@ -60,5 +60,23 @@ export async function updateAuthSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  const shouldEvaluateAcl = user && !isPublicRoute && !isApiRoute && !isStaticRoute;
+  if (shouldEvaluateAcl) {
+    try {
+      const { data: hasAccess, error } = await supabase.rpc("crm_can_access_path", {
+        p_path: pathname,
+      });
+
+      if (!error && hasAccess === false && pathname !== "/dashboard") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        url.searchParams.set("access_denied", "1");
+        return NextResponse.redirect(url);
+      }
+    } catch {
+      // fallback permissivo para nao interromper navegacao caso ACL ainda nao exista
+    }
+  }
+
   return response;
 }

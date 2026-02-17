@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { guardApiRouteAccess } from "@/services/access-control/api-guard";
+
 const CADASTRAR_USUARIO_ENDPOINT =
   process.env.USUARIOS_CADASTRAR_ENDPOINT ??
   "https://webh.verdetec.dev.br/webhook/16fab987-ad47-43f8-93ec-bb254ab15fc2";
@@ -47,6 +49,11 @@ async function parseResponseBody(response: Response) {
 }
 
 export async function POST(request: NextRequest) {
+  const guardResponse = await guardApiRouteAccess("/usuarios");
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   const payload = (await request.json().catch(() => null)) as CadastrarUsuarioPayload | null;
   if (!payload || typeof payload !== "object") {
     return NextResponse.json({ ok: false, error: "Payload invalido." }, { status: 400 });

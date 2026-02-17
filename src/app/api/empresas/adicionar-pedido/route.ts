@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { guardApiRouteAccess } from "@/services/access-control/api-guard";
+
 const EMPRESA_ADICIONAR_PEDIDO_ENDPOINT =
   process.env.EMPRESA_ADICIONAR_PEDIDO_ENDPOINT ??
   "https://whvtec2.verdetec.dev.br/webhook/957ba772-3ca5-48da-8d22-bfff9319b1d0";
@@ -37,6 +39,11 @@ function parseResponseBody(text: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const guardResponse = await guardApiRouteAccess("/empresas");
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   const payload = (await request.json().catch(() => null)) as AdicionarPedidoPayload | null;
   if (!payload || typeof payload !== "object") {
     return NextResponse.json({ ok: false, error: "Payload invalido." }, { status: 400 });

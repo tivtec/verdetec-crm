@@ -628,3 +628,75 @@ Import trace for requested module:
 ⚠ Fast Refresh had to perform a full reload due to a runtime error.
  GET /mix-sementes 200 in 713ms (compile: 91ms, proxy.ts: 91ms, render: 532ms)
  GET /mix-sementes 200 in 395ms (compile: 40ms, proxy.ts: 287ms, render: 68ms)
+ GET /verde-score 200 in 1225ms (compile: 732ms, proxy.ts: 431ms, render: 62ms)
+ GET /campanhas 200 in 1917ms (compile: 982ms, proxy.ts: 554ms, render: 380ms)
+ GET /campanhas?tab=cadastrar&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 416ms (compile: 2ms, proxy.ts: 136ms, render: 278ms)
+ GET /campanhas?tab=tintim&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 290ms (compile: 5ms, proxy.ts: 60ms, render: 224ms)
+ GET /campanhas?tab=analytics&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 286ms (compile: 5ms, proxy.ts: 62ms, render: 220ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 637ms (compile: 3ms, proxy.ts: 422ms, render: 212ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 699ms (compile: 3ms, proxy.ts: 651ms, render: 46ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 100ms (compile: 2ms, proxy.ts: 68ms, render: 29ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 148ms (compile: 5ms, proxy.ts: 110ms, render: 32ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 531ms (compile: 5ms, proxy.ts: 489ms, render: 37ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 211ms (compile: 3ms, proxy.ts: 175ms, render: 33ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 237ms (compile: 4ms, proxy.ts: 193ms, render: 40ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 94ms (compile: 5ms, proxy.ts: 55ms, render: 35ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 204ms (compile: 4ms, proxy.ts: 167ms, render: 33ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 998ms (compile: 418ms, proxy.ts: 455ms, render: 125ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 118ms (compile: 4ms, proxy.ts: 72ms, render: 42ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 628ms (compile: 341ms, proxy.ts: 192ms, render: 95ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 127ms (compile: 4ms, proxy.ts: 86ms, render: 38ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 322ms (compile: 4ms, proxy.ts: 268ms, render: 51ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 108ms (compile: 4ms, proxy.ts: 71ms, render: 33ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 1011ms (compile: 770ms, proxy.ts: 166ms, render: 74ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 126ms (compile: 5ms, proxy.ts: 93ms, render: 29ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 548ms (compile: 29ms, proxy.ts: 121ms, render: 398ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 416ms (compile: 56ms, proxy.ts: 154ms, render: 206ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 924ms (compile: 26ms, proxy.ts: 738ms, render: 160ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 1781ms (compile: 5ms, proxy.ts: 1577ms, render: 200ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 666ms (compile: 4ms, proxy.ts: 491ms, render: 171ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 393ms (compile: 4ms, proxy.ts: 222ms, render: 167ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 427ms (compile: 3ms, proxy.ts: 243ms, render: 181ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 407ms (compile: 4ms, proxy.ts: 200ms, render: 203ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 372ms (compile: 4ms, proxy.ts: 200ms, render: 168ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 425ms (compile: 4ms, proxy.ts: 217ms, render: 205ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 413ms (compile: 4ms, proxy.ts: 239ms, render: 170ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 418ms (compile: 3ms, proxy.ts: 188ms, render: 227ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 463ms (compile: 27ms, proxy.ts: 235ms, render: 202ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 468ms (compile: 26ms, proxy.ts: 237ms, render: 205ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 573ms (compile: 4ms, proxy.ts: 365ms, render: 204ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 498ms (compile: 4ms, proxy.ts: 306ms, render: 188ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 662ms (compile: 28ms, proxy.ts: 426ms, render: 208ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 975ms (compile: 36ms, proxy.ts: 670ms, render: 270ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 1680ms (compile: 4ms, proxy.ts: 1375ms, render: 301ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 621ms (compile: 110ms, proxy.ts: 412ms, render: 100ms)
+ GET /campanhas?tab=dash&data_inicio=2026-01-17&data_fim=2026-02-16 200 in 603ms (compile: 31ms, proxy.ts: 469ms, render: 103ms)
+ GET /login 200 in 1172ms (compile: 1134ms, proxy.ts: 5ms, render: 33ms)
+ GET /login 200 in 52ms (compile: 5ms, proxy.ts: 6ms, render: 41ms)
+ GET /login 200 in 54ms (compile: 6ms, proxy.ts: 6ms, render: 42ms)
+ GET /splash 200 in 682ms (compile: 337ms, proxy.ts: 126ms, render: 219ms)
+ GET /splash 200 in 234ms (compile: 4ms, proxy.ts: 100ms, render: 130ms)
+ GET /empresas 200 in 1334ms (compile: 786ms, proxy.ts: 114ms, render: 433ms)
+ GET /empresas 200 in 509ms (compile: 9ms, proxy.ts: 179ms, render: 321ms)
+⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+▲ Next.js 16.1.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.18.31:3000
+- Environments: .env.local
+
+✓ Starting...
+Error [ValidationError]: Invalid configuration object. Webpack has been initialized using a configuration object that does not match the API schema.
+ - configuration[0].watchOptions.ignored[0] should be a non-empty string.
+   -> A glob pattern for files that should be ignored from watching.
+ - configuration[1].watchOptions.ignored[0] should be a non-empty string.
+   -> A glob pattern for files that should be ignored from watching.
+ - configuration[2].watchOptions.ignored[0] should be a non-empty string.
+   -> A glob pattern for files that should be ignored from watching.
+    at ignore-listed frames {
+  errors: [Array],
+  schema: [Object],
+  headerName: 'Webpack',
+  baseDataPath: 'configuration',
+  postFormatter: [Function: postFormatter]
+}
+[?25h

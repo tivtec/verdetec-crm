@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { guardApiRouteAccess } from "@/services/access-control/api-guard";
 import { createAdminSupabaseClient } from "@/services/supabase/admin";
 
 type AtualizarStatusUsuarioPayload = {
@@ -55,6 +56,11 @@ function asBoolean(value: unknown) {
 }
 
 export async function POST(request: NextRequest) {
+  const guardResponse = await guardApiRouteAccess("/usuarios");
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   const payload = (await request.json().catch(() => null)) as AtualizarStatusUsuarioPayload | null;
   if (!payload || typeof payload !== "object") {
     return NextResponse.json({ ok: false, error: "Payload invalido." }, { status: 400 });
