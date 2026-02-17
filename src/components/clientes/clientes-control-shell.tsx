@@ -41,6 +41,8 @@ export function ClientesControlShell({
   const [isSubmittingBatchRepresentante, setIsSubmittingBatchRepresentante] = useState(false);
   const [batchRepresentanteFeedback, setBatchRepresentanteFeedback] = useState<string | null>(null);
   const [batchSuccessAlert, setBatchSuccessAlert] = useState<string | null>(null);
+  const [isCadastrarLeadModalOpen, setIsCadastrarLeadModalOpen] = useState(false);
+  const [leadFormData, setLeadFormData] = useState({ nome: "", telefone: "", email: "", representante: "" });
 
   const triggerTransferListRefresh = () => {
     router.refresh();
@@ -244,6 +246,7 @@ export function ClientesControlShell({
 
           <Button
             type="button"
+            onClick={() => setIsCadastrarLeadModalOpen(true)}
             className="h-11 min-w-[140px] rounded-xl border-0 bg-[#0f5050] text-base font-semibold text-white hover:bg-[#0c4343]"
           >
             Novo Leads
@@ -328,6 +331,91 @@ export function ClientesControlShell({
                 className="h-14 w-full max-w-[330px] rounded-2xl border-0 bg-[#0f5050] text-4xl font-semibold text-white hover:bg-[#0c4343] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSubmittingBatchRepresentante ? "Alterando..." : "Alterar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isCadastrarLeadModalOpen ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setIsCadastrarLeadModalOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-[720px] rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Cadastrar Leads"
+          >
+            <div className="flex items-start justify-between">
+              <h3 className="text-2xl font-semibold text-[#0f5050]">Cadastrar Leads</h3>
+              <button
+                type="button"
+                aria-label="Fechar"
+                onClick={() => setIsCadastrarLeadModalOpen(false)}
+                className="text-slate-600 hover:text-slate-800"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Nome</label>
+                <input
+                  type="text"
+                  value={leadFormData.nome}
+                  onChange={(e) => setLeadFormData({ ...leadFormData, nome: e.target.value })}
+                  placeholder="Seu Nome"
+                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Telefone</label>
+                <input
+                  type="tel"
+                  value={leadFormData.telefone}
+                  onChange={(e) => setLeadFormData({ ...leadFormData, telefone: e.target.value })}
+                  placeholder="Seu Telefone"
+                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
+                <input
+                  type="email"
+                  value={leadFormData.email}
+                  onChange={(e) => setLeadFormData({ ...leadFormData, email: e.target.value })}
+                  placeholder="Seu email"
+                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none"
+                />
+              </div>
+
+              <div className="rounded-lg bg-[#e6f3ef] p-4">
+                <label className="mb-2 block text-sm font-medium text-slate-700">Representante</label>
+                <select
+                  value={leadFormData.representante}
+                  onChange={(e) => setLeadFormData({ ...leadFormData, representante: e.target.value })}
+                  className="w-full rounded-md border border-transparent bg-white px-4 py-3 text-slate-700"
+                >
+                  <option value="">Selecione</option>
+                  {representantes.map((rep) => (
+                    <option key={rep.id} value={String(rep.id)}>
+                      {rep.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <Button variant="primary" size="md" onClick={() => { /* placeholder para ação de submit */ }}>
+                Cadastrar
               </Button>
             </div>
           </div>
