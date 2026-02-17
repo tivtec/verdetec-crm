@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CadastrarLeadModal from "@/components/leads/cadastrar-lead-modal";
 
 import { DashboardFiltersForm } from "@/components/dashboard/dashboard-filters-form";
 import { OrcamentosFiltersForm } from "@/components/dashboard/orcamentos-filters-form";
@@ -327,31 +328,37 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       />
 
       <PageContainer className="space-y-5 bg-[#eef0f2]">
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/dashboard"
-            className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
-              activeView === "dashboard" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
-            }`}
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/dashboard?view=retrato"
-            className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
-              activeView === "retrato" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
-            }`}
-          >
-            Retrato
-          </Link>
-          <Link
-            href="/dashboard?view=orcamentos"
-            className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
-              activeView === "orcamentos" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
-            }`}
-          >
-            Orçamentos
-          </Link>
+        <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/dashboard"
+              className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+                activeView === "dashboard" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+              }`}
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/dashboard?view=retrato"
+              className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+                activeView === "retrato" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+              }`}
+            >
+              Retrato
+            </Link>
+            <Link
+              href="/dashboard?view=orcamentos"
+              className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+                activeView === "orcamentos" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+              }`}
+            >
+              Orçamentos
+            </Link>
+          </div>
+
+          <div className="ml-4 flex-shrink-0">
+            <CadastrarLeadModal />
+          </div>
         </div>
 
         <div>
