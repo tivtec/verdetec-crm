@@ -8,6 +8,35 @@ const ALLOWED_RPCS = new Set([
   "filter3_campanhas_usuarios_por_etiquetas",
 ]);
 
+function getRpcErrorStatus(error: unknown) {
+  if (typeof error !== "object" || !error) {
+    return 500;
+  }
+
+  const code = "code" in error ? String(error.code ?? "") : "";
+  if (code === "42501") {
+    return 403;
+  }
+
+  if (code.startsWith("22")) {
+    return 400;
+  }
+
+  return 500;
+}
+
+function getRpcErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "object" && error && "message" in error) {
+    return String(error.message ?? "Falha ao executar RPC");
+  }
+
+  return "Falha ao executar RPC";
+}
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ name: string }> },
@@ -32,8 +61,8 @@ export async function GET(
     return NextResponse.json({ data });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Falha ao executar RPC" },
-      { status: 500 },
+      { error: getRpcErrorMessage(error) },
+      { status: getRpcErrorStatus(error) },
     );
   }
 }
@@ -61,8 +90,8 @@ export async function POST(
     return NextResponse.json({ data });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Falha ao executar RPC" },
-      { status: 500 },
+      { error: getRpcErrorMessage(error) },
+      { status: getRpcErrorStatus(error) },
     );
   }
 }

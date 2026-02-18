@@ -89,16 +89,23 @@ function toText(value: unknown, fallback = "") {
   return fallback;
 }
 
-function toRpcDate(value: string) {
+function toIsoDate(value: string) {
   const normalized = value.trim();
 
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized)) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
     return normalized;
   }
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    const [yyyy, mm, dd] = normalized.split("-");
-    return `${dd}/${mm}/${yyyy}`;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized) || /^\d{2}-\d{2}-\d{4}$/.test(normalized)) {
+    const separator = normalized.includes("/") ? "/" : "-";
+    const [dd, mm, yyyy] = normalized.split(separator);
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const isoLike = normalized.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+  if (isoLike) {
+    const [, yyyy, mm, dd] = isoLike;
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   const parsed = new Date(normalized);
@@ -110,7 +117,7 @@ function toRpcDate(value: string) {
   const mm = String(parsed.getMonth() + 1).padStart(2, "0");
   const yyyy = String(parsed.getFullYear());
 
-  return `${dd}/${mm}/${yyyy}`;
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 function parseJson(value: string) {
@@ -299,8 +306,8 @@ export function CampanhasDashShell({
 
       try {
         const payload = await callRpc<unknown>("filter3_campanhas_usuarios_por_etiquetas", {
-          p_data_inicio: toRpcDate(dataInicio),
-          p_data_fim: toRpcDate(dataFim),
+          p_data_inicio: toIsoDate(dataInicio),
+          p_data_fim: toIsoDate(dataFim),
         });
 
         if (cancelled) {
