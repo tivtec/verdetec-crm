@@ -78,6 +78,7 @@ const EMPTY_FORM: UsuarioFormValues = {
 
 export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps) {
   const [rows, setRows] = useState<UsuarioControleRow[]>(initialRows);
+  const [showInactiveUsers, setShowInactiveUsers] = useState(false);
   const [page, setPage] = useState(1);
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [isStatusConfirmModalOpen, setIsStatusConfirmModalOpen] = useState(false);
@@ -175,10 +176,11 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
     menuAnchor,
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const visibleRows = showInactiveUsers ? rows : rows.filter((row) => row.ativo);
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const start = (safePage - 1) * PAGE_SIZE;
-  const currentRows = rows.slice(start, start + PAGE_SIZE);
+  const currentRows = visibleRows.slice(start, start + PAGE_SIZE);
 
   const toggleMenu = (rowId: string, event: ReactMouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -712,8 +714,22 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold text-[#30343a] md:text-4xl">Usuários</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-semibold text-[#30343a] md:text-4xl">Usuários</h1>
+          <label className="inline-flex items-center gap-2 text-sm text-[#2f3538]">
+            <input
+              type="checkbox"
+              checked={showInactiveUsers}
+              onChange={(event) => {
+                setShowInactiveUsers(event.target.checked);
+                setPage(1);
+              }}
+              className="h-4 w-4 accent-[#0f5050]"
+            />
+            <span>Mostrar usuários inativos</span>
+          </label>
+        </div>
         <Button
           type="button"
           onClick={openCreateModal}

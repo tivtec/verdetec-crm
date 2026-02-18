@@ -1914,45 +1914,6 @@ export type UsuarioControleApiRow = {
   ativo: boolean;
 };
 
-const mockUsuariosControle: UsuarioControleApiRow[] = [
-  {
-    id: "120",
-    nome: "120-Felipe P.",
-    telefone: "47992257826",
-    tipoAcesso: "Time Negócios",
-    tipoAcesso2: "Time Negócios",
-    email: "felipe.po@verdetec.com",
-    meet: "https://meet.google.com/uqc-vzjh-uea",
-    l100: null,
-    dispoLeads: true,
-    ativo: true,
-  },
-  {
-    id: "66",
-    nome: "66-Edson T.",
-    telefone: "4830368695",
-    tipoAcesso: "Time Negócios",
-    tipoAcesso2: "Time Negócios",
-    email: "vendas16@verdetec.com",
-    meet: "http://meet.google.com/uaq-vfqo-oyo",
-    l100: null,
-    dispoLeads: true,
-    ativo: true,
-  },
-  {
-    id: "63",
-    nome: "63-Lazaro S.",
-    telefone: "4830368696",
-    tipoAcesso: "Time Negócios",
-    tipoAcesso2: "Time Negócios",
-    email: "vendas18@verdetec.com",
-    meet: "http://meet.google.com/gig-ukpe-kmw",
-    l100: null,
-    dispoLeads: true,
-    ativo: true,
-  },
-];
-
 function normalizeTipoAcessoLabel(value: string | null | undefined) {
   const raw = asString(value).trim();
   if (!raw) {
@@ -1973,20 +1934,61 @@ function normalizeTipoAcessoLabel(value: string | null | undefined) {
   return raw;
 }
 
+const USUARIOS_TIPO_ACESSO_2_ELIGIBLE_QUERY = [
+  "Time Negócios",
+  "Time de Negócios",
+  "Time de Negocios",
+  "Time Negocios",
+  "Prime",
+  "CRV",
+] as const;
+
+function isUsuarioTipoAcesso2Eligible(value: string | null | undefined) {
+  const normalized = normalizeTipoAcesso2(value ?? "");
+  return normalized === "Time Negócios" || normalized === "Prime" || normalized === "CRV";
+}
+
 export async function getUsuariosControleRows(): Promise<UsuarioControleApiRow[]> {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
+    const dashboardAccessScope = await getDashboardViewerAccessScope();
+    const viewerUsuarioId = Math.max(0, Math.trunc(dashboardAccessScope.viewerUsuarioId));
+    const viewerVerticalId = asString(dashboardAccessScope.viewerVerticalId, "").trim();
+
+    if (!dashboardAccessScope.isGerencia && !dashboardAccessScope.isGestor && viewerUsuarioId <= 0) {
+      return [];
+    }
+
+    if (dashboardAccessScope.isGestor && !dashboardAccessScope.isGerencia && viewerVerticalId.length === 0) {
+      return [];
+    }
+
+    let query = supabase
       .from("usuarios")
-      .select("id,nome,telefone,tipo_acesso,tipo_acesso_2,email,link_meet,usuario_ativo,dispo_leads")
+      .select("id,nome,telefone,tipo_acesso,tipo_acesso_2,email,link_meet,usuario_ativo,dispo_leads,id_vertical")
+      .in("tipo_acesso_2", [...USUARIOS_TIPO_ACESSO_2_ELIGIBLE_QUERY])
       .order("id", { ascending: false })
       .limit(5000);
 
-    if (error || !data?.length) {
-      return mockUsuariosControle;
+    if (!dashboardAccessScope.isGerencia && dashboardAccessScope.isGestor) {
+      query = query.eq("id_vertical", viewerVerticalId);
+    } else if (!dashboardAccessScope.isGerencia) {
+      query = query.eq("id", viewerUsuarioId);
     }
 
-    const usuarioRows = data as Array<Record<string, unknown>>;
+    const { data, error } = await query;
+
+    if (error || !data?.length) {
+      return [];
+    }
+
+    const usuarioRows = (data as Array<Record<string, unknown>>).filter((row) =>
+      isUsuarioTipoAcesso2Eligible(asString(row.tipo_acesso_2)),
+    );
+    if (!usuarioRows.length) {
+      return [];
+    }
+
     const usuarioIds = usuarioRows
       .map((row) => Math.trunc(asNumber(row.id, 0)))
       .filter((value) => Number.isInteger(value) && value > 0);
@@ -2028,7 +2030,7 @@ export async function getUsuariosControleRows(): Promise<UsuarioControleApiRow[]
       } satisfies UsuarioControleApiRow;
     });
   } catch {
-    return mockUsuariosControle;
+    return [];
   }
 }
 
@@ -3747,6 +3749,7 @@ export async function getCampanhasDashSnapshot(
     return [];
   }
 }
+
 
 
 
