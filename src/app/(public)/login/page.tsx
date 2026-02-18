@@ -28,9 +28,6 @@ export default function LoginPage() {
             <h1 className="text-4xl font-semibold leading-tight">
               Gestão de clientes, propostas e agenda em um só lugar.
             </h1>
-            <p className="text-white/80">
-              Interface inspirada no sistema atual e pronta para produção na Vercel com Supabase.
-            </p>
           </div>
         </div>
       </section>
