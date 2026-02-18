@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { CRM_SIDEBAR_PAGES } from "@/services/access-control/constants";
+
 const PUBLIC_ROUTES = new Set([
   "/login",
   "/splash",
@@ -8,6 +10,46 @@ const PUBLIC_ROUTES = new Set([
   "/novasenha",
   "/redefinirsenha",
 ]);
+
+const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";
+const ACL_ROUTE_CANDIDATES = CRM_SIDEBAR_PAGES.map((page) => page.path);
+
+type PathAclResult = boolean | null;
+
+async function getPathAccess(
+  supabase: ReturnType<typeof createServerClient>,
+  path: string,
+): Promise<PathAclResult> {
+  try {
+    const { data, error } = await supabase.rpc("crm_can_access_path", {
+      p_path: path,
+    });
+
+    if (error) {
+      return null;
+    }
+
+    return data !== false;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveFirstAllowedPath(supabase: ReturnType<typeof createServerClient>) {
+  for (const candidatePath of ACL_ROUTE_CANDIDATES) {
+    const hasAccess = await getPathAccess(supabase, candidatePath);
+
+    if (hasAccess === true) {
+      return candidatePath;
+    }
+
+    if (hasAccess === null) {
+      return DEFAULT_AUTHENTICATED_ROUTE;
+    }
+  }
+
+  return DEFAULT_AUTHENTICATED_ROUTE;
+}
 
 export async function updateAuthSession(request: NextRequest) {
   const response = NextResponse.next({
@@ -56,22 +98,23 @@ export async function updateAuthSession(request: NextRequest) {
 
   if (user && (pathname === "/login" || pathname === "/")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = await resolveFirstAllowedPath(supabase);
     return NextResponse.redirect(url);
   }
 
   const shouldEvaluateAcl = user && !isPublicRoute && !isApiRoute && !isStaticRoute;
   if (shouldEvaluateAcl) {
     try {
-      const { data: hasAccess, error } = await supabase.rpc("crm_can_access_path", {
-        p_path: pathname,
-      });
+      const hasAccess = await getPathAccess(supabase, pathname);
 
-      if (!error && hasAccess === false && pathname !== "/dashboard") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/dashboard";
-        url.searchParams.set("access_denied", "1");
-        return NextResponse.redirect(url);
+      if (hasAccess === false) {
+        const fallbackPath = await resolveFirstAllowedPath(supabase);
+        if (fallbackPath !== pathname) {
+          const url = request.nextUrl.clone();
+          url.pathname = fallbackPath;
+          url.searchParams.set("access_denied", "1");
+          return NextResponse.redirect(url);
+        }
       }
     } catch {
       // fallback permissivo para nao interromper navegacao caso ACL ainda nao exista

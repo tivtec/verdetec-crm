@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronsUpDown, Pencil, Trash2, X } from "lucide-react";
+import { callRpc } from "@/api/supabase/rpc";
 
 type CampanhaTabKey = "dash" | "analytics" | "cadastrar" | "tintim" | "filtros" | "jornada";
 
@@ -56,113 +57,118 @@ const tabs: Array<{ key: CampanhaTabKey; label: string }> = [
   { key: "jornada", label: "Jornada" },
 ];
 
-const rows: CampanhaRow[] = [
-  {
-    campanha: "Franquia/Investidor",
-    lead: 7,
-    n00: 7,
-    n10: 7,
-    n05: 0,
-    n30: 0,
-    n35: 0,
-    n40: 0,
-    n50: 0,
-    n60: 0,
-    n61: 2,
-    n62: 5,
-    n66: 0,
-  },
-  {
-    campanha: "#50 Prime",
-    lead: 6,
-    n00: 6,
-    n10: 6,
-    n05: 0,
-    n30: 0,
-    n35: 0,
-    n40: 0,
-    n50: 0,
-    n60: 0,
-    n61: 0,
-    n62: 0,
-    n66: 0,
-  },
-  {
-    campanha: "Vendas - #50",
-    lead: 4,
-    n00: 4,
-    n10: 4,
-    n05: 0,
-    n30: 0,
-    n35: 0,
-    n40: 0,
-    n50: 0,
-    n60: 0,
-    n61: 0,
-    n62: 4,
-    n66: 0,
-  },
-  {
-    campanha: "Engenheiro/Terraplanagem II",
-    lead: 3,
-    n00: 3,
-    n10: 3,
-    n05: 0,
-    n30: 1,
-    n35: 0,
-    n40: 0,
-    n50: 0,
-    n60: 0,
-    n61: 0,
-    n62: 2,
-    n66: 0,
-  },
-  {
-    campanha: "Youtube",
-    lead: 2,
-    n00: 2,
-    n10: 2,
-    n05: 1,
-    n30: 1,
-    n35: 0,
-    n40: 0,
-    n50: 0,
-    n60: 1,
-    n61: 0,
-    n62: 1,
-    n66: 0,
-  },
-  {
-    campanha: "Organico",
-    lead: 1,
-    n00: 1,
-    n10: 1,
-    n05: 0,
-    n30: 0,
-    n35: 0,
-    n40: 0,
-    n50: 0,
-    n60: 0,
-    n61: 0,
-    n62: 0,
-    n66: 0,
-  },
-  {
-    campanha: "Grameiro#4",
-    lead: 1,
-    n00: 1,
-    n10: 1,
-    n05: 0,
-    n30: 0,
-    n35: 0,
-    n40: 0,
-    n50: 0,
-    n60: 1,
-    n61: 0,
-    n62: 0,
-    n66: 0,
-  },
-];
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toCount(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return Math.trunc(parsed);
+    }
+  }
+
+  return 0;
+}
+
+function toText(value: unknown, fallback = "") {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return fallback;
+}
+
+function toRpcDate(value: string) {
+  const normalized = value.trim();
+
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized)) {
+    return normalized;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    const [yyyy, mm, dd] = normalized.split("-");
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  const dd = String(parsed.getDate()).padStart(2, "0");
+  const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+  const yyyy = String(parsed.getFullYear());
+
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function parseJson(value: string) {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function unwrapCampanhasDashPayload(value: unknown) {
+  let current = value;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (typeof current === "string") {
+      const parsed = parseJson(current);
+      if (parsed === null) {
+        break;
+      }
+      current = parsed;
+      continue;
+    }
+
+    if (isRecord(current) && "body" in current) {
+      current = current.body;
+      continue;
+    }
+
+    break;
+  }
+
+  return current;
+}
+
+function toCampanhaRows(value: unknown): CampanhaRow[] {
+  const unwrapped = unwrapCampanhasDashPayload(value);
+  if (!Array.isArray(unwrapped)) {
+    return [];
+  }
+
+  return unwrapped
+    .filter(isRecord)
+    .map((row) => ({
+      campanha: toText(row.apelido_campanha, toText(row.id_unico, "Campanha")),
+      lead: toCount(row.total_leads),
+      n00: toCount(row.etiqueta_00),
+      n10: toCount(row.etiqueta_10),
+      n05: toCount(row.etiqueta_05),
+      n30: toCount(row.etiqueta_30),
+      n35: toCount(row.etiqueta_35),
+      n40: toCount(row.etiqueta_40),
+      n50: toCount(row.etiqueta_50),
+      n60: toCount(row.etiqueta_60),
+      n61: toCount(row.etiqueta_61),
+      n62: toCount(row.etiqueta_62),
+      n66: toCount(row.etiqueta_66),
+    }));
+}
 
 function toTotalRow(sourceRows: CampanhaRow[]): CampanhaRow {
   return sourceRows.reduce(
@@ -225,7 +231,10 @@ export function CampanhasDashShell({
 }: CampanhasDashShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const totalRow = toTotalRow(rows);
+  const [dashRows, setDashRows] = useState<CampanhaRow[]>([]);
+  const [isDashLoading, setIsDashLoading] = useState(activeTab === "dash");
+  const [dashError, setDashError] = useState<string | null>(null);
+  const totalRow = useMemo(() => toTotalRow(dashRows), [dashRows]);
   const [isTintimModalOpen, setIsTintimModalOpen] = useState(false);
   const [isSavingTintim, setIsSavingTintim] = useState(false);
   const [tintimModalError, setTintimModalError] = useState<string | null>(null);
@@ -276,6 +285,49 @@ export function CampanhasDashShell({
       ).values(),
     );
   }, [representantes, tintimRows]);
+
+  useEffect(() => {
+    if (activeTab !== "dash") {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadDashRows = async () => {
+      setIsDashLoading(true);
+      setDashError(null);
+
+      try {
+        const payload = await callRpc<unknown>("filter3_campanhas_usuarios_por_etiquetas", {
+          p_data_inicio: toRpcDate(dataInicio),
+          p_data_fim: toRpcDate(dataFim),
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setDashRows(toCampanhaRows(payload));
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        setDashRows([]);
+        setDashError("Nao foi possivel carregar as campanhas para o periodo selecionado.");
+      } finally {
+        if (!cancelled) {
+          setIsDashLoading(false);
+        }
+      }
+    };
+
+    loadDashRows();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, dataFim, dataInicio]);
 
   useEffect(() => {
     if (!isTintimModalOpen && !isTintimEditModalOpen && !isTintimDeleteModalOpen) {
@@ -725,23 +777,37 @@ export function CampanhasDashShell({
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row, index) => (
-                    <tr key={row.campanha} className={index % 2 === 0 ? "bg-[#d4d4d6]" : "bg-[#f2f3f4]"}>
-                      <td className="rounded-l-xl px-4 py-2.5 text-base font-semibold text-[#061b4a]">{row.campanha}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.lead}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n00}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n10}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n05}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n30}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n35}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n40}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n50}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n60}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n61}</td>
-                      <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n62}</td>
-                      <td className="rounded-r-xl px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n66}</td>
+                  {isDashLoading ? (
+                    <tr className="bg-[#f2f3f4]">
+                      <td colSpan={13} className="rounded-xl px-4 py-4 text-center text-sm font-semibold text-[#42515e]">
+                        Carregando campanhas...
+                      </td>
                     </tr>
-                  ))}
+                  ) : dashRows.length ? (
+                    dashRows.map((row, index) => (
+                      <tr key={`${row.campanha}-${index}`} className={index % 2 === 0 ? "bg-[#d4d4d6]" : "bg-[#f2f3f4]"}>
+                        <td className="rounded-l-xl px-4 py-2.5 text-base font-semibold text-[#061b4a]">{row.campanha}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.lead}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n00}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n10}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n05}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n30}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n35}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n40}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n50}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n60}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n61}</td>
+                        <td className="px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n62}</td>
+                        <td className="rounded-r-xl px-3 py-2.5 text-base font-semibold text-[#061b4a]">{row.n66}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr className="bg-[#f2f3f4]">
+                      <td colSpan={13} className="rounded-xl px-4 py-4 text-center text-sm font-semibold text-[#42515e]">
+                        {dashError ?? "Nenhuma campanha encontrada para o periodo selecionado."}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
                 <tfoot>
                   <tr className="bg-[#ece5e0]">

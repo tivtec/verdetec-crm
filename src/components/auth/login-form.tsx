@@ -48,7 +48,7 @@ export function LoginForm() {
         throw error;
       }
 
-      router.replace("/dashboard");
+      router.replace("/splash");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login");

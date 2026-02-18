@@ -2,7 +2,11 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { createServerSupabaseClient } from "@/services/supabase/server";
 
-const ALLOWED_RPCS = new Set(["rpc_get_clientes_funil", "rpc_paginate_clientes"]);
+const ALLOWED_RPCS = new Set([
+  "rpc_get_clientes_funil",
+  "rpc_paginate_clientes",
+  "filter3_campanhas_usuarios_por_etiquetas",
+]);
 
 export async function GET(
   request: NextRequest,

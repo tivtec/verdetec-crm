@@ -1,5 +1,6 @@
 ﻿import { redirect } from "next/navigation";
 
+import { getCurrentAllowedSidebarPaths } from "@/services/access-control/server";
 import { createServerSupabaseClient } from "@/services/supabase/server";
 
 function resolveRouteByRole(role?: string | null, vertical?: string | null) {
@@ -86,6 +87,11 @@ export default async function SplashPage() {
   const vertical =
     getVerticalDescription(legacyProfile) ??
     (user.user_metadata?.vertical as string | undefined);
+
+  const allowedPaths = await getCurrentAllowedSidebarPaths();
+  if (allowedPaths && allowedPaths.length > 0) {
+    redirect(allowedPaths[0]);
+  }
 
   redirect(resolveRouteByRole(role, vertical));
 }
