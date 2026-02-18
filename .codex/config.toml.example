@@ -1,0 +1,16 @@
+model = "gpt-5.3-codex"
+model_reasoning_effort = "xhigh"
+personality = "pragmatic"
+
+[mcp_servers.supabase-dev-ro]
+url = "https://mcp.supabase.com/mcp?project_ref=YOUR_DEV_PROJECT_REF&read_only=true&features=database,docs,development,debugging,functions"
+bearer_token_env_var = "SUPABASE_ACCESS_TOKEN"
+
+[mcp_servers.supabase-dev-rw]
+url = "https://mcp.supabase.com/mcp?project_ref=YOUR_DEV_PROJECT_REF&features=database,development,debugging,functions,branching"
+bearer_token_env_var = "SUPABASE_ACCESS_TOKEN"
+
+[mcp_servers.supabase-stg-rw]
+url = "https://mcp.supabase.com/mcp?project_ref=YOUR_STAGING_PROJECT_REF&features=database,development,debugging,functions,branching"
+bearer_token_env_var = "SUPABASE_ACCESS_TOKEN"
+

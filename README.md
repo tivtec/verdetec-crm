@@ -78,3 +78,14 @@ A rota recebe payload do frontend, opcionalmente cria lead provisório no Supaba
    - `N8N_WEBHOOK_SECRET`
    - `NEXT_PUBLIC_INVOICE_URL`
 3. Deploy.
+
+## Supabase MCP (Codex)
+- Runbook: `docs/mcp-supabase-runbook.md`
+- Setup script: `scripts/setup-supabase-mcp.ps1`
+- Validation script: `scripts/validate-supabase-mcp.ps1`
+
+Example:
+```powershell
+powershell -ExecutionPolicy Bypass -File ./scripts/setup-supabase-mcp.ps1 -StagingProjectRef "<STAGING_PROJECT_REF>"
+powershell -ExecutionPolicy Bypass -File ./scripts/validate-supabase-mcp.ps1
+```
