@@ -79,7 +79,7 @@ export function AppSidebar({ profile, allowedPaths }: AppSidebarProps) {
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto">
+      <nav className="no-scrollbar flex-1 overflow-y-auto">
         <ul className="flex flex-col items-start gap-1.5">
           {visibleItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);

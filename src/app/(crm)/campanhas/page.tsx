@@ -1,8 +1,9 @@
 import { CampanhasDashShell } from "@/components/campanhas/campanhas-dash-shell";
 import { PageContainer } from "@/components/layout/page-container";
-import { getClientesRepresentantes, getTintimLinksSnapshot } from "@/services/crm/api";
+import { getCampanhasDashSnapshot, getClientesRepresentantes, getTintimLinksSnapshot } from "@/services/crm/api";
 
 type CampanhaTabKey = "dash" | "analytics" | "cadastrar" | "tintim" | "filtros" | "jornada";
+export const dynamic = "force-dynamic";
 
 function getSearchValue(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -25,6 +26,22 @@ function getDefaultDateRange() {
 function normalizeInputDate(value: string | undefined, fallbackValue: string) {
   if (!value) {
     return fallbackValue;
+  }
+
+  const normalized = value.trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return normalized;
+  }
+
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized)) {
+    const [dd, mm, yyyy] = normalized.split("/");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  if (/^\d{2}-\d{2}-\d{4}$/.test(normalized)) {
+    const [dd, mm, yyyy] = normalized.split("-");
+    return `${yyyy}-${mm}-${dd}`;
   }
 
   const parsed = new Date(value);
@@ -78,13 +95,21 @@ export default async function CampanhasPage({ searchParams }: CampanhasPageProps
   const tintimUtmParam = (getSearchValue(params.tintim_utm) ?? "").trim();
   const tintimPage = parsePage(getSearchValue(params.tintim_page));
   const tintimUsuarioId = parsePositiveInt(tintimUsuarioParam);
-  const representantes = await getClientesRepresentantes();
-  const tintimSnapshot = await getTintimLinksSnapshot({
-    limit: 10,
-    offset: (tintimPage - 1) * 10,
-    usuarioId: tintimUsuarioId,
-    utm: tintimUtmParam,
-  });
+  const [representantes, tintimSnapshot, dashRows] = await Promise.all([
+    getClientesRepresentantes(),
+    getTintimLinksSnapshot({
+      limit: 10,
+      offset: (tintimPage - 1) * 10,
+      usuarioId: tintimUsuarioId,
+      utm: tintimUtmParam,
+    }),
+    activeTab === "dash"
+      ? getCampanhasDashSnapshot({
+          dataInicioInput: dataInicio,
+          dataFimInput: dataFim,
+        })
+      : Promise.resolve([]),
+  ]);
 
   const representanteById = new Map<number, string>();
   for (const representante of representantes) {
@@ -117,6 +142,7 @@ export default async function CampanhasPage({ searchParams }: CampanhasPageProps
           activeTab={activeTab}
           dataInicio={dataInicio}
           dataFim={dataFim}
+          dashRows={dashRows}
           representantes={representantes}
           tintimRows={tintimRows}
           tintimCurrentPage={tintimPage}

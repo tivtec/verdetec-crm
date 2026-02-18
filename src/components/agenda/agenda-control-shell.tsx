@@ -5,6 +5,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, MoreVertical, X } from "lucide-
 
 import type { AgendaControleRow } from "@/components/agenda/types";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 type AgendaRepresentanteOption = {
   id: number;
@@ -562,7 +563,7 @@ export function AgendaControlShell({
                 {isLoadingHorarios ? (
                   <tr className="bg-[#eceeef]">
                     <td colSpan={3} className="rounded-xl px-4 py-10 text-center text-sm text-[#466568]">
-                      Carregando horarios...
+                      <LoadingSpinner label="Carregando horarios..." />
                     </td>
                   </tr>
                 ) : horariosError ? (

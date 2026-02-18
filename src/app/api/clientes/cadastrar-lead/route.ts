@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { createAdminSupabaseClient } from "@/services/supabase/admin";
+
 const CADASTRAR_LEAD_ENDPOINT =
   process.env.CLIENTES_CADASTRAR_LEAD_ENDPOINT ??
   "https://whvtec2.verdetec.dev.br/webhook/4f9cb6b9-5ce4-4ad1-886b-b321b22641e1";
@@ -12,6 +14,17 @@ type CadastrarLeadPayload = {
   id_user?: number | string | null;
   id_usuario_param?: number | string | null;
   label?: string | null;
+};
+
+type PessoaDuplicateRow = {
+  id: number;
+  nome: string;
+  telefone: string;
+  telefoneWebhook: string;
+  telefoneAlternativo: string;
+  telefoneCobranca: string;
+  email: string;
+  createdAt: string;
 };
 
 function asString(value: unknown, fallback = "") {
@@ -41,6 +54,119 @@ function asPositiveInt(value: unknown) {
   }
 
   return null;
+}
+
+function normalizePhoneDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function toUnique(values: string[]) {
+  return Array.from(new Set(values.filter((value) => value.length > 0)));
+}
+
+function buildPhoneCandidates(rawPhone: string) {
+  const raw = rawPhone.trim();
+  const digits = normalizePhoneDigits(raw);
+
+  const candidates = [raw, digits];
+  if (digits.length === 13 && digits.startsWith("55")) {
+    candidates.push(digits.slice(2));
+  }
+
+  const local = digits.length >= 10 ? digits.slice(-11) : digits;
+  if (local.length === 11) {
+    const ddd = local.slice(0, 2);
+    const n1 = local.slice(2, 7);
+    const n2 = local.slice(7);
+    candidates.push(
+      local,
+      `${ddd}${n1}${n2}`,
+      `(${ddd}) ${n1}-${n2}`,
+      `(${ddd})${n1}-${n2}`,
+      `${ddd} ${n1}-${n2}`,
+      `+55${ddd}${n1}${n2}`,
+      `55${ddd}${n1}${n2}`,
+    );
+  } else if (local.length === 10) {
+    const ddd = local.slice(0, 2);
+    const n1 = local.slice(2, 6);
+    const n2 = local.slice(6);
+    candidates.push(
+      local,
+      `${ddd}${n1}${n2}`,
+      `(${ddd}) ${n1}-${n2}`,
+      `(${ddd})${n1}-${n2}`,
+      `${ddd} ${n1}-${n2}`,
+      `+55${ddd}${n1}${n2}`,
+      `55${ddd}${n1}${n2}`,
+    );
+  }
+
+  return toUnique(candidates.map((value) => value.trim()));
+}
+
+function asPessoaDuplicateRow(row: Record<string, unknown>): PessoaDuplicateRow {
+  return {
+    id: Math.max(0, Math.trunc(asPositiveInt(row.id) ?? 0)),
+    nome: asString(row.nome),
+    telefone: asString(row.telefone),
+    telefoneWebhook: asString(row.telefone_webhook),
+    telefoneAlternativo: asString(row.fone_alternativo),
+    telefoneCobranca: asString(row.telefone_cobranca),
+    email: asString(row.email),
+    createdAt: asString(row.created_at),
+  };
+}
+
+async function findExistingPessoaByLeadData({
+  fone,
+  email,
+}: {
+  fone: string;
+  email: string;
+}) {
+  try {
+    const admin = createAdminSupabaseClient();
+    const phoneCandidates = buildPhoneCandidates(fone);
+
+    if (phoneCandidates.length > 0) {
+      const phoneOrParts = phoneCandidates.flatMap((candidate) => [
+        `telefone.eq.${candidate}`,
+        `telefone_webhook.eq.${candidate}`,
+        `fone_alternativo.eq.${candidate}`,
+        `telefone_cobranca.eq.${candidate}`,
+      ]);
+
+      const { data: byPhone } = await admin
+        .from("pessoa")
+        .select("id,nome,telefone,telefone_webhook,fone_alternativo,telefone_cobranca,email,created_at")
+        .or(phoneOrParts.join(","))
+        .order("id", { ascending: false })
+        .limit(1);
+
+      if (byPhone && byPhone.length > 0) {
+        return asPessoaDuplicateRow(byPhone[0] as Record<string, unknown>);
+      }
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.length > 0) {
+      const { data: byEmail } = await admin
+        .from("pessoa")
+        .select("id,nome,telefone,telefone_webhook,fone_alternativo,telefone_cobranca,email,created_at")
+        .ilike("email", normalizedEmail)
+        .order("id", { ascending: false })
+        .limit(1);
+
+      if (byEmail && byEmail.length > 0) {
+        return asPessoaDuplicateRow(byEmail[0] as Record<string, unknown>);
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 async function parseResponseBody(response: Response) {
@@ -94,6 +220,19 @@ export async function POST(request: NextRequest) {
   };
 
   try {
+    const existingPessoa = await findExistingPessoaByLeadData({ fone, email });
+    if (existingPessoa) {
+      return NextResponse.json(
+        {
+          ok: false,
+          duplicate: true,
+          error: "Cliente ja cadastrado.",
+          existing: existingPessoa,
+        },
+        { status: 409 },
+      );
+    }
+
     const response = await fetch(CADASTRAR_LEAD_ENDPOINT, {
       method: "POST",
       headers: {

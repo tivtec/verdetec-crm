@@ -9,6 +9,9 @@ const PUBLIC_ROUTES = new Set([
   "/auth1",
   "/novasenha",
   "/redefinirsenha",
+  "/proposta",
+  "/proposta/cote",
+  "/meet",
 ]);
 
 const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronsUpDown, Pencil, Trash2, X } from "lucide-react";
-import { callRpc } from "@/api/supabase/rpc";
 
 type CampanhaTabKey = "dash" | "analytics" | "cadastrar" | "tintim" | "filtros" | "jornada";
 
@@ -27,6 +26,7 @@ type CampanhasDashShellProps = {
   activeTab: CampanhaTabKey;
   dataInicio: string;
   dataFim: string;
+  dashRows?: CampanhaRow[];
   representantes?: Array<{
     id: number;
     nome: string;
@@ -56,126 +56,6 @@ const tabs: Array<{ key: CampanhaTabKey; label: string }> = [
   { key: "filtros", label: "Filtros" },
   { key: "jornada", label: "Jornada" },
 ];
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function toCount(value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return Math.trunc(value);
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return Math.trunc(parsed);
-    }
-  }
-
-  return 0;
-}
-
-function toText(value: unknown, fallback = "") {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : fallback;
-  }
-
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
-
-  return fallback;
-}
-
-function toIsoDate(value: string) {
-  const normalized = value.trim();
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    return normalized;
-  }
-
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized) || /^\d{2}-\d{2}-\d{4}$/.test(normalized)) {
-    const separator = normalized.includes("/") ? "/" : "-";
-    const [dd, mm, yyyy] = normalized.split(separator);
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
-  const isoLike = normalized.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
-  if (isoLike) {
-    const [, yyyy, mm, dd] = isoLike;
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
-  const parsed = new Date(normalized);
-  if (Number.isNaN(parsed.getTime())) {
-    return "";
-  }
-
-  const dd = String(parsed.getDate()).padStart(2, "0");
-  const mm = String(parsed.getMonth() + 1).padStart(2, "0");
-  const yyyy = String(parsed.getFullYear());
-
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function parseJson(value: string) {
-  try {
-    return JSON.parse(value) as unknown;
-  } catch {
-    return null;
-  }
-}
-
-function unwrapCampanhasDashPayload(value: unknown) {
-  let current = value;
-
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    if (typeof current === "string") {
-      const parsed = parseJson(current);
-      if (parsed === null) {
-        break;
-      }
-      current = parsed;
-      continue;
-    }
-
-    if (isRecord(current) && "body" in current) {
-      current = current.body;
-      continue;
-    }
-
-    break;
-  }
-
-  return current;
-}
-
-function toCampanhaRows(value: unknown): CampanhaRow[] {
-  const unwrapped = unwrapCampanhasDashPayload(value);
-  if (!Array.isArray(unwrapped)) {
-    return [];
-  }
-
-  return unwrapped
-    .filter(isRecord)
-    .map((row) => ({
-      campanha: toText(row.apelido_campanha, toText(row.id_unico, "Campanha")),
-      lead: toCount(row.total_leads),
-      n00: toCount(row.etiqueta_00),
-      n10: toCount(row.etiqueta_10),
-      n05: toCount(row.etiqueta_05),
-      n30: toCount(row.etiqueta_30),
-      n35: toCount(row.etiqueta_35),
-      n40: toCount(row.etiqueta_40),
-      n50: toCount(row.etiqueta_50),
-      n60: toCount(row.etiqueta_60),
-      n61: toCount(row.etiqueta_61),
-      n62: toCount(row.etiqueta_62),
-      n66: toCount(row.etiqueta_66),
-    }));
-}
 
 function toTotalRow(sourceRows: CampanhaRow[]): CampanhaRow {
   return sourceRows.reduce(
@@ -229,6 +109,7 @@ export function CampanhasDashShell({
   activeTab,
   dataInicio,
   dataFim,
+  dashRows: dashRowsInput = [],
   representantes = [],
   tintimRows = [],
   tintimCurrentPage = 1,
@@ -238,9 +119,7 @@ export function CampanhasDashShell({
 }: CampanhasDashShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [dashRows, setDashRows] = useState<CampanhaRow[]>([]);
-  const [isDashLoading, setIsDashLoading] = useState(activeTab === "dash");
-  const [dashError, setDashError] = useState<string | null>(null);
+  const [dashRows, setDashRows] = useState<CampanhaRow[]>(dashRowsInput);
   const totalRow = useMemo(() => toTotalRow(dashRows), [dashRows]);
   const [isTintimModalOpen, setIsTintimModalOpen] = useState(false);
   const [isSavingTintim, setIsSavingTintim] = useState(false);
@@ -294,47 +173,8 @@ export function CampanhasDashShell({
   }, [representantes, tintimRows]);
 
   useEffect(() => {
-    if (activeTab !== "dash") {
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadDashRows = async () => {
-      setIsDashLoading(true);
-      setDashError(null);
-
-      try {
-        const payload = await callRpc<unknown>("filter3_campanhas_usuarios_por_etiquetas", {
-          p_data_inicio: toIsoDate(dataInicio),
-          p_data_fim: toIsoDate(dataFim),
-        });
-
-        if (cancelled) {
-          return;
-        }
-
-        setDashRows(toCampanhaRows(payload));
-      } catch {
-        if (cancelled) {
-          return;
-        }
-
-        setDashRows([]);
-        setDashError("Nao foi possivel carregar as campanhas para o periodo selecionado.");
-      } finally {
-        if (!cancelled) {
-          setIsDashLoading(false);
-        }
-      }
-    };
-
-    loadDashRows();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, dataFim, dataInicio]);
+    setDashRows(dashRowsInput);
+  }, [dashRowsInput]);
 
   useEffect(() => {
     if (!isTintimModalOpen && !isTintimEditModalOpen && !isTintimDeleteModalOpen) {
@@ -784,13 +624,7 @@ export function CampanhasDashShell({
                   </tr>
                 </thead>
                 <tbody>
-                  {isDashLoading ? (
-                    <tr className="bg-[#f2f3f4]">
-                      <td colSpan={13} className="rounded-xl px-4 py-4 text-center text-sm font-semibold text-[#42515e]">
-                        Carregando campanhas...
-                      </td>
-                    </tr>
-                  ) : dashRows.length ? (
+                  {dashRows.length ? (
                     dashRows.map((row, index) => (
                       <tr key={`${row.campanha}-${index}`} className={index % 2 === 0 ? "bg-[#d4d4d6]" : "bg-[#f2f3f4]"}>
                         <td className="rounded-l-xl px-4 py-2.5 text-base font-semibold text-[#061b4a]">{row.campanha}</td>
@@ -811,7 +645,7 @@ export function CampanhasDashShell({
                   ) : (
                     <tr className="bg-[#f2f3f4]">
                       <td colSpan={13} className="rounded-xl px-4 py-4 text-center text-sm font-semibold text-[#42515e]">
-                        {dashError ?? "Nenhuma campanha encontrada para o periodo selecionado."}
+                        Nenhuma campanha encontrada para o periodo selecionado.
                       </td>
                     </tr>
                   )}

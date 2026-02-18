@@ -25,6 +25,17 @@ type ClientesControlShellProps = {
 
 const PAGE_SIZE = 10;
 
+type LeadDuplicateInfo = {
+  id?: number;
+  nome?: string;
+  telefone?: string;
+  telefoneWebhook?: string;
+  telefoneAlternativo?: string;
+  telefoneCobranca?: string;
+  email?: string;
+  createdAt?: string;
+};
+
 export function ClientesControlShell({
   initialRows,
   representantes,
@@ -48,6 +59,8 @@ export function ClientesControlShell({
   const [isSubmittingLead, setIsSubmittingLead] = useState(false);
   const [leadFeedback, setLeadFeedback] = useState<string | null>(null);
   const [leadSuccessAlert, setLeadSuccessAlert] = useState<string | null>(null);
+  const [isLeadDuplicateModalOpen, setIsLeadDuplicateModalOpen] = useState(false);
+  const [leadDuplicateInfo, setLeadDuplicateInfo] = useState<LeadDuplicateInfo | null>(null);
 
   const triggerTransferListRefresh = () => {
     router.refresh();
@@ -160,6 +173,11 @@ export function ClientesControlShell({
     setLeadFeedback(null);
   };
 
+  const closeLeadDuplicateModal = () => {
+    setIsLeadDuplicateModalOpen(false);
+    setLeadDuplicateInfo(null);
+  };
+
   const resetLeadForm = () => {
     setLeadFormData({ nome: "", telefone: "", email: "", representante: "" });
   };
@@ -206,10 +224,20 @@ export function ClientesControlShell({
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { ok?: boolean; error?: string; details?: unknown }
+        | {
+            ok?: boolean;
+            error?: string;
+            details?: unknown;
+            duplicate?: boolean;
+            existing?: LeadDuplicateInfo;
+          }
         | null;
 
       if (!response.ok || !payload?.ok) {
+        if (response.status === 409 || payload?.duplicate) {
+          setLeadDuplicateInfo(payload?.existing ?? null);
+          setIsLeadDuplicateModalOpen(true);
+        }
         setLeadFeedback(payload?.error ?? "Falha ao cadastrar lead.");
         return;
       }
@@ -350,6 +378,8 @@ export function ClientesControlShell({
             type="button"
             onClick={() => {
               setLeadFeedback(null);
+              setIsLeadDuplicateModalOpen(false);
+              setLeadDuplicateInfo(null);
               setIsCadastrarLeadModalOpen(true);
             }}
             className="h-11 min-w-[140px] rounded-xl border-0 bg-[#0f5050] text-base font-semibold text-white hover:bg-[#0c4343]"
@@ -525,6 +555,65 @@ export function ClientesControlShell({
             <div className="mt-6 flex justify-end">
               <Button variant="primary" size="md" onClick={handleCadastrarLead} disabled={isSubmittingLead}>
                 {isSubmittingLead ? "Cadastrando..." : "Cadastrar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isLeadDuplicateModalOpen ? (
+        <div
+          className="fixed inset-0 z-[75] flex items-center justify-center bg-black/45 p-4"
+          onClick={closeLeadDuplicateModal}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-[640px] rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Lead duplicado"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-2xl font-semibold text-[#7b2323]">Cliente ja cadastrado</h3>
+                <p className="mt-2 text-sm text-slate-700">
+                  Ja existe um cliente com os dados informados. Revise antes de tentar cadastrar novamente.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Fechar aviso de duplicidade"
+                onClick={closeLeadDuplicateModal}
+                className="rounded-md p-1 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+              <p>
+                <strong>Nome:</strong> {leadDuplicateInfo?.nome?.trim() || "-"}
+              </p>
+              <p>
+                <strong>Telefone:</strong>{" "}
+                {leadDuplicateInfo?.telefone?.trim() ||
+                  leadDuplicateInfo?.telefoneWebhook?.trim() ||
+                  leadDuplicateInfo?.telefoneAlternativo?.trim() ||
+                  leadDuplicateInfo?.telefoneCobranca?.trim() ||
+                  "-"}
+              </p>
+              <p>
+                <strong>Email:</strong> {leadDuplicateInfo?.email?.trim() || "-"}
+              </p>
+              <p>
+                <strong>ID cliente:</strong> {leadDuplicateInfo?.id ? String(leadDuplicateInfo.id) : "-"}
+              </p>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <Button type="button" variant="primary" size="md" onClick={closeLeadDuplicateModal}>
+                Entendi
               </Button>
             </div>
           </div>

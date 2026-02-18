@@ -10,6 +10,7 @@ import type {
   EmpresaRepresentanteOption,
 } from "@/components/empresas/types";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 type EmpresasControlShellProps = {
   initialRows: EmpresaControleRow[];
@@ -1245,7 +1246,12 @@ export function EmpresasControlShell({ initialRows, representantes, initialSearc
                   {isLoadingPedidos ? (
                     <tr className="bg-[#d8ecea] text-[#285154]">
                       <td colSpan={5} className="rounded-lg px-3 py-3 text-center text-sm">
-                        Carregando pedidos...
+                        <LoadingSpinner
+                          label="Carregando pedidos..."
+                          className="w-full"
+                          spinnerClassName="text-[#285154]"
+                          labelClassName="text-[#285154]"
+                        />
                       </td>
                     </tr>
                   ) : pedidosError ? (
@@ -1321,7 +1327,12 @@ export function EmpresasControlShell({ initialRows, representantes, initialSearc
                   {isLoadingPedidosProximos ? (
                     <tr className="bg-[#d8ecea] text-[#285154]">
                       <td colSpan={5} className="rounded-lg px-3 py-3 text-center text-sm">
-                        Carregando solicitacoes...
+                        <LoadingSpinner
+                          label="Carregando solicitacoes..."
+                          className="w-full"
+                          spinnerClassName="text-[#285154]"
+                          labelClassName="text-[#285154]"
+                        />
                       </td>
                     </tr>
                   ) : pedidosProximosError ? (

@@ -24,6 +24,7 @@ import type {
   ClienteRepresentanteOption,
 } from "@/components/clientes/types";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatDateTime } from "@/utils/format";
 
 type ClientesControlTableProps = {
@@ -1202,7 +1203,9 @@ export function ClientesControlTable({
 
             <div className="max-h-[80vh] overflow-y-auto px-5 py-4 sm:px-6 sm:py-5">
               {isLoadingVisualizacao ? (
-                <p className="py-8 text-center text-sm text-[#466568]">Carregando dados do cliente...</p>
+                <div className="py-8 text-center">
+                  <LoadingSpinner label="Carregando dados do cliente..." />
+                </div>
               ) : visualizacaoFeedback ? (
                 <p className="py-8 text-center text-sm text-[#7b2323]">{visualizacaoFeedback}</p>
               ) : visualizacaoData ? (

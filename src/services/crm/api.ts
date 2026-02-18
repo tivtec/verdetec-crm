@@ -3646,5 +3646,107 @@ export async function getTintimLinksSnapshot(
   }
 }
 
+export type CampanhasDashRow = {
+  campanha: string;
+  lead: number;
+  n00: number;
+  n10: number;
+  n05: number;
+  n30: number;
+  n35: number;
+  n40: number;
+  n50: number;
+  n60: number;
+  n61: number;
+  n62: number;
+  n66: number;
+};
+
+export type CampanhasDashFilters = {
+  dataInicioInput?: string;
+  dataFimInput?: string;
+};
+
+function parseCampanhasDashJson(value: string) {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function unwrapCampanhasDashPayload(value: unknown) {
+  let current = value;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (typeof current === "string") {
+      const parsed = parseCampanhasDashJson(current);
+      if (parsed === null) {
+        break;
+      }
+      current = parsed;
+      continue;
+    }
+
+    if (current && typeof current === "object" && !Array.isArray(current) && "body" in current) {
+      current = (current as { body: unknown }).body;
+      continue;
+    }
+
+    break;
+  }
+
+  return current;
+}
+
+function toCampanhasDashRows(value: unknown): CampanhasDashRow[] {
+  const unwrapped = unwrapCampanhasDashPayload(value);
+  if (!Array.isArray(unwrapped)) {
+    return [];
+  }
+
+  return unwrapped
+    .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object" && !Array.isArray(row))
+    .map((row) => ({
+      campanha: asString(row.apelido_campanha, asString(row.id_unico, "Campanha")),
+      lead: Math.max(0, Math.trunc(asNumber(row.total_leads, 0))),
+      n00: Math.max(0, Math.trunc(asNumber(row.etiqueta_00, 0))),
+      n10: Math.max(0, Math.trunc(asNumber(row.etiqueta_10, 0))),
+      n05: Math.max(0, Math.trunc(asNumber(row.etiqueta_05, 0))),
+      n30: Math.max(0, Math.trunc(asNumber(row.etiqueta_30, 0))),
+      n35: Math.max(0, Math.trunc(asNumber(row.etiqueta_35, 0))),
+      n40: Math.max(0, Math.trunc(asNumber(row.etiqueta_40, 0))),
+      n50: Math.max(0, Math.trunc(asNumber(row.etiqueta_50, 0))),
+      n60: Math.max(0, Math.trunc(asNumber(row.etiqueta_60, 0))),
+      n61: Math.max(0, Math.trunc(asNumber(row.etiqueta_61, 0))),
+      n62: Math.max(0, Math.trunc(asNumber(row.etiqueta_62, 0))),
+      n66: Math.max(0, Math.trunc(asNumber(row.etiqueta_66, 0))),
+    }));
+}
+
+export async function getCampanhasDashSnapshot(
+  filters: CampanhasDashFilters = {},
+): Promise<CampanhasDashRow[]> {
+  const defaultDateRange = getDefaultDateRangeInput();
+  const dataInicioInput = normalizeInputDate(filters.dataInicioInput, defaultDateRange.dataInicio);
+  const dataFimInput = normalizeInputDate(filters.dataFimInput, defaultDateRange.dataFim);
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase.rpc("filter3_campanhas_usuarios_por_etiquetas", {
+      p_data_inicio: dataInicioInput,
+      p_data_fim: dataFimInput,
+    });
+
+    if (error || !data) {
+      return [];
+    }
+
+    return toCampanhasDashRows(data);
+  } catch {
+    return [];
+  }
+}
+
 
 
