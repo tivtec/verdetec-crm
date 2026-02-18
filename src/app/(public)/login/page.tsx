@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { Suspense } from "react";
 
 import { LoginForm } from "@/components/auth/login-form";
@@ -46,11 +45,12 @@ export default function LoginPage() {
             <LoginForm />
           </Suspense>
 
-          <div className="mt-4 text-center text-sm text-slate-500">
+          {/* Oculto temporariamente ate a configuracao final do fluxo */}
+          {/* <div className="mt-4 text-center text-sm text-slate-500">
             <Link href="/novasenha" className="font-medium text-[var(--brand-primary)] hover:underline">
               Esqueci minha senha
             </Link>
-          </div>
+          </div> */}
         </div>
       </section>
     </div>
