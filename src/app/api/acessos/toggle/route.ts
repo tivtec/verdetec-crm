@@ -6,6 +6,7 @@ type ToggleAcessoPayload = {
   id_usuario?: number | string | null;
   page_key?: string | null;
   allow?: boolean | string | number | null;
+  org_id?: string | null;
 };
 
 function asPositiveInt(value: unknown) {
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
   const idUsuario = asPositiveInt(payload.id_usuario);
   const pageKey = typeof payload.page_key === "string" ? payload.page_key.trim() : "";
   const allow = asBoolean(payload.allow);
+  const organizationId = typeof payload.org_id === "string" ? payload.org_id.trim() : "";
 
   if (!idUsuario) {
     return NextResponse.json({ ok: false, error: "id_usuario obrigatorio." }, { status: 400 });
@@ -74,10 +76,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "allow obrigatorio." }, { status: 400 });
   }
 
+  if (!organizationId) {
+    return NextResponse.json({ ok: false, error: "org_id obrigatorio." }, { status: 400 });
+  }
+
   const result = await toggleUserPageAccess({
     idUsuario,
     pageKey,
     allow,
+    organizationId,
   });
 
   if (!result.ok) {

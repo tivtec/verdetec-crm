@@ -409,8 +409,26 @@ function mapClientesControleRows(rows: ClienteControleWebhookRow[]): ClienteCont
         ["data_etiqueta", "data_hora", "created_at", "data_criacao", "updated_at", "horario"],
       );
       const etiqueta = buildEtiquetaDisplay(rawEtiqueta, rawData);
-      const data30Raw = firstNonEmptyString(row, ["data30", "data_30", "data_etiqueta_30"]);
-      const data40Raw = firstNonEmptyString(row, ["data40", "data_40", "data_etiqueta_40"]);
+      const data30Raw = firstNonEmptyString(row, [
+        "data30",
+        "data_30",
+        "data_etiqueta_30",
+        "data30_etiqueta",
+        "data_30_etiqueta",
+        "data_tag_30",
+        "etiqueta_30_data",
+        "dt_30",
+      ]);
+      const data40Raw = firstNonEmptyString(row, [
+        "data40",
+        "data_40",
+        "data_etiqueta_40",
+        "data40_etiqueta",
+        "data_40_etiqueta",
+        "data_tag_40",
+        "etiqueta_40_data",
+        "dt_40",
+      ]);
       const data30Formatted = formatClientesDateTime(data30Raw);
       const data40Formatted = formatClientesDateTime(data40Raw);
       const agregacaoId = asNullablePositiveInt(
@@ -441,7 +459,17 @@ function mapClientesControleRows(rows: ClienteControleWebhookRow[]): ClienteCont
           ["nome", "nome_pessoa", "pessoa_nome", "cliente", "nome_cliente"],
           "Sem nome",
         ),
-        equipamento: asNullableString(firstNonEmptyString(row, ["equipamento", "produto", "descricao_equipamento"])),
+        equipamento: asNullableString(
+          firstNonEmptyString(row, [
+            "equipamento",
+            "produto",
+            "descricao_equipamento",
+            "nome_equipamento",
+            "equipamento_nome",
+            "produto_nome",
+            "valor_equipamento_texto",
+          ]),
+        ),
         data30: data30Formatted || asNullableString(data30Raw),
         data40: data40Formatted || asNullableString(data40Raw),
         pessoaId,
@@ -449,6 +477,413 @@ function mapClientesControleRows(rows: ClienteControleWebhookRow[]): ClienteCont
         usuarioId,
       } satisfies ClienteControleApiRow;
     });
+}
+
+async function fetchEtiquetaHistoricoByPessoaIds(ids: number[]) {
+  if (!ids.length) {
+    return [] as EtiquetaHistoricoPessoaRow[];
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const chunkSize = 400;
+  const rows: EtiquetaHistoricoPessoaRow[] = [];
+
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+
+    const { data, error } = await supabase
+      .from("etiqueta")
+      .select("id_pessoa,etiqueta,created_at,data_criacao")
+      .in("id_pessoa", chunk)
+      .order("id", { ascending: false });
+
+    if (error || !data?.length) {
+      continue;
+    }
+
+    rows.push(...(data as EtiquetaHistoricoPessoaRow[]));
+  }
+
+  return rows;
+}
+
+type EtiquetaHistoricoDatas = {
+  data30: string | null;
+  data40: string | null;
+};
+
+function resolveHistoricoEtiquetaDatas(rows: EtiquetaHistoricoPessoaRow[]): EtiquetaHistoricoDatas {
+  let data30Timestamp = -1;
+  let data40Timestamp = -1;
+  let data30: string | null = null;
+  let data40: string | null = null;
+
+  for (const row of rows) {
+    const etiquetaCode = extractEtiquetaCode(asString(row.etiqueta));
+    if (etiquetaCode !== "#30" && etiquetaCode !== "#40") {
+      continue;
+    }
+
+    const rawDate = asString(row.data_criacao ?? row.created_at).trim();
+    if (!rawDate) {
+      continue;
+    }
+
+    const parsed = parseDateInput(rawDate);
+    const timestamp = parsed ? parsed.getTime() : Number.NaN;
+    const formatted = formatClientesDateTime(rawDate) || asNullableString(rawDate);
+    if (!formatted) {
+      continue;
+    }
+
+    if (etiquetaCode === "#30") {
+      if (!Number.isFinite(timestamp)) {
+        if (!data30) {
+          data30 = formatted;
+        }
+      } else if (timestamp >= data30Timestamp) {
+        data30Timestamp = timestamp;
+        data30 = formatted;
+      }
+      continue;
+    }
+
+    if (!Number.isFinite(timestamp)) {
+      if (!data40) {
+        data40 = formatted;
+      }
+    } else if (timestamp >= data40Timestamp) {
+      data40Timestamp = timestamp;
+      data40 = formatted;
+    }
+  }
+
+  return { data30, data40 };
+}
+
+async function enrichClientesRowsWithEtiquetaDatas(rows: ClienteControleApiRow[]) {
+  if (!rows.length) {
+    return rows;
+  }
+
+  const pessoaIds = Array.from(
+    new Set(
+      rows
+        .map((row) => (typeof row.pessoaId === "number" ? Math.max(0, Math.trunc(row.pessoaId)) : 0))
+        .filter((id) => id > 0),
+    ),
+  );
+
+  if (!pessoaIds.length) {
+    return rows;
+  }
+
+  const historicoRows = await fetchEtiquetaHistoricoByPessoaIds(pessoaIds);
+  if (!historicoRows.length) {
+    return rows;
+  }
+
+  const historicoByPessoaId = new Map<number, EtiquetaHistoricoPessoaRow[]>();
+  for (const historico of historicoRows) {
+    const pessoaId = Math.max(0, Math.trunc(asNumber(historico.id_pessoa, 0)));
+    if (pessoaId <= 0) {
+      continue;
+    }
+
+    const list = historicoByPessoaId.get(pessoaId) ?? [];
+    list.push(historico);
+    historicoByPessoaId.set(pessoaId, list);
+  }
+
+  if (!historicoByPessoaId.size) {
+    return rows;
+  }
+
+  return rows.map((row) => {
+    const pessoaId = typeof row.pessoaId === "number" ? Math.max(0, Math.trunc(row.pessoaId)) : 0;
+    if (pessoaId <= 0) {
+      return row;
+    }
+
+    const hasData30 = Boolean(row.data30 && row.data30.trim().length > 0);
+    const hasData40 = Boolean(row.data40 && row.data40.trim().length > 0);
+    if (hasData30 && hasData40) {
+      return row;
+    }
+
+    const historico = historicoByPessoaId.get(pessoaId);
+    if (!historico?.length) {
+      return row;
+    }
+
+    const resolved = resolveHistoricoEtiquetaDatas(historico);
+    return {
+      ...row,
+      data30: hasData30 ? row.data30 : resolved.data30,
+      data40: hasData40 ? row.data40 : resolved.data40,
+    } satisfies ClienteControleApiRow;
+  });
+}
+
+function parseNumericId(value: unknown) {
+  const parsed = asNullablePositiveInt(value);
+  return parsed && parsed > 0 ? parsed : null;
+}
+
+function resolvePropostaEquipamentoLabel(
+  propostaRow: Record<string, unknown>,
+  equipamentoById: Map<number, string>,
+  equipamentoByCodigo: Map<number, string>,
+) {
+  const directCandidates = [
+    propostaRow.nome_equipamento,
+    propostaRow.valor_equipamento_texto,
+    propostaRow.equipamento,
+    propostaRow.produto,
+    propostaRow.descricao_equipamento,
+    propostaRow.nome_produto,
+    propostaRow.produto_nome,
+    propostaRow.Produto,
+    propostaRow.classificacao,
+  ];
+
+  for (const candidate of directCandidates) {
+    const value = asString(candidate).trim();
+    if (!value) {
+      continue;
+    }
+
+    if (/^\d+$/.test(value)) {
+      const idFromText = parseNumericId(value);
+      if (idFromText && equipamentoById.has(idFromText)) {
+        return equipamentoById.get(idFromText) ?? value;
+      }
+    } else {
+      return value;
+    }
+  }
+
+  const equipamentoId =
+    parseNumericId(propostaRow.id_equipamento) ??
+    parseNumericId(propostaRow.equipamento_id) ??
+    parseNumericId(propostaRow.id_equip);
+
+  if (equipamentoId && equipamentoById.has(equipamentoId)) {
+    return equipamentoById.get(equipamentoId) ?? null;
+  }
+
+  const codigoEquipamento =
+    parseNumericId(propostaRow.cod_equipamento) ?? parseNumericId(propostaRow.codigo_equipamento);
+  if (codigoEquipamento && equipamentoByCodigo.has(codigoEquipamento)) {
+    return equipamentoByCodigo.get(codigoEquipamento) ?? null;
+  }
+
+  return null;
+}
+
+async function fetchAgregacaoPropostaByPessoaIds(ids: number[]) {
+  if (!ids.length) {
+    return [] as AgregacaoPessoaPropostaRow[];
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const chunkSize = 400;
+  const rows: AgregacaoPessoaPropostaRow[] = [];
+
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+
+    const { data, error } = await supabase
+      .from("agregacao")
+      .select("id,id_pessoa,id_proposta_valor,created_at,data_criacao")
+      .in("id_pessoa", chunk)
+      .not("id_proposta_valor", "is", null)
+      .order("id", { ascending: false });
+
+    if (error || !data?.length) {
+      continue;
+    }
+
+    rows.push(...(data as AgregacaoPessoaPropostaRow[]));
+  }
+
+  return rows;
+}
+
+async function fetchPropostaValorRowsByIds(ids: number[]) {
+  if (!ids.length) {
+    return [] as PropostaValorEquipamentoRow[];
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const chunkSize = 300;
+  const rows: PropostaValorEquipamentoRow[] = [];
+
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+    const { data, error } = await supabase.from("proposta_valor").select("*").in("id", chunk);
+
+    if (error || !data?.length) {
+      continue;
+    }
+
+    rows.push(...(data as PropostaValorEquipamentoRow[]));
+  }
+
+  return rows;
+}
+
+async function fetchEquipamentoRowsByIds(ids: number[]) {
+  if (!ids.length) {
+    return [] as EquipamentoCatalogoRow[];
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const chunkSize = 300;
+  const rows: EquipamentoCatalogoRow[] = [];
+
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+    const { data, error } = await supabase
+      .from("equipamento")
+      .select("id,nome_equipamento,cod_equipamento,Produto,valor_equipamento_texto")
+      .in("id", chunk);
+
+    if (error || !data?.length) {
+      continue;
+    }
+
+    rows.push(...(data as EquipamentoCatalogoRow[]));
+  }
+
+  return rows;
+}
+
+async function enrichClientesRowsWithEquipamento(rows: ClienteControleApiRow[]) {
+  if (!rows.length) {
+    return rows;
+  }
+
+  const pessoaIds = Array.from(
+    new Set(
+      rows
+        .map((row) => (typeof row.pessoaId === "number" ? Math.max(0, Math.trunc(row.pessoaId)) : 0))
+        .filter((id) => id > 0),
+    ),
+  );
+
+  if (!pessoaIds.length) {
+    return rows;
+  }
+
+  const agregacaoLinks = await fetchAgregacaoPropostaByPessoaIds(pessoaIds);
+  if (!agregacaoLinks.length) {
+    return rows;
+  }
+
+  const propostaIds = Array.from(
+    new Set(
+      agregacaoLinks
+        .map((row) => parseNumericId(row.id_proposta_valor))
+        .filter((id): id is number => Boolean(id && id > 0)),
+    ),
+  );
+
+  if (!propostaIds.length) {
+    return rows;
+  }
+
+  const propostaRows = await fetchPropostaValorRowsByIds(propostaIds);
+  if (!propostaRows.length) {
+    return rows;
+  }
+
+  const propostaById = new Map<number, Record<string, unknown>>();
+  const equipamentoIds = new Set<number>();
+  for (const propostaRow of propostaRows) {
+    const propostaId = parseNumericId(propostaRow.id);
+    if (!propostaId) {
+      continue;
+    }
+
+    propostaById.set(propostaId, propostaRow);
+
+    const equipamentoId =
+      parseNumericId(propostaRow.id_equipamento) ??
+      parseNumericId(propostaRow.equipamento_id) ??
+      parseNumericId(propostaRow.id_equip);
+    if (equipamentoId) {
+      equipamentoIds.add(equipamentoId);
+    }
+  }
+
+  const equipamentoRows = await fetchEquipamentoRowsByIds(Array.from(equipamentoIds));
+  const equipamentoById = new Map<number, string>();
+  const equipamentoByCodigo = new Map<number, string>();
+  for (const equipamentoRow of equipamentoRows) {
+    const equipamentoId = parseNumericId(equipamentoRow.id);
+    const nome =
+      asNullableString(equipamentoRow.nome_equipamento) ??
+      asNullableString(equipamentoRow.valor_equipamento_texto) ??
+      asNullableString(equipamentoRow.Produto);
+    if (!equipamentoId || !nome) {
+      continue;
+    }
+
+    equipamentoById.set(equipamentoId, nome);
+    const codigo = parseNumericId(equipamentoRow.cod_equipamento);
+    if (codigo) {
+      equipamentoByCodigo.set(codigo, nome);
+    }
+  }
+
+  const equipamentoByPessoaId = new Map<number, string>();
+  for (const link of agregacaoLinks) {
+    const pessoaId = parseNumericId(link.id_pessoa);
+    if (!pessoaId || equipamentoByPessoaId.has(pessoaId)) {
+      continue;
+    }
+
+    const propostaId = parseNumericId(link.id_proposta_valor);
+    if (!propostaId) {
+      continue;
+    }
+
+    const propostaRow = propostaById.get(propostaId);
+    if (!propostaRow) {
+      continue;
+    }
+
+    const equipamento = resolvePropostaEquipamentoLabel(propostaRow, equipamentoById, equipamentoByCodigo);
+    if (equipamento && equipamento.trim().length > 0) {
+      equipamentoByPessoaId.set(pessoaId, equipamento.trim());
+    }
+  }
+
+  if (!equipamentoByPessoaId.size) {
+    return rows;
+  }
+
+  return rows.map((row) => {
+    if (row.equipamento && row.equipamento.trim().length > 0) {
+      return row;
+    }
+
+    const pessoaId = typeof row.pessoaId === "number" ? Math.max(0, Math.trunc(row.pessoaId)) : 0;
+    if (pessoaId <= 0) {
+      return row;
+    }
+
+    const equipamento = equipamentoByPessoaId.get(pessoaId);
+    if (!equipamento) {
+      return row;
+    }
+
+    return {
+      ...row,
+      equipamento,
+    } satisfies ClienteControleApiRow;
+  });
 }
 
 async function fetchClientesControleWebhookRows(payload: ClienteControleWebhookPayload) {
@@ -504,6 +939,31 @@ type EtiquetaClienteRow = {
   created_at?: string | null;
   data_criacao?: string | null;
   id_pessoa?: number | string | null;
+};
+
+type EtiquetaHistoricoPessoaRow = {
+  id_pessoa?: number | string | null;
+  etiqueta?: string | null;
+  created_at?: string | null;
+  data_criacao?: string | null;
+};
+
+type AgregacaoPessoaPropostaRow = {
+  id?: number | string | null;
+  id_pessoa?: number | string | null;
+  id_proposta_valor?: number | string | null;
+  created_at?: string | null;
+  data_criacao?: string | null;
+};
+
+type PropostaValorEquipamentoRow = Record<string, unknown>;
+
+type EquipamentoCatalogoRow = {
+  id?: number | string | null;
+  nome_equipamento?: string | null;
+  cod_equipamento?: number | string | null;
+  valor_equipamento_texto?: string | null;
+  Produto?: string | null;
 };
 
 type PessoaClienteRow = {
@@ -833,13 +1293,18 @@ export async function getClientesControleRows(
   if (!hasUsableClientesControleRows(rows)) {
     const fallbackAgregacaoRows = await getClientesControleRowsFromAgregacao(filters);
     if (fallbackAgregacaoRows.length > 0) {
-      return fallbackAgregacaoRows;
+      const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgregacaoRows);
+      return enrichClientesRowsWithEquipamento(withEtiquetaDatas);
     }
 
-    return getClientesControleRowsFromAgendamentos(filters);
+    const fallbackAgendamentoRows = await getClientesControleRowsFromAgendamentos(filters);
+    const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgendamentoRows);
+    return enrichClientesRowsWithEquipamento(withEtiquetaDatas);
   }
 
-  const mappedRows = mapClientesControleRows(rows);
+  const mappedRows = await enrichClientesRowsWithEquipamento(
+    await enrichClientesRowsWithEtiquetaDatas(mapClientesControleRows(rows)),
+  );
   const etiquetaCodeFilter = extractEtiquetaCode(etiqueta);
   if (etiquetaCodeFilter.length === 0) {
     return mappedRows;
@@ -3454,6 +3919,56 @@ function hasUsableDashboardOrcamentosRows(rows: DashboardOrcamentosWebhookRow[])
   return rows.some((row) => Object.keys(row).length > 0 && asString(row.nome).length > 0);
 }
 
+function parseDashboardOrcamentosNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const raw = value.trim();
+  if (!raw) {
+    return null;
+  }
+
+  let normalized = raw.replace(/\s+/g, "").replace(/%/g, "");
+  if (normalized.includes(",") && normalized.includes(".")) {
+    normalized = normalized.replace(/\./g, "").replace(",", ".");
+  } else if (normalized.includes(",")) {
+    normalized = normalized.replace(",", ".");
+  }
+
+  let parsed = Number.parseFloat(normalized);
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+
+  const matched = normalized.match(/-?\d+(?:[.,]\d+)?/);
+  if (!matched) {
+    return null;
+  }
+
+  parsed = Number.parseFloat(matched[0].replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getDashboardOrcamentosNumber(
+  row: DashboardOrcamentosWebhookRow,
+  candidateKeys: string[],
+  fallback = 0,
+) {
+  for (const key of candidateKeys) {
+    const parsed = parseDashboardOrcamentosNumber(row[key]);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
 async function fetchDashboardOrcamentosWebhookRows(payload: DashboardOrcamentosWebhookPayload) {
   const response = await fetch(DASHBOARD_ORCAMENTOS_ENDPOINT, {
     method: "POST",
@@ -3487,19 +4002,50 @@ async function fetchDashboardOrcamentosWebhookRows(payload: DashboardOrcamentosW
 
 function buildDashboardOrcamentosRows(payloadRows: DashboardOrcamentosWebhookRow[]): DashboardOrcamentosRow[] {
   return payloadRows
-    .filter((row) => asString(row.nome).length > 0)
+    .filter((row) => asString(row.nome || row.nome_usuario || row.usuario_nome).length > 0)
     .map((row) => ({
-      idUsuario: asNumber(row.id_usuario, 0),
-      nome: asString(row.nome, "Sem nome"),
-      carteira: asNumber(row.carteira, 0),
-      atend: asNumber(row.porcentagem_atendidos, 0),
-      orcAbertos: asNumber(row.orc_abertos, 0),
-      n10: asNumber(row["#10"], asNumber(row.etiqueta_10, 0)),
-      orcFeitos: asNumber(row.orc_feitos, 0),
-      orcAprovado: asNumber(row.orc_ganhos, 0),
-      orcRep: asNumber(row.orc_reprovado, 0),
-      perfGanhosFeitos: asNumber(row.perf_ganhos_feitos, 0),
-      umbler: asNumber(row.umbler, 0),
+      idUsuario: asNumber(row.id_usuario ?? row.usuario_id ?? row.id_user ?? row.id, 0),
+      nome: asString(row.nome ?? row.nome_usuario ?? row.usuario_nome, "Sem nome"),
+      carteira: getDashboardOrcamentosNumber(
+        row,
+        [
+          "carteira",
+          "qtde_carteira",
+          "qtd_carteira",
+          "total_carteira",
+          "carteira_total",
+          "quantidade_carteira",
+          "leads_carteira",
+        ],
+        0,
+      ),
+      atend: getDashboardOrcamentosNumber(
+        row,
+        [
+          "porcentagem_atendidos",
+          "porcentagem_atendido",
+          "percentual_atendidos",
+          "percentual_atendido",
+          "perc_atendidos",
+          "perc_atendido",
+          "atend",
+          "atendidos",
+          "taxa_atendimento",
+          "taxa_atendidos",
+        ],
+        0,
+      ),
+      orcAbertos: getDashboardOrcamentosNumber(row, ["orc_abertos", "orcamentos_abertos", "abertos"], 0),
+      n10: getDashboardOrcamentosNumber(row, ["#10", "etiqueta_10", "n10", "qtde_10"], 0),
+      orcFeitos: getDashboardOrcamentosNumber(row, ["orc_feitos", "orcamentos_feitos", "feitos"], 0),
+      orcAprovado: getDashboardOrcamentosNumber(row, ["orc_ganhos", "orc_aprovados", "aprovados"], 0),
+      orcRep: getDashboardOrcamentosNumber(row, ["orc_reprovado", "orc_reprovados", "reprovados"], 0),
+      perfGanhosFeitos: getDashboardOrcamentosNumber(
+        row,
+        ["perf_ganhos_feitos", "percentual_ganhos_feitos", "taxa_ganhos_feitos"],
+        0,
+      ),
+      umbler: getDashboardOrcamentosNumber(row, ["umbler", "qtd_umbler", "mensagens_umbler"], 0),
     }));
 }
 

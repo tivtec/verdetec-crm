@@ -5,11 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Search, X, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { AccessMatrixRow, CrmPage } from "@/services/access-control/types";
+import type { AccessMatrixRow, AccessOrganizationOption, CrmPage } from "@/services/access-control/types";
 
 type GestaoAcessosShellProps = {
   initialRows: AccessMatrixRow[];
   pages: CrmPage[];
+  organizations: AccessOrganizationOption[];
+  selectedOrganizationId: string;
+  canChangeOrganization: boolean;
   initialSearch: string;
   currentPage: number;
   hasNextPage: boolean;
@@ -24,6 +27,9 @@ type PendingToggle = {
 export function GestaoAcessosShell({
   initialRows,
   pages,
+  organizations,
+  selectedOrganizationId,
+  canChangeOrganization,
   initialSearch,
   currentPage,
   hasNextPage,
@@ -32,6 +38,7 @@ export function GestaoAcessosShell({
   const router = useRouter();
   const [search, setSearch] = useState(initialSearch);
   const [rows, setRows] = useState<AccessMatrixRow[]>(initialRows);
+  const [organizationId, setOrganizationId] = useState(selectedOrganizationId);
   const [submittingKey, setSubmittingKey] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingToggle, setPendingToggle] = useState<PendingToggle | null>(null);
@@ -43,6 +50,10 @@ export function GestaoAcessosShell({
   useEffect(() => {
     setRows(initialRows);
   }, [initialRows]);
+
+  useEffect(() => {
+    setOrganizationId(selectedOrganizationId);
+  }, [selectedOrganizationId]);
 
   useEffect(() => {
     if (!feedback) {
@@ -58,9 +69,13 @@ export function GestaoAcessosShell({
 
   const pageLabel = useMemo(() => `Pagina ${currentPage}`, [currentPage]);
 
-  const pushFilters = (nextPage: number) => {
+  const pushFilters = (nextPage: number, nextOrganizationId?: string) => {
     const params = new URLSearchParams();
     const trimmed = search.trim();
+    const orgId = (nextOrganizationId ?? organizationId).trim();
+    if (orgId) {
+      params.set("org_id", orgId);
+    }
     if (trimmed) {
       params.set("search", trimmed);
     }
@@ -104,6 +119,7 @@ export function GestaoAcessosShell({
           id_usuario: payload.idUsuario,
           page_key: payload.pageKey,
           allow: payload.allow,
+          org_id: organizationId,
         }),
       });
 
@@ -152,7 +168,30 @@ export function GestaoAcessosShell({
       ) : null}
 
       <div className="rounded-xl bg-[#e9ebed] p-3">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[260px]">
+            <label htmlFor="acl-org" className="mb-1 block text-xs font-medium text-[#4a6169]">
+              Organização
+            </label>
+            <select
+              id="acl-org"
+              value={organizationId}
+              disabled={!canChangeOrganization || organizations.length <= 1}
+              onChange={(event) => {
+                const nextOrgId = event.target.value;
+                setOrganizationId(nextOrgId);
+                pushFilters(1, nextOrgId);
+              }}
+              className="h-11 w-full rounded-xl border border-[#d0d6db] bg-white px-3 text-sm text-[#254247] outline-none transition focus:border-[#66a9a1] focus:ring-2 focus:ring-[#66a9a14a] disabled:cursor-not-allowed disabled:bg-[#f2f4f5] disabled:text-[#7a868d]"
+            >
+              {organizations.map((organization) => (
+                <option key={organization.id} value={organization.id}>
+                  {organization.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <label htmlFor="acl-search" className="sr-only">
             Buscar usuario
           </label>
@@ -175,24 +214,24 @@ export function GestaoAcessosShell({
           <Button
             type="button"
             onClick={submitSearch}
-            className="h-11 min-w-[130px] bg-[var(--brand-primary-soft-hover)] text-white hover:bg-[var(--brand-primary)]"
+            className="h-11 min-w-[130px] bg-[var(--brand-primary)] text-white hover:bg-[#2d8458]"
           >
             Buscar
           </Button>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-[#d8dde1] bg-[#eceef0]">
-        <table className="min-w-[980px] border-separate border-spacing-y-2 px-3 py-2">
+      <div className="no-scrollbar min-h-0 flex-1 overflow-auto rounded-xl border border-[#d8dde1] bg-[#eceef0]">
+        <table className="w-full table-fixed border-separate border-spacing-y-2 px-3 py-2">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 rounded-l-xl bg-[#c6dedd] px-3 py-3 text-left text-base font-semibold text-[#164b4f]">
+              <th className="sticky top-0 left-0 z-30 rounded-l-xl bg-[#c6dedd] px-3 py-3 text-left text-base font-semibold text-[#164b4f]">
                 Usuario
               </th>
               {pages.map((page) => (
                 <th
                   key={page.key}
-                  className="bg-[#c6dedd] px-3 py-3 text-center text-sm font-semibold text-[#164b4f]"
+                  className="sticky top-0 z-20 bg-[#c6dedd] px-3 py-3 text-center text-sm font-semibold text-[#164b4f]"
                 >
                   {page.label}
                 </th>

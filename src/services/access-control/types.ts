@@ -6,6 +6,11 @@ export type CrmPage = {
   isActive: boolean;
 };
 
+export type AccessOrganizationOption = {
+  id: string;
+  nome: string;
+};
+
 export type UserPageAccess = {
   idUsuario: number;
   idOrganizacao: string;

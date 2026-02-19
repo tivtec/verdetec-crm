@@ -18,11 +18,13 @@ export async function GET(request: NextRequest) {
   const search = getSearchValue(request.nextUrl.searchParams.get("search"));
   const page = parsePositiveInt(getSearchValue(request.nextUrl.searchParams.get("page")), 1);
   const pageSize = parsePositiveInt(getSearchValue(request.nextUrl.searchParams.get("page_size")), 10);
+  const organizationId = getSearchValue(request.nextUrl.searchParams.get("org_id"));
 
   const result = await getAccessMatrixSnapshot({
     search,
     page,
     pageSize,
+    organizationId,
   });
 
   if (!result.ok) {

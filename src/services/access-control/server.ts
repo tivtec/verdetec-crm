@@ -1,5 +1,10 @@
 import { CRM_SIDEBAR_PAGES, GESTAO_ACESSOS_PAGE_KEY } from "@/services/access-control/constants";
-import type { AccessMatrixRow, CrmPage, UserPageAccess } from "@/services/access-control/types";
+import type {
+  AccessMatrixRow,
+  AccessOrganizationOption,
+  CrmPage,
+  UserPageAccess,
+} from "@/services/access-control/types";
 import { createAdminSupabaseClient } from "@/services/supabase/admin";
 import { createServerSupabaseClient } from "@/services/supabase/server";
 
@@ -9,6 +14,10 @@ type LegacyUserContext = {
   tipoAcesso: string;
   tipoAcesso2: string;
   ativo: boolean;
+};
+
+type ManagerContext = LegacyUserContext & {
+  canChangeOrganization: boolean;
 };
 
 type AccessControlError = {
@@ -26,6 +35,9 @@ type AccessControlResult<T> = AccessControlSuccess<T> | AccessControlError;
 
 export type AccessMatrixSnapshot = {
   pages: CrmPage[];
+  organizations: AccessOrganizationOption[];
+  selectedOrganizationId: string;
+  canChangeOrganization: boolean;
   rows: AccessMatrixRow[];
   currentPage: number;
   hasNextPage: boolean;
@@ -66,6 +78,33 @@ function asPositiveInt(value: unknown) {
   return null;
 }
 
+function asBoolean(value: unknown, fallback = false) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    if (value === 1) {
+      return true;
+    }
+    if (value === 0) {
+      return false;
+    }
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1") {
+      return true;
+    }
+    if (normalized === "false" || normalized === "0") {
+      return false;
+    }
+  }
+
+  return fallback;
+}
+
 function normalizeRole(value: string) {
   return value
     .normalize("NFD")
@@ -84,8 +123,23 @@ export function isManagerRole(tipoAcesso: string | null | undefined) {
   );
 }
 
+function isGlobalAccessManager(tipoAcesso: string | null | undefined, tipoAcesso2: string | null | undefined) {
+  const normalizedTipoAcesso = normalizeRole(asString(tipoAcesso));
+  const normalizedTipoAcesso2 = normalizeRole(asString(tipoAcesso2));
+  const isGlobal = (value: string) =>
+    value === "superadm" || value === "superadmin" || value === "admin";
+
+  return isGlobal(normalizedTipoAcesso) || isGlobal(normalizedTipoAcesso2);
+}
+
+function isLocalAccessManager(tipoAcesso: string | null | undefined, tipoAcesso2: string | null | undefined) {
+  const normalizedTipoAcesso = normalizeRole(asString(tipoAcesso));
+  const normalizedTipoAcesso2 = normalizeRole(asString(tipoAcesso2));
+  return normalizedTipoAcesso === "gestor" || normalizedTipoAcesso2 === "gestor";
+}
+
 function hasManagerProfile(tipoAcesso: string | null | undefined, tipoAcesso2: string | null | undefined) {
-  return isManagerRole(tipoAcesso) || isManagerRole(tipoAcesso2);
+  return isGlobalAccessManager(tipoAcesso, tipoAcesso2) || isLocalAccessManager(tipoAcesso, tipoAcesso2);
 }
 
 function isAclObjectMissing(details: string) {
@@ -158,6 +212,97 @@ async function resolveCurrentLegacyUserContext(): Promise<LegacyUserContext | nu
   } catch {
     return null;
   }
+}
+
+function buildOrganizationDisplayName(row: Record<string, unknown>) {
+  return (
+    asNullableString(row.nome_fantasia) ??
+    asNullableString(row.razao_social) ??
+    asNullableString(row.id) ??
+    "Organizacao"
+  );
+}
+
+function mapOrganizationRows(rows: Array<Record<string, unknown>>) {
+  return rows
+    .map((row) => {
+      const id = asNullableString(row.id);
+      if (!id) {
+        return null;
+      }
+      return {
+        id,
+        nome: buildOrganizationDisplayName(row),
+      } satisfies AccessOrganizationOption;
+    })
+    .filter((value): value is AccessOrganizationOption => Boolean(value))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+async function getPermittedOrganizations(
+  context: LegacyUserContext,
+  canChangeOrganization: boolean,
+): Promise<AccessOrganizationOption[]> {
+  const admin = createAdminSupabaseClient();
+
+  if (!canChangeOrganization) {
+    const { data, error } = await admin
+      .from("organizacao")
+      .select("id,nome_fantasia,razao_social,status")
+      .eq("id", context.organizacaoId)
+      .limit(1);
+
+    if (error || !data || data.length === 0) {
+      return [{ id: context.organizacaoId, nome: context.organizacaoId }];
+    }
+
+    const mapped = mapOrganizationRows(data as Array<Record<string, unknown>>);
+    if (mapped.length > 0) {
+      return mapped;
+    }
+
+    return [{ id: context.organizacaoId, nome: context.organizacaoId }];
+  }
+
+  const { data, error } = await admin
+    .from("organizacao")
+    .select("id,nome_fantasia,razao_social,status")
+    .eq("status", true);
+
+  if (error || !data) {
+    return [{ id: context.organizacaoId, nome: context.organizacaoId }];
+  }
+
+  const mapped = mapOrganizationRows(data as Array<Record<string, unknown>>).filter((option) => {
+    const source = (data as Array<Record<string, unknown>>).find((item) => asString(item.id) === option.id);
+    return asBoolean(source?.status, false);
+  });
+  if (mapped.length > 0) {
+    return mapped;
+  }
+
+  return [{ id: context.organizacaoId, nome: context.organizacaoId }];
+}
+
+function resolveSelectedOrganizationId(args: {
+  requestedOrganizationId?: string;
+  defaultOrganizationId: string;
+  organizations: AccessOrganizationOption[];
+}) {
+  const requested = asString(args.requestedOrganizationId).trim();
+  if (requested && args.organizations.some((option) => option.id === requested)) {
+    return requested;
+  }
+
+  if (args.organizations.some((option) => option.id === args.defaultOrganizationId)) {
+    return args.defaultOrganizationId;
+  }
+
+  if (args.organizations.length > 0) {
+    return args.organizations[0].id;
+  }
+
+  return args.defaultOrganizationId;
 }
 
 function getFallbackPages(): CrmPage[] {
@@ -285,7 +430,7 @@ export async function getCurrentUserPathAccess(pathname: string): Promise<boolea
   }
 }
 
-async function requireManagerContext(): Promise<AccessControlResult<LegacyUserContext>> {
+async function requireManagerContext(): Promise<AccessControlResult<ManagerContext>> {
   const context = await resolveCurrentLegacyUserContext();
   if (!context) {
     return {
@@ -313,7 +458,10 @@ async function requireManagerContext(): Promise<AccessControlResult<LegacyUserCo
 
   return {
     ok: true,
-    value: context,
+    value: {
+      ...context,
+      canChangeOrganization: isGlobalAccessManager(context.tipoAcesso, context.tipoAcesso2),
+    },
   };
 }
 
@@ -337,6 +485,7 @@ export async function getAccessMatrixSnapshot(args: {
   search?: string;
   page?: number;
   pageSize?: number;
+  organizationId?: string;
 }): Promise<AccessControlResult<AccessMatrixSnapshot>> {
   const manager = await requireManagerContext();
   if (!manager.ok) {
@@ -350,6 +499,15 @@ export async function getAccessMatrixSnapshot(args: {
 
   const pages = await getCrmPages();
   const pageKeys = pages.map((page) => page.key);
+  const organizations = await getPermittedOrganizations(
+    manager.value,
+    manager.value.canChangeOrganization,
+  );
+  const selectedOrganizationId = resolveSelectedOrganizationId({
+    requestedOrganizationId: args.organizationId,
+    defaultOrganizationId: manager.value.organizacaoId,
+    organizations,
+  });
 
   try {
     const admin = createAdminSupabaseClient();
@@ -358,7 +516,7 @@ export async function getAccessMatrixSnapshot(args: {
       .select("id,nome,email,tipo_acesso,tipo_acesso_2,usuario_ativo,id_organizacao", {
         count: "exact",
       })
-      .eq("id_organizacao", manager.value.organizacaoId)
+      .eq("id_organizacao", selectedOrganizationId)
       .eq("usuario_ativo", true)
       .order("nome", { ascending: true })
       .range(offset, offset + pageSize - 1);
@@ -387,7 +545,7 @@ export async function getAccessMatrixSnapshot(args: {
       const { data: accessRows, error: accessError } = await admin
         .from("crm_user_page_access")
         .select("id_usuario,page_key,allow")
-        .eq("id_organizacao", manager.value.organizacaoId)
+        .eq("id_organizacao", selectedOrganizationId)
         .in("id_usuario", userIds)
         .in("page_key", pageKeys);
 
@@ -449,6 +607,9 @@ export async function getAccessMatrixSnapshot(args: {
       ok: true,
       value: {
         pages,
+        organizations,
+        selectedOrganizationId,
+        canChangeOrganization: manager.value.canChangeOrganization,
         rows,
         currentPage,
         hasNextPage,
@@ -471,6 +632,7 @@ export async function toggleUserPageAccess(args: {
   idUsuario: number;
   pageKey: string;
   allow: boolean;
+  organizationId: string;
 }): Promise<AccessControlResult<UserPageAccess>> {
   const manager = await requireManagerContext();
   if (!manager.ok) {
@@ -479,6 +641,7 @@ export async function toggleUserPageAccess(args: {
 
   const idUsuario = Math.trunc(args.idUsuario);
   const pageKey = asString(args.pageKey).trim();
+  const organizationId = asString(args.organizationId).trim();
 
   if (idUsuario <= 0) {
     return {
@@ -496,8 +659,28 @@ export async function toggleUserPageAccess(args: {
     };
   }
 
+  if (!organizationId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "org_id obrigatorio.",
+    };
+  }
+
   try {
     const admin = createAdminSupabaseClient();
+    const organizations = await getPermittedOrganizations(
+      manager.value,
+      manager.value.canChangeOrganization,
+    );
+    const isOrganizationAllowed = organizations.some((option) => option.id === organizationId);
+    if (!isOrganizationAllowed) {
+      return {
+        ok: false,
+        status: 403,
+        error: "Organizacao fora do escopo permitido.",
+      };
+    }
 
     const { data: pageData, error: pageError } = await admin
       .from("crm_pages")
@@ -529,7 +712,7 @@ export async function toggleUserPageAccess(args: {
       .from("usuarios")
       .select("id,id_organizacao,tipo_acesso,tipo_acesso_2")
       .eq("id", idUsuario)
-      .eq("id_organizacao", manager.value.organizacaoId)
+      .eq("id_organizacao", organizationId)
       .limit(1)
       .maybeSingle();
 
@@ -545,7 +728,7 @@ export async function toggleUserPageAccess(args: {
       return {
         ok: false,
         status: 404,
-        error: "Usuario alvo nao encontrado na organizacao.",
+        error: "Usuario alvo nao encontrado na organizacao selecionada.",
       };
     }
 
@@ -563,7 +746,7 @@ export async function toggleUserPageAccess(args: {
       .upsert(
         {
           id_usuario: idUsuario,
-          id_organizacao: manager.value.organizacaoId,
+          id_organizacao: organizationId,
           page_key: pageKey,
           allow: args.allow,
           created_by: manager.value.id,
@@ -598,7 +781,7 @@ export async function toggleUserPageAccess(args: {
       ok: true,
       value: {
         idUsuario: asPositiveInt(row.id_usuario) ?? idUsuario,
-        idOrganizacao: asString(row.id_organizacao, manager.value.organizacaoId),
+        idOrganizacao: asString(row.id_organizacao, organizationId),
         pageKey: asString(row.page_key, pageKey),
         allow: Boolean(row.allow),
       },

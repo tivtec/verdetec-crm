@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { GestaoAcessosShell } from "@/components/acessos/gestao-acessos-shell";
 import { PageContainer } from "@/components/layout/page-container";
 import { getAccessMatrixSnapshot } from "@/services/access-control/server";
-import type { AccessMatrixRow, CrmPage } from "@/services/access-control/types";
+import type { AccessMatrixRow, AccessOrganizationOption, CrmPage } from "@/services/access-control/types";
 
 type GestaoAcessosPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -28,11 +28,13 @@ export default async function GestaoAcessosPage({ searchParams }: GestaoAcessosP
   const params = await searchParams;
   const search = (getSearchValue(params.search) ?? "").trim();
   const page = parsePositiveInt(getSearchValue(params.page), 1);
+  const organizationId = (getSearchValue(params.org_id) ?? "").trim();
 
   const snapshotResult = await getAccessMatrixSnapshot({
     search,
     page,
     pageSize: 10,
+    organizationId,
   });
 
   if (!snapshotResult.ok) {
@@ -54,9 +56,12 @@ export default async function GestaoAcessosPage({ searchParams }: GestaoAcessosP
       <div className="min-h-0 flex-1 rounded-2xl bg-[#e4e6e8] p-4">
         <div className="h-full overflow-hidden">
           <GestaoAcessosShell
-            key={`gestao-acessos:${search}:${page}`}
+            key={`gestao-acessos:${search}:${page}:${snapshot.selectedOrganizationId}`}
             initialRows={snapshot.rows as AccessMatrixRow[]}
             pages={snapshot.pages as CrmPage[]}
+            organizations={snapshot.organizations as AccessOrganizationOption[]}
+            selectedOrganizationId={snapshot.selectedOrganizationId}
+            canChangeOrganization={snapshot.canChangeOrganization}
             initialSearch={search}
             currentPage={snapshot.currentPage}
             hasNextPage={snapshot.hasNextPage}
