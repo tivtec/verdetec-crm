@@ -287,6 +287,7 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
             initialFilters={initialFilters}
             currentUserId={currentUserId}
             lockUsuarioSelection={!canSelectUsuario}
+            canShowEtiqueta50={dashboardAccessScope.isGerencia || dashboardAccessScope.isGestor}
           />
         </div>
       </div>

@@ -34,6 +34,7 @@ type ClientesControlTableProps = {
   page: number;
   pageSize: number;
   currentUserId: number | null;
+  canShowEtiqueta50?: boolean;
   selectedIds: string[];
   onPageChange: (next: number) => void;
   onToggleSelect: (id: string) => void;
@@ -82,13 +83,13 @@ const CLIENTES_TABLE_COLUMNS: ClientesTableColumn[] = [
   { key: "data40", label: "Data #40", getValue: (row) => row.data40 || "-" },
 ];
 const ALL_COLUMN_KEYS = CLIENTES_TABLE_COLUMNS.map((column) => column.key);
-const ETIQUETA_OPTIONS = [
+const ETIQUETA_OPTIONS_BASE = [
   { label: "Selecione", value: "" },
-  { label: "60 Lead perdido", value: "60" },
-  { label: "61 Pedido no portal de hidrossemeadura", value: "61" },
-  { label: "62 Pedido sem perfil", value: "62" },
-  { label: "66 Pedido para concorrente", value: "66" },
-  { label: "73 Fluxo bloqueado", value: "73" },
+  { label: "60 Lead perdido", value: "60" as string },
+  { label: "61 Pedido no portal de hidrossemeadura", value: "61" as string },
+  { label: "62 Pedido sem perfil", value: "62" as string },
+  { label: "66 Pedido para concorrente", value: "66" as string },
+  { label: "73 Fluxo bloqueado", value: "73" as string },
 ];
 
 export function ClientesControlTable({
@@ -98,6 +99,7 @@ export function ClientesControlTable({
   page,
   pageSize,
   currentUserId,
+  canShowEtiqueta50 = false,
   selectedIds,
   onPageChange,
   onToggleSelect,
@@ -145,6 +147,9 @@ export function ClientesControlTable({
   const visibleColumns = CLIENTES_TABLE_COLUMNS.filter((column) => visibleColumnKeys.includes(column.key));
   const totalTableColumns = visibleColumns.length + 2;
   const allColumnsSelected = visibleColumnKeys.length === CLIENTES_TABLE_COLUMNS.length;
+  const etiquetaOptions = canShowEtiqueta50
+    ? [...ETIQUETA_OPTIONS_BASE.slice(0, 1), { label: "50 Hidrossemeador", value: "50" }, ...ETIQUETA_OPTIONS_BASE.slice(1)]
+    : ETIQUETA_OPTIONS_BASE;
 
   useEffect(() => {
     if (
@@ -1111,7 +1116,7 @@ export function ClientesControlTable({
                   onChange={(event) => setSelectedEtiqueta(event.target.value)}
                   className="h-11 w-full appearance-none rounded-xl border-0 bg-[#c8dfde] px-4 pr-10 text-sm text-[#2a4f51] outline-none"
                 >
-                  {ETIQUETA_OPTIONS.map((option) => (
+                  {etiquetaOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>

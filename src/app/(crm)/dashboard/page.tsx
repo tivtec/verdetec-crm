@@ -388,6 +388,23 @@ function parseNumericValue(value: string | number) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function getFunilRowBackgroundColor(l100Value: string | number) {
+  const numeric = parseNumericValue(l100Value);
+  if (numeric === null) {
+    return "#f4f4f5";
+  }
+
+  if (numeric <= 0) {
+    return "#DF8282";
+  }
+
+  if (numeric <= 50) {
+    return "#DCBF7E";
+  }
+
+  return "#f4f4f5";
+}
+
 function formatPercentageValue(current: string | number, base: string | number) {
   const currentNumeric = parseNumericValue(current);
   const baseNumeric = parseNumericValue(base);
@@ -676,7 +693,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </thead>
               <tbody>
                 {dashboardSnapshot!.rows.map((row) => (
-                  <tr key={row.nome} className="border-t border-[#e5e7ea] bg-[#f4f4f5]">
+                  <tr
+                    key={row.nome}
+                    className="border-t border-[#e5e7ea]"
+                    style={{ backgroundColor: getFunilRowBackgroundColor(row.l100) }}
+                  >
                     {visibleFunilColumns.map((column) => (
                       <td
                         key={`${row.nome}-${column.key}`}

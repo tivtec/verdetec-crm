@@ -21,6 +21,7 @@ type ClientesControlShellProps = {
   initialFilters: ClientesControlFiltersValue;
   currentUserId: number | null;
   lockUsuarioSelection?: boolean;
+  canShowEtiqueta50?: boolean;
 };
 
 const PAGE_SIZE = 10;
@@ -43,6 +44,7 @@ export function ClientesControlShell({
   initialFilters,
   currentUserId,
   lockUsuarioSelection = false,
+  canShowEtiqueta50 = false,
 }: ClientesControlShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -397,6 +399,7 @@ export function ClientesControlShell({
           page={safePage}
           pageSize={PAGE_SIZE}
           currentUserId={currentUserId}
+          canShowEtiqueta50={canShowEtiqueta50}
           selectedIds={selectedIds}
           onPageChange={handlePageChange}
           onToggleSelect={handleToggleSelect}
