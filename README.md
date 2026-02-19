@@ -60,6 +60,10 @@ npm run dev
 - View: `view_dashboard_metrics`
 - RLS com escopo: org / unit / self
 
+
+## Teste 
+
+
 ## n8n
 API route pronta: `POST /api/n8n/:event`
 - `lead-created`
