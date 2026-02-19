@@ -3,7 +3,6 @@ import Link from "next/link";
 import { DashboardFiltersForm } from "@/components/dashboard/dashboard-filters-form";
 import { OrcamentosFiltersForm } from "@/components/dashboard/orcamentos-filters-form";
 import { RetratoFiltersForm } from "@/components/dashboard/retrato-filters-form";
-import { AppHeader } from "@/components/layout/app-header";
 import { PageContainer } from "@/components/layout/page-container";
 import {
   getDashboardFunilSnapshot,
@@ -365,6 +364,50 @@ function normalizeFunilColumnsSelection(value: string | string[] | undefined) {
   return funilColumns.map((column) => column.key).filter((key) => uniqueSelected.includes(key));
 }
 
+const HASH_FUNIL_COLUMN_KEYS: FunilColumnKey[] = [
+  "n00",
+  "n10",
+  "n21",
+  "n05",
+  "n30",
+  "n40",
+  "n50",
+  "n60",
+  "n61",
+  "n62",
+  "n66",
+];
+
+function normalizePercentageToggle(value: string | undefined) {
+  return value === "1" || value === "true";
+}
+
+function parseNumericValue(value: string | number) {
+  const normalized = String(value).replace(",", ".").trim();
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatPercentageValue(current: string | number, base: string | number) {
+  const currentNumeric = parseNumericValue(current);
+  const baseNumeric = parseNumericValue(base);
+
+  if (currentNumeric === null || baseNumeric === null || baseNumeric === 0) {
+    return "0%";
+  }
+
+  const ratio = (currentNumeric / baseNumeric) * 100;
+  return `${ratio.toFixed(1)}%`;
+}
+
+function resolveFunilPercentageBaseKey(columns: FunilColumn[]) {
+  const candidate = columns.find(
+    (column) => HASH_FUNIL_COLUMN_KEYS.includes(column.key) && column.key !== "n21",
+  );
+
+  return candidate?.key ?? null;
+}
+
 type DashboardPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -426,8 +469,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const requestedTipoRepre = normalizeCarteiraSelection(
     getSearchValue(params.tipo_repre) ?? getSearchValue(params.carteira),
   );
+  const percentageMode = normalizePercentageToggle(getSearchValue(params.porcentagem));
   const selectedFunilColumnKeys = normalizeFunilColumnsSelection(params.colunas);
   const visibleFunilColumns = funilColumns.filter((column) => selectedFunilColumnKeys.includes(column.key));
+  const percentageBaseKey = resolveFunilPercentageBaseKey(visibleFunilColumns);
   const dashboardAccessScope = await getDashboardViewerAccessScope();
   const visibleViews = getVisibleDashboardViews(dashboardAccessScope.viewerVerticalDescricao);
   const activeView = visibleViews.includes(requestedView) ? requestedView : visibleViews[0] ?? "dashboard";
@@ -528,14 +573,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   }
 
   return (
-    <>
-      <AppHeader
-        title="Dashboard"
-        subtitle="Painel de funil comercial"
-        showUtilities={false}
-      />
-
-      <PageContainer className="space-y-5 bg-[#eef0f2]">
+    <PageContainer className="space-y-5 bg-[#eef0f2]">
         <div className="flex flex-wrap items-center gap-3">
           {visibleViews.includes("dashboard") ? (
             <Link
@@ -594,6 +632,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             lockUsuarioSelection={!dashboardAccessScope.allowUsuarioSelection}
             columnOptions={funilColumns.map((column) => ({ key: column.key, label: column.label }))}
             selectedColumnKeys={selectedFunilColumnKeys}
+            percentageMode={percentageMode}
           />
         ) : (
           <>
@@ -648,7 +687,24 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                         } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
                       >
                         <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
-                          {String(getFunilRowCellValue(row, column.key))}
+                          {(() => {
+                            const rowValue = getFunilRowCellValue(row, column.key);
+
+                            if (!percentageMode || !percentageBaseKey) {
+                              return String(rowValue);
+                            }
+
+                            if (column.key === "n21" || !HASH_FUNIL_COLUMN_KEYS.includes(column.key)) {
+                              return String(rowValue);
+                            }
+
+                            if (column.key === percentageBaseKey) {
+                              return "100%";
+                            }
+
+                            const baseValue = getFunilRowCellValue(row, percentageBaseKey);
+                            return formatPercentageValue(rowValue, baseValue);
+                          })()}
                         </span>
                       </td>
                     ))}
@@ -667,7 +723,27 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                       } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
                     >
                       <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
-                        {String(getFunilTotalCellValue(dashboardSnapshot!.totals, column.key))}
+                        {(() => {
+                          const totalValue = getFunilTotalCellValue(dashboardSnapshot!.totals, column.key);
+
+                          if (!percentageMode || !percentageBaseKey) {
+                            return String(totalValue);
+                          }
+
+                          if (column.key === "n21" || !HASH_FUNIL_COLUMN_KEYS.includes(column.key)) {
+                            return String(totalValue);
+                          }
+
+                          if (column.key === percentageBaseKey) {
+                            return "100%";
+                          }
+
+                          const totalBaseValue = getFunilTotalCellValue(
+                            dashboardSnapshot!.totals,
+                            percentageBaseKey,
+                          );
+                          return formatPercentageValue(totalValue, totalBaseValue);
+                        })()}
                       </span>
                     </td>
                   ))}
@@ -780,6 +856,5 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </div>
         )}
       </PageContainer>
-    </>
   );
 }

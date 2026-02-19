@@ -18,6 +18,7 @@ type DashboardFiltersFormProps = {
   lockUsuarioSelection?: boolean;
   columnOptions?: Array<{ key: string; label: string }>;
   selectedColumnKeys?: string[];
+  percentageMode?: boolean;
 };
 
 const tipoAcessoOptions = [
@@ -35,6 +36,7 @@ export function DashboardFiltersForm({
   lockUsuarioSelection = false,
   columnOptions = [],
   selectedColumnKeys = [],
+  percentageMode = false,
 }: DashboardFiltersFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const columnsDropdownRef = useRef<HTMLDivElement>(null);
@@ -43,9 +45,14 @@ export function DashboardFiltersForm({
   const [dataInicio, setDataInicio] = useState(dataInicioInput);
   const [dataFim, setDataFim] = useState(dataFimInput);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
+  const [isPercentageMode, setIsPercentageMode] = useState(percentageMode);
   const [selectedColumns, setSelectedColumns] = useState<string[]>(
     selectedColumnKeys.length > 0 ? selectedColumnKeys : columnOptions.map((option) => option.key),
   );
+
+  useEffect(() => {
+    setIsPercentageMode(percentageMode);
+  }, [percentageMode]);
 
   useEffect(() => {
     if (selectedColumnKeys.length > 0) {
@@ -144,6 +151,7 @@ export function DashboardFiltersForm({
       {selectedColumns.map((columnKey) => (
         <input key={`selected-column-${columnKey}`} type="hidden" name="colunas" value={columnKey} />
       ))}
+      {isPercentageMode ? <input type="hidden" name="porcentagem" value="1" /> : null}
 
       <div className="relative">
         <select
@@ -205,6 +213,36 @@ export function DashboardFiltersForm({
         />
       </div>
 
+      <div className="flex h-12 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={isPercentageMode}
+            onChange={(event) => {
+              setIsPercentageMode(event.target.checked);
+              window.requestAnimationFrame(() => {
+                formRef.current?.requestSubmit();
+              });
+            }}
+            className="h-4 w-4 accent-[#0f5050]"
+          />
+          <span>Transformar em porcentagem</span>
+        </label>
+
+        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-800 uppercase">
+          Beta/Teste
+        </span>
+
+        <div className="group relative">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-400 text-xs font-semibold text-slate-600">
+            ?
+          </span>
+          <div className="pointer-events-none absolute top-7 right-0 z-20 hidden w-72 rounded-lg bg-slate-900 px-3 py-2 text-xs leading-relaxed text-white shadow-xl group-hover:block">
+            Usa a primeira coluna visivel iniciada por # (exceto #21) como base de 100%. As demais colunas # (exceto #21) viram percentual relativo a essa base.
+          </div>
+        </div>
+      </div>
+
       {columnOptions.length > 0 ? (
         <div className="relative" ref={columnsDropdownRef}>
           <button
@@ -214,7 +252,12 @@ export function DashboardFiltersForm({
             aria-haspopup="menu"
             aria-expanded={isColumnsOpen}
           >
-            <span>Colunas ({selectedColumns.length}/{columnOptions.length})</span>
+            <span className="flex items-center gap-2">
+              <span>Colunas ({selectedColumns.length}/{columnOptions.length})</span>
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-800 uppercase">
+                Beta/Teste
+              </span>
+            </span>
             <ChevronDown className="h-4 w-4 text-slate-500" />
           </button>
 
