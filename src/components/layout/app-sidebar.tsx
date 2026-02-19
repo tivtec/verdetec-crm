@@ -45,6 +45,21 @@ const items = [
   { href: "/gestao-acessos", label: "Gestao de acessos", icon: KeyRound },
 ] as const;
 
+const INLINE_LABEL_PATHS = new Set([
+  "/dashboard",
+  "/campanhas",
+  "/clientes",
+  "/empresas",
+  "/pedido",
+  "/usuarios",
+  "/agenda",
+  "/solicitacao-portal",
+  "/mix-sementes",
+  "/verde-score",
+  "/invoice",
+  "/gestao-acessos",
+]);
+
 export function AppSidebar({ profile, allowedPaths }: AppSidebarProps) {
   const pathname = usePathname();
   const allowedSet = allowedPaths ? new Set(allowedPaths) : null;
@@ -84,13 +99,15 @@ export function AppSidebar({ profile, allowedPaths }: AppSidebarProps) {
           {visibleItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
+            const showInlineLabel = INLINE_LABEL_PATHS.has(item.href);
 
             return (
               <li key={item.href} className="relative">
                 <Link
                   href={item.href}
                   className={cn(
-                    "group relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors",
+                    "group relative flex h-11 items-center rounded-xl transition-colors",
+                    showInlineLabel ? "w-auto min-w-[9.5rem] gap-2 px-3" : "w-11 justify-center",
                     isActive
                       ? "bg-[var(--brand-primary)] text-white"
                       : "text-slate-700 hover:bg-white hover:text-slate-900",
@@ -103,10 +120,17 @@ export function AppSidebar({ profile, allowedPaths }: AppSidebarProps) {
                       isActive ? "text-white" : "text-slate-600 group-hover:text-slate-800",
                     )}
                   />
+                  {showInlineLabel ? (
+                    <span className={cn("text-sm font-medium", isActive ? "text-white" : "text-slate-700")}>
+                      {item.label}
+                    </span>
+                  ) : null}
 
-                  <span className="pointer-events-none absolute top-1/2 left-full ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                    {item.label}
-                  </span>
+                  {!showInlineLabel ? (
+                    <span className="pointer-events-none absolute top-1/2 left-full ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                      {item.label}
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             );
