@@ -2570,20 +2570,32 @@ export async function getDashboardViewerAccessScope(): Promise<DashboardViewerAc
       return fallback;
     }
 
-    const { data, error } = await supabase
+    const baseUserSelect = `
+      id,
+      nome,
+      tipo_acesso_2,
+      id_vertical,
+      verticais:verticais!usuarios_id_vertical_fkey(descricao)
+    `;
+
+    let { data, error } = await supabase
       .from("usuarios")
-      .select(
-        `
-          id,
-          nome,
-          tipo_acesso_2,
-          id_vertical,
-          verticais:verticais!usuarios_id_vertical_fkey(descricao)
-        `,
-      )
+      .select(baseUserSelect)
       .eq("uuid_user", user.id)
       .order("id", { ascending: false })
       .limit(1);
+
+    if ((!data || data.length === 0) && user.email) {
+      const byEmail = await supabase
+        .from("usuarios")
+        .select(baseUserSelect)
+        .eq("email", user.email)
+        .order("id", { ascending: false })
+        .limit(1);
+
+      data = byEmail.data;
+      error = byEmail.error;
+    }
 
     if (error || !data?.length) {
       return fallback;
@@ -2821,12 +2833,24 @@ async function getCurrentDashboardContext() {
       };
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("usuarios")
       .select("id,tipo_acesso_2,id_vertical")
       .eq("uuid_user", user.id)
       .order("id", { ascending: false })
       .limit(1);
+
+    if ((!data || data.length === 0) && user.email) {
+      const byEmail = await supabase
+        .from("usuarios")
+        .select("id,tipo_acesso_2,id_vertical")
+        .eq("email", user.email)
+        .order("id", { ascending: false })
+        .limit(1);
+
+      data = byEmail.data;
+      error = byEmail.error;
+    }
 
     if (error || !data?.length) {
       return {
