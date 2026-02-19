@@ -2891,6 +2891,11 @@ function isGestorTipoAcesso2(value: string) {
   return normalizeLoose(value).includes("gestor");
 }
 
+function isSuperAdmTipoAcesso2(value: string) {
+  const normalized = normalizeLoose(value);
+  return normalized === "superadm" || normalized === "superadmin" || normalized === "admin";
+}
+
 function normalizeDashboardViewerTipo(value: string, verticalDescricao: string) {
   const normalizedTipo = normalizeTipoAcesso2(value);
   if (normalizedTipo) {
@@ -3072,13 +3077,15 @@ export async function getDashboardViewerAccessScope(): Promise<DashboardViewerAc
     const verticalDescricaoRaw = Array.isArray(verticalRelation)
       ? verticalRelation[0]?.descricao
       : verticalRelation?.descricao;
-    const viewerVerticalDescricao = normalizeVerticalDescricao(verticalDescricaoRaw);
+    const rawTipoAcesso2 = asString(row.tipo_acesso_2, "");
+    const isSuperAdm = isSuperAdmTipoAcesso2(rawTipoAcesso2);
+    const viewerVerticalDescricao = isSuperAdm ? "Gerencia" : normalizeVerticalDescricao(verticalDescricaoRaw);
     const viewerTipoAcesso2 = normalizeDashboardViewerTipo(
-      asString(row.tipo_acesso_2, ""),
+      rawTipoAcesso2,
       viewerVerticalDescricao,
     );
-    const isGerencia = viewerVerticalDescricao === "Gerencia";
-    const isGestor = isGestorTipoAcesso2(asString(row.tipo_acesso_2, ""));
+    const isGerencia = viewerVerticalDescricao === "Gerencia" || isSuperAdm;
+    const isGestor = !isSuperAdm && isGestorTipoAcesso2(rawTipoAcesso2);
 
     let forcedTipoAcesso2 = "";
     if (!isGerencia) {
