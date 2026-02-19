@@ -78,25 +78,25 @@ type OrcamentosColumn = {
 };
 
 const funilColumns: FunilColumn[] = [
-  { key: "nome", label: "Nome", widthClass: "w-[14%]" },
-  { key: "lead", label: "Lead", widthClass: "w-[4.75%]" },
-  { key: "plusL100", label: "+L100", widthClass: "w-[4.75%]" },
-  { key: "l100", label: "L100", widthClass: "w-[4.75%]" },
-  { key: "n00", label: "#00", widthClass: "w-[4.75%]" },
-  { key: "n10", label: "#10", widthClass: "w-[4.75%]" },
-  { key: "n21", label: "#21", widthClass: "w-[4.75%]" },
-  { key: "n05", label: "#05", widthClass: "w-[4.75%]" },
-  { key: "n30", label: "#30", widthClass: "w-[4.75%]" },
-  { key: "n40", label: "#40", widthClass: "w-[4.75%]" },
-  { key: "n50", label: "#50", widthClass: "w-[4.75%]" },
-  { key: "n60", label: "#60", widthClass: "w-[4.75%]" },
-  { key: "n61", label: "#61", widthClass: "w-[4.75%]" },
-  { key: "n62", label: "#62", widthClass: "w-[4.75%]" },
-  { key: "n66", label: "#66", widthClass: "w-[4.75%]" },
-  { key: "tv", label: "TV", widthClass: "w-[4.75%]" },
-  { key: "min", label: "Min", widthClass: "w-[4.75%]" },
-  { key: "qtd", label: "Qtd", widthClass: "w-[4.75%]" },
-  { key: "umbler", label: "Umbler", widthClass: "w-[4.75%]" },
+  { key: "nome", label: "Nome", widthClass: "min-w-[180px]" },
+  { key: "lead", label: "Lead", widthClass: "min-w-[84px]" },
+  { key: "plusL100", label: "+L100", widthClass: "min-w-[84px]" },
+  { key: "l100", label: "L100", widthClass: "min-w-[84px]" },
+  { key: "n00", label: "#00", widthClass: "min-w-[84px]" },
+  { key: "n10", label: "#10", widthClass: "min-w-[84px]" },
+  { key: "n21", label: "#21", widthClass: "min-w-[84px]" },
+  { key: "n05", label: "#05", widthClass: "min-w-[84px]" },
+  { key: "n30", label: "#30", widthClass: "min-w-[84px]" },
+  { key: "n40", label: "#40", widthClass: "min-w-[84px]" },
+  { key: "n50", label: "#50", widthClass: "min-w-[84px]" },
+  { key: "n60", label: "#60", widthClass: "min-w-[84px]" },
+  { key: "n61", label: "#61", widthClass: "min-w-[84px]" },
+  { key: "n62", label: "#62", widthClass: "min-w-[84px]" },
+  { key: "n66", label: "#66", widthClass: "min-w-[84px]" },
+  { key: "tv", label: "TV", widthClass: "min-w-[84px]" },
+  { key: "min", label: "Min", widthClass: "min-w-[104px]" },
+  { key: "qtd", label: "Qtd", widthClass: "min-w-[84px]" },
+  { key: "umbler", label: "Umbler", widthClass: "min-w-[92px]" },
 ];
 
 const retratoColumns: RetratoColumn[] = [
@@ -140,6 +140,18 @@ function getSearchValue(value: string | string[] | undefined) {
     return value[0];
   }
   return value;
+}
+
+function getSearchValues(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    return [value];
+  }
+
+  return [] as string[];
 }
 
 function normalizeInputDate(value: string | undefined, fallbackInputDate: string) {
@@ -331,7 +343,26 @@ function formatOrcamentosCellValue(key: OrcamentosColumnKey, value: string | num
 }
 
 function baseCellClass(widthClass?: string) {
-  return `px-4 py-2 text-sm whitespace-nowrap ${widthClass ?? ""}`;
+  return `px-3 py-2.5 text-sm whitespace-nowrap ${widthClass ?? ""}`;
+}
+
+function isFunilNumericColumn(key: FunilColumnKey) {
+  return key !== "nome";
+}
+
+function normalizeFunilColumnsSelection(value: string | string[] | undefined) {
+  const allowedKeys = new Set(funilColumns.map((column) => column.key));
+  const rawValues = getSearchValues(value).flatMap((entry) => entry.split(","));
+  const selected = rawValues
+    .map((entry) => entry.trim() as FunilColumnKey)
+    .filter((entry) => allowedKeys.has(entry));
+
+  if (selected.length === 0) {
+    return funilColumns.map((column) => column.key);
+  }
+
+  const uniqueSelected = Array.from(new Set(selected));
+  return funilColumns.map((column) => column.key).filter((key) => uniqueSelected.includes(key));
 }
 
 type DashboardPageProps = {
@@ -395,6 +426,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const requestedTipoRepre = normalizeCarteiraSelection(
     getSearchValue(params.tipo_repre) ?? getSearchValue(params.carteira),
   );
+  const selectedFunilColumnKeys = normalizeFunilColumnsSelection(params.colunas);
+  const visibleFunilColumns = funilColumns.filter((column) => selectedFunilColumnKeys.includes(column.key));
   const dashboardAccessScope = await getDashboardViewerAccessScope();
   const visibleViews = getVisibleDashboardViews(dashboardAccessScope.viewerVerticalDescricao);
   const activeView = visibleViews.includes(requestedView) ? requestedView : visibleViews[0] ?? "dashboard";
@@ -559,6 +592,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             representantes={representantes}
             lockTipoSelection={!dashboardAccessScope.allowTipoSelection}
             lockUsuarioSelection={!dashboardAccessScope.allowUsuarioSelection}
+            columnOptions={funilColumns.map((column) => ({ key: column.key, label: column.label }))}
+            selectedColumnKeys={selectedFunilColumnKeys}
           />
         ) : (
           <>
@@ -585,13 +620,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
         {activeView === "dashboard" ? (
           <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
-            <table className="w-full table-fixed border-collapse">
+            <table className="w-max min-w-full border-collapse">
               <thead className="bg-[#d6d6d8]">
                 <tr>
-                  {funilColumns.map((column) => (
+                  {visibleFunilColumns.map((column) => (
                     <th
                       key={column.key}
-                      className={`${baseCellClass(column.widthClass)} text-left text-[clamp(0.72rem,0.9vw,0.95rem)] font-semibold text-[#18484a]`}
+                      className={`${baseCellClass(column.widthClass)} ${
+                        isFunilNumericColumn(column.key) ? "text-right" : "text-left"
+                      } text-[0.92rem] font-semibold text-[#18484a]`}
                     >
                       {column.label}
                     </th>
@@ -601,16 +638,18 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               <tbody>
                 {dashboardSnapshot!.rows.map((row) => (
                   <tr key={row.nome} className="border-t border-[#e5e7ea] bg-[#f4f4f5]">
-                    {funilColumns.map((column) => (
+                    {visibleFunilColumns.map((column) => (
                       <td
                         key={`${row.nome}-${column.key}`}
                         className={`${baseCellClass(column.widthClass)} ${
                           column.key === "min"
-                            ? "text-[clamp(0.62rem,0.75vw,0.78rem)] tracking-wide text-slate-700"
-                            : "text-[clamp(0.7rem,0.85vw,0.92rem)] text-slate-700"
-                        }`}
+                            ? "text-[0.84rem] tracking-wide text-slate-700"
+                            : "text-[0.95rem] text-slate-700"
+                        } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
                       >
-                        {String(getFunilRowCellValue(row, column.key))}
+                        <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
+                          {String(getFunilRowCellValue(row, column.key))}
+                        </span>
                       </td>
                     ))}
                   </tr>
@@ -618,16 +657,18 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </tbody>
               <tfoot>
                 <tr className="border-t border-[#c9c9cb] bg-[#d6d6d8]">
-                  {funilColumns.map((column) => (
+                  {visibleFunilColumns.map((column) => (
                     <td
                       key={`total-${column.key}`}
                       className={`${baseCellClass(column.widthClass)} font-semibold ${
                         column.key === "min"
-                          ? "text-[clamp(0.62rem,0.75vw,0.78rem)] tracking-wide text-[#18484a]"
-                          : "text-[clamp(0.78rem,1vw,1.05rem)] text-[#18484a]"
-                      }`}
+                          ? "text-[0.86rem] tracking-wide text-[#18484a]"
+                          : "text-[1.02rem] text-[#18484a]"
+                      } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
                     >
-                      {String(getFunilTotalCellValue(dashboardSnapshot!.totals, column.key))}
+                      <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
+                        {String(getFunilTotalCellValue(dashboardSnapshot!.totals, column.key))}
+                      </span>
                     </td>
                   ))}
                 </tr>

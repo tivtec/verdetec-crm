@@ -61,10 +61,27 @@ type VisualizacaoClienteData = {
   etiquetas: VisualizacaoEtiqueta[];
 };
 
+type ClientesTableColumnKey = "etiqueta" | "telefone" | "nome" | "equipamento" | "data30" | "data40";
+
+type ClientesTableColumn = {
+  key: ClientesTableColumnKey;
+  label: string;
+  getValue: (row: ClienteControleRow) => string;
+};
+
 const MENU_WIDTH = 332;
 const MENU_HEIGHT = 292;
 const MENU_MARGIN = 12;
 const MENU_GAP = 8;
+const CLIENTES_TABLE_COLUMNS: ClientesTableColumn[] = [
+  { key: "etiqueta", label: "Etiqueta", getValue: (row) => row.etiqueta || "-" },
+  { key: "telefone", label: "Telefone", getValue: (row) => row.telefone || "-" },
+  { key: "nome", label: "Nome", getValue: (row) => row.nome || "-" },
+  { key: "equipamento", label: "Equipamento", getValue: (row) => row.equipamento || "-" },
+  { key: "data30", label: "Data #30", getValue: (row) => row.data30 || "-" },
+  { key: "data40", label: "Data #40", getValue: (row) => row.data40 || "-" },
+];
+const ALL_COLUMN_KEYS = CLIENTES_TABLE_COLUMNS.map((column) => column.key);
 const ETIQUETA_OPTIONS = [
   { label: "Selecione", value: "" },
   { label: "60 Lead perdido", value: "60" },
@@ -111,7 +128,12 @@ export function ClientesControlTable({
   const [visualizacaoData, setVisualizacaoData] = useState<VisualizacaoClienteData | null>(null);
   const [successAlert, setSuccessAlert] = useState<string | null>(null);
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
+  const [isColumnsMenuOpen, setIsColumnsMenuOpen] = useState(false);
+  const [visibleColumnKeys, setVisibleColumnKeys] = useState<ClientesTableColumnKey[]>(
+    CLIENTES_TABLE_COLUMNS.map((column) => column.key),
+  );
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const columnsMenuRef = useRef<HTMLDivElement | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const safePage = Math.min(Math.max(page, 1), totalPages);
@@ -120,6 +142,9 @@ export function ClientesControlTable({
   const selectedSet = new Set(selectedIds);
   const canGoPrev = safePage > 1;
   const canGoNext = safePage < totalPages;
+  const visibleColumns = CLIENTES_TABLE_COLUMNS.filter((column) => visibleColumnKeys.includes(column.key));
+  const totalTableColumns = visibleColumns.length + 2;
+  const allColumnsSelected = visibleColumnKeys.length === CLIENTES_TABLE_COLUMNS.length;
 
   useEffect(() => {
     if (
@@ -222,6 +247,39 @@ export function ClientesControlTable({
       window.removeEventListener("scroll", handleViewportChange, true);
     };
   }, [isEtiquetaModalOpen, isPropostaModalOpen, isRepresentanteModalOpen, isVisualizarModalOpen, menuAnchor]);
+
+  useEffect(() => {
+    if (!isColumnsMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (columnsMenuRef.current?.contains(target)) {
+        return;
+      }
+
+      setIsColumnsMenuOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsColumnsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isColumnsMenuOpen]);
 
   useEffect(() => {
     if (!successAlert) {
@@ -770,6 +828,32 @@ export function ClientesControlTable({
     return formatted.includes("Invalid") ? "-" : formatted;
   };
 
+  const handleToggleColumn = (key: ClientesTableColumnKey) => {
+    setVisibleColumnKeys((current) => {
+      if (current.includes(key)) {
+        if (current.length === 1) {
+          return current;
+        }
+
+        return current.filter((columnKey) => columnKey !== key);
+      }
+
+      return CLIENTES_TABLE_COLUMNS.map((column) => column.key).filter(
+        (columnKey) => current.includes(columnKey) || columnKey === key,
+      );
+    });
+  };
+
+  const handleToggleAllColumns = () => {
+    setVisibleColumnKeys((current) => {
+      if (current.length === CLIENTES_TABLE_COLUMNS.length) {
+        return [CLIENTES_TABLE_COLUMNS[0].key];
+      }
+
+      return ALL_COLUMN_KEYS;
+    });
+  };
+
   return (
     <>
       {successAlert ? (
@@ -785,16 +869,67 @@ export function ClientesControlTable({
 
       <div className="flex h-full min-h-0 flex-col gap-4">
         <div className="min-h-0 flex-1 overflow-auto rounded-xl bg-[#e5e7ea] p-2">
+          <div className="mb-2 flex justify-end">
+            <div className="relative" ref={columnsMenuRef}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsColumnsMenuOpen((current) => !current)}
+                className="h-9 rounded-lg border border-[#c7cdd1] bg-white px-3 text-sm font-medium text-[#355c5f] hover:bg-slate-50"
+              >
+                Colunas ({visibleColumnKeys.length}/{CLIENTES_TABLE_COLUMNS.length})
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+
+              {isColumnsMenuOpen ? (
+                <div className="absolute top-11 right-0 z-20 min-w-[220px] rounded-xl border border-[#d3d8dc] bg-white p-3 shadow-lg">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#5a6a6d]">
+                    Mostrar colunas
+                  </p>
+                  <label className="mb-2 flex cursor-pointer items-center justify-between gap-3 rounded-md bg-[#f2f5f6] px-2 py-1 text-sm font-medium text-[#274a4d]">
+                    <span>Selecionar todas</span>
+                    <input
+                      type="checkbox"
+                      checked={allColumnsSelected}
+                      onChange={handleToggleAllColumns}
+                      className="h-4 w-4 accent-[#0f5050]"
+                    />
+                  </label>
+                  <div className="space-y-2">
+                    {CLIENTES_TABLE_COLUMNS.map((column) => {
+                      const checked = visibleColumnKeys.includes(column.key);
+
+                      return (
+                        <label
+                          key={column.key}
+                          className="flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-1 text-sm text-[#274a4d] hover:bg-[#f2f5f6]"
+                        >
+                          <span>{column.label}</span>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => handleToggleColumn(column.key)}
+                            className="h-4 w-4 accent-[#0f5050]"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
           <table className="w-full border-separate border-spacing-y-1">
             <thead>
               <tr className="rounded-xl bg-[#d5d5d7] text-left">
                 <th className="w-14 rounded-l-xl px-3 py-3" />
-                <th className="px-3 py-3 text-sm font-semibold text-[#1d4d50]">Etiqueta</th>
-                <th className="px-3 py-3 text-sm font-semibold text-[#1d4d50]">Telefone</th>
-                <th className="px-3 py-3 text-sm font-semibold text-[#1d4d50]">Nome</th>
-                <th className="px-3 py-3 text-sm font-semibold text-[#1d4d50]">Equipamento</th>
-                <th className="px-3 py-3 text-sm font-semibold text-[#1d4d50]">Data #30</th>
-                <th className="px-3 py-3 text-sm font-semibold text-[#1d4d50]">Data #40</th>
+                {visibleColumns.map((column) => (
+                  <th key={column.key} className="px-3 py-3 text-sm font-semibold text-[#1d4d50]">
+                    {column.label}
+                  </th>
+                ))}
                 <th className="w-14 rounded-r-xl px-3 py-3" />
               </tr>
             </thead>
@@ -817,12 +952,11 @@ export function ClientesControlTable({
                           }`}
                         />
                       </td>
-                      <td className="px-3 py-3 text-sm text-[#1d4d50]">{row.etiqueta || "-"}</td>
-                      <td className="px-3 py-3 text-sm text-[#1d4d50]">{row.telefone || "-"}</td>
-                      <td className="px-3 py-3 text-sm text-[#1d4d50]">{row.nome || "-"}</td>
-                      <td className="px-3 py-3 text-sm text-[#1d4d50]">{row.equipamento || "-"}</td>
-                      <td className="px-3 py-3 text-sm text-[#1d4d50]">{row.data30 || "-"}</td>
-                      <td className="px-3 py-3 text-sm text-[#1d4d50]">{row.data40 || "-"}</td>
+                      {visibleColumns.map((column) => (
+                        <td key={column.key} className="px-3 py-3 text-sm text-[#1d4d50]">
+                          {column.getValue(row)}
+                        </td>
+                      ))}
                       <td className="rounded-r-xl px-3 py-3 text-right">
                         <button
                           type="button"
@@ -839,7 +973,7 @@ export function ClientesControlTable({
                 })
               ) : (
                 <tr className="bg-[#eceeef]">
-                  <td colSpan={8} className="rounded-xl px-4 py-10 text-center text-sm text-[#466568]">
+                  <td colSpan={totalTableColumns} className="rounded-xl px-4 py-10 text-center text-sm text-[#466568]">
                     Nenhum cliente encontrado.
                   </td>
                 </tr>
