@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import {
   Building2,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Gauge,
   KeyRound,
@@ -28,6 +30,8 @@ type AppSidebarProps = {
     organizationLogoUrl: string | null;
   };
   allowedPaths: string[] | null;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 };
 
 const items = [
@@ -60,7 +64,7 @@ const INLINE_LABEL_PATHS = new Set([
   "/gestao-acessos",
 ]);
 
-export function AppSidebar({ profile, allowedPaths }: AppSidebarProps) {
+export function AppSidebar({ profile, allowedPaths, collapsed, onToggleCollapse }: AppSidebarProps) {
   const pathname = usePathname();
   const allowedSet = allowedPaths ? new Set(allowedPaths) : null;
   const visibleItems = allowedSet
@@ -68,8 +72,30 @@ export function AppSidebar({ profile, allowedPaths }: AppSidebarProps) {
     : items.filter((item) => item.href !== "/gestao-acessos");
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-56 flex-col border-r border-[var(--brand-border)] bg-[var(--brand-primary-soft)] px-3 py-4 lg:flex">
-      <div className="mx-1 mb-5 flex shrink-0 items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm">
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-30 hidden h-dvh flex-col border-r border-[var(--brand-border)] bg-[var(--brand-primary-soft)] py-4 transition-[width,padding] duration-200 lg:flex",
+        collapsed ? "w-20 px-2" : "w-56 px-3",
+      )}
+    >
+      <div className={cn("mb-3 flex", collapsed ? "justify-center" : "justify-end")}>
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--brand-border)] bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-800"
+          aria-label={collapsed ? "Expandir menu lateral" : "Minimizar menu lateral"}
+          title={collapsed ? "Expandir" : "Minimizar"}
+        >
+          {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+        </button>
+      </div>
+
+      <div
+        className={cn(
+          "mx-1 mb-5 flex shrink-0 items-center rounded-xl bg-white py-2 shadow-sm",
+          collapsed ? "justify-center px-2" : "gap-2.5 px-2.5",
+        )}
+      >
         <div className="shrink-0 rounded-md border border-[var(--brand-border)] bg-white p-1">
           {profile.organizationLogoUrl ? (
             <img
@@ -88,10 +114,12 @@ export function AppSidebar({ profile, allowedPaths }: AppSidebarProps) {
             />
           )}
         </div>
-        <div className="min-w-0 leading-tight">
-          <p className="truncate text-sm font-semibold text-slate-900">Verdetec CRM</p>
-          <p className="truncate text-xs text-slate-500">{profile.userName}</p>
-        </div>
+        {!collapsed ? (
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-sm font-semibold text-slate-900">Verdetec CRM</p>
+            <p className="truncate text-xs text-slate-500">{profile.userName}</p>
+          </div>
+        ) : null}
       </div>
 
       <nav className="no-scrollbar flex-1 overflow-y-auto">
@@ -99,7 +127,7 @@ export function AppSidebar({ profile, allowedPaths }: AppSidebarProps) {
           {visibleItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
-            const showInlineLabel = INLINE_LABEL_PATHS.has(item.href);
+            const showInlineLabel = INLINE_LABEL_PATHS.has(item.href) && !collapsed;
 
             return (
               <li key={item.href} className="relative">
@@ -138,16 +166,25 @@ export function AppSidebar({ profile, allowedPaths }: AppSidebarProps) {
         </ul>
       </nav>
 
-      <div className="mx-1 mt-3 shrink-0 rounded-xl border border-[var(--brand-border)] bg-white px-2.5 py-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Ambiente</p>
-        <p className="mt-1 whitespace-normal break-words text-sm leading-snug font-medium text-slate-900">
-          {profile.organizationName}
-        </p>
+      <div
+        className={cn(
+          "mx-1 mt-3 shrink-0 rounded-xl border border-[var(--brand-border)] bg-white py-2",
+          collapsed ? "px-2" : "px-2.5",
+        )}
+      >
+        {!collapsed ? (
+          <>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Ambiente</p>
+            <p className="mt-1 whitespace-normal break-words text-sm leading-snug font-medium text-slate-900">
+              {profile.organizationName}
+            </p>
+          </>
+        ) : null}
         <LogoutButton
-          className="mt-3 w-full justify-center"
+          className={cn("w-full justify-center", collapsed ? "mt-0" : "mt-3")}
           variant="secondary"
           size="sm"
-          label="Sair"
+          label={collapsed ? "" : "Sair"}
         />
       </div>
     </aside>

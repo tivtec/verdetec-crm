@@ -1,4 +1,4 @@
-import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppShellClient } from "@/components/layout/app-shell-client";
 import { getCurrentAllowedSidebarPaths } from "@/services/access-control/server";
 import { getSidebarProfile } from "@/services/layout/sidebar";
 
@@ -12,12 +12,5 @@ export async function AppShell({ children }: AppShellProps) {
     getCurrentAllowedSidebarPaths(),
   ]);
 
-  return (
-    <div className="h-dvh bg-[var(--brand-surface)]">
-      <AppSidebar profile={profile} allowedPaths={allowedPaths} />
-      <div className="h-dvh w-full lg:pl-56">
-        <main className="flex h-full flex-col overflow-hidden">{children}</main>
-      </div>
-    </div>
-  );
+  return <AppShellClient profile={profile} allowedPaths={allowedPaths}>{children}</AppShellClient>;
 }

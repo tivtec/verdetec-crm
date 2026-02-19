@@ -37,15 +37,15 @@ export function ClientesControlFilters({
   onSearch,
 }: ClientesControlFiltersProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="relative min-w-[150px]">
+    <div className="grid grid-cols-1 gap-2 md:grid-cols-12 md:items-center">
+      <div className="relative md:col-span-2">
         <Select
           id="clientes-usuario"
           name="usuario"
           value={values.usuario}
           onChange={(event) => onChange({ ...values, usuario: event.target.value })}
           disabled={lockUsuarioSelection}
-          className="h-11 appearance-none rounded-xl border-[#d7dadd] bg-white pr-9 text-sm text-[#2a4f51] disabled:cursor-not-allowed disabled:bg-slate-100"
+          className="h-10 w-full appearance-none rounded-xl border-[#d7dadd] bg-white pr-9 text-sm text-[#2a4f51] disabled:cursor-not-allowed disabled:bg-slate-100"
         >
           <option value="">Selecione</option>
           {representantes.map((representante) => (
@@ -63,7 +63,7 @@ export function ClientesControlFilters({
         value={values.telefone}
         onChange={(event) => onChange({ ...values, telefone: event.target.value })}
         placeholder="Telefone do Cliente"
-        className="h-11 min-w-[210px] rounded-xl border-[#b8d8d7] bg-[#bfe1df] text-[#1f5558] placeholder:text-[#2d676a]"
+        className="h-10 w-full rounded-xl border-[#b8d8d7] bg-[#bfe1df] text-[#1f5558] placeholder:text-[#2d676a] md:col-span-3"
       />
 
       <Input
@@ -72,16 +72,16 @@ export function ClientesControlFilters({
         value={values.nome}
         onChange={(event) => onChange({ ...values, nome: event.target.value })}
         placeholder="Nome do Cliente"
-        className="h-11 min-w-[210px] rounded-xl border-[#b8d8d7] bg-[#bfe1df] text-[#1f5558] placeholder:text-[#2d676a]"
+        className="h-10 w-full rounded-xl border-[#b8d8d7] bg-[#bfe1df] text-[#1f5558] placeholder:text-[#2d676a] md:col-span-3"
       />
 
-      <div className="relative min-w-[180px]">
+      <div className="relative md:col-span-2">
         <Select
           id="clientes-etiqueta"
           name="etiqueta"
           value={values.etiqueta}
           onChange={(event) => onChange({ ...values, etiqueta: event.target.value })}
-          className="h-11 appearance-none rounded-xl border-[#b8d8d7] bg-[#bfe1df] pr-9 text-sm text-[#1f5558]"
+          className="h-10 w-full appearance-none rounded-xl border-[#b8d8d7] bg-[#bfe1df] pr-9 text-sm text-[#1f5558]"
         >
           {etiquetaOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -95,11 +95,10 @@ export function ClientesControlFilters({
       <Button
         type="button"
         onClick={() => onSearch(values)}
-        className="h-11 min-w-[150px] rounded-xl border-0 bg-[#6ca89a] text-lg font-semibold text-white hover:bg-[#5f9a8c]"
+        className="h-10 w-full rounded-xl border-0 bg-[#6ca89a] text-base font-semibold text-white hover:bg-[#5f9a8c] md:col-span-2"
       >
         Buscar
       </Button>
     </div>
   );
 }
-
