@@ -693,45 +693,52 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </tr>
               </thead>
               <tbody>
-                {dashboardSnapshot!.rows.map((row) => (
-                  <tr
-                    key={row.nome}
-                    className="border-t border-[#e5e7ea]"
-                    style={{ backgroundColor: getFunilRowBackgroundColor(row.l100) }}
-                  >
-                    {visibleFunilColumns.map((column) => (
-                      <td
-                        key={`${row.nome}-${column.key}`}
-                        className={`${baseCellClass(column.widthClass)} ${
-                          column.key === "min"
-                            ? "text-[0.84rem] tracking-wide text-slate-700"
-                            : "text-[0.95rem] text-slate-700"
-                        } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
-                      >
-                        <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
-                          {(() => {
-                            const rowValue = getFunilRowCellValue(row, column.key);
+                {dashboardSnapshot!.rows.map((row, rowIndex) => {
+                  const rowKey =
+                    Number.isFinite(row.usuarioId) && row.usuarioId > 0
+                      ? String(row.usuarioId)
+                      : `${row.nome}-${rowIndex}`;
 
-                            if (!percentageMode || !percentageBaseKey) {
-                              return String(rowValue);
-                            }
+                  return (
+                    <tr
+                      key={rowKey}
+                      className="border-t border-[#e5e7ea]"
+                      style={{ backgroundColor: getFunilRowBackgroundColor(row.l100) }}
+                    >
+                      {visibleFunilColumns.map((column) => (
+                        <td
+                          key={`${rowKey}-${column.key}`}
+                          className={`${baseCellClass(column.widthClass)} ${
+                            column.key === "min"
+                              ? "text-[0.84rem] tracking-wide text-slate-700"
+                              : "text-[0.95rem] text-slate-700"
+                          } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
+                        >
+                          <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
+                            {(() => {
+                              const rowValue = getFunilRowCellValue(row, column.key);
 
-                            if (column.key === "n21" || !HASH_FUNIL_COLUMN_KEYS.includes(column.key)) {
-                              return String(rowValue);
-                            }
+                              if (!percentageMode || !percentageBaseKey) {
+                                return String(rowValue);
+                              }
 
-                            if (column.key === percentageBaseKey) {
-                              return "100%";
-                            }
+                              if (column.key === "n21" || !HASH_FUNIL_COLUMN_KEYS.includes(column.key)) {
+                                return String(rowValue);
+                              }
 
-                            const baseValue = getFunilRowCellValue(row, percentageBaseKey);
-                            return formatPercentageValue(rowValue, baseValue);
-                          })()}
-                        </span>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                              if (column.key === percentageBaseKey) {
+                                return "100%";
+                              }
+
+                              const baseValue = getFunilRowCellValue(row, percentageBaseKey);
+                              return formatPercentageValue(rowValue, baseValue);
+                            })()}
+                          </span>
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="border-t border-[#c9c9cb] bg-[#d6d6d8]">
