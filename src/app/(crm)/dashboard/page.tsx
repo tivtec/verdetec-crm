@@ -694,10 +694,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </thead>
               <tbody>
                 {dashboardSnapshot!.rows.map((row, rowIndex) => {
-                  const rowKey =
+                  const rowKey = `${
                     Number.isFinite(row.usuarioId) && row.usuarioId > 0
-                      ? String(row.usuarioId)
-                      : `${row.nome}-${rowIndex}`;
+                      ? `u${Math.trunc(row.usuarioId)}`
+                      : `n${row.nome}`
+                  }-${rowIndex}`;
 
                   return (
                     <tr
