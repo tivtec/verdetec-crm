@@ -450,6 +450,54 @@ function sortClientesRowsByEtiquetaNewest(rows: ClienteControleApiRow[]) {
     .map((entry) => entry.row);
 }
 
+function buildClienteDedupKey(row: ClienteControleApiRow, fallbackIndex: number) {
+  const pessoaId = typeof row.pessoaId === "number" ? Math.max(0, Math.trunc(row.pessoaId)) : 0;
+  if (pessoaId > 0) {
+    return `pessoa:${pessoaId}`;
+  }
+
+  const phoneDigits = asString(row.telefone).replace(/\D/g, "");
+  const normalizedName = normalizeLoose(row.nome);
+
+  if (phoneDigits.length > 0 && normalizedName.length > 0) {
+    return `fone:${phoneDigits}|nome:${normalizedName}`;
+  }
+
+  if (phoneDigits.length > 0) {
+    return `fone:${phoneDigits}`;
+  }
+
+  const rowId = asString(row.id).trim();
+  if (rowId.length > 0) {
+    return `id:${rowId}`;
+  }
+
+  return `idx:${fallbackIndex}`;
+}
+
+function dedupeClientesRowsByNewestEtiqueta(rows: ClienteControleApiRow[]) {
+  if (rows.length <= 1) {
+    return rows;
+  }
+
+  const orderedRows = sortClientesRowsByEtiquetaNewest(rows);
+  const seen = new Set<string>();
+  const dedupedRows: ClienteControleApiRow[] = [];
+
+  for (let index = 0; index < orderedRows.length; index += 1) {
+    const row = orderedRows[index];
+    const dedupKey = buildClienteDedupKey(row, index);
+    if (seen.has(dedupKey)) {
+      continue;
+    }
+
+    seen.add(dedupKey);
+    dedupedRows.push(row);
+  }
+
+  return dedupedRows;
+}
+
 function buildEtiquetaDisplay(rawEtiqueta: string | null | undefined, rawDate: string | null | undefined) {
   const etiquetaCode = extractEtiquetaCode(rawEtiqueta, "#10");
   const etiquetaDate = formatClientesDateTime(rawDate);
@@ -507,7 +555,7 @@ function applyClientesControleLocalFilters(
   const etiquetaFilterNormalized = normalizeLoose(etiquetaFilterRaw);
   const etiquetaFilterCode = extractEtiquetaCode(etiquetaFilterRaw);
 
-  return rows.filter((row) => {
+  const filteredRows = rows.filter((row) => {
     if (selectedUsuario > 0) {
       const rowUsuarioId = typeof row.usuarioId === "number" ? Math.max(0, Math.trunc(row.usuarioId)) : 0;
       if (rowUsuarioId > 0 && rowUsuarioId !== selectedUsuario) {
@@ -540,6 +588,8 @@ function applyClientesControleLocalFilters(
 
     return true;
   });
+
+  return dedupeClientesRowsByNewestEtiqueta(filteredRows);
 }
 
 function mapClientesControleRows(rows: ClienteControleWebhookRow[]): ClienteControleApiRow[] {
@@ -2474,13 +2524,6 @@ export async function getPedidosLegacyFallback() {
   }
 }
 
-type SolicitacoesPortalRpcPayload = {
-  limit: string;
-  offset: string;
-  user_id: string;
-  busca: string;
-};
-
 type SolicitacoesPortalRpcRow = {
   id?: string | number | null;
   pedido_uuid?: string | null;
@@ -2523,14 +2566,6 @@ export type SolicitacoesPortalPageSnapshot = {
   rows: SolicitacoesPortalApiRow[];
   hasNextPage: boolean;
 };
-
-const SOLICITACOES_PORTAL_RPC_ENDPOINT =
-  process.env.SOLICITACOES_PORTAL_RPC_ENDPOINT ??
-  "https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/flutterflow_listar_pedidos3";
-
-const SOLICITACOES_PORTAL_API_KEY =
-  process.env.SOLICITACOES_PORTAL_API_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvc2R4dW50dmhyemp1dG12ZHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY4NTE3MDQsImV4cCI6MjA0MjQyNzcwNH0.Yz9v10j4W3jG4lkHjuYj_ca3dp66PGcLlVJllQVrYUY";
 
 function formatSolicitacoesDate(value: unknown) {
   const raw = asString(value).trim();
@@ -2579,56 +2614,90 @@ function mapSolicitacoesPortalRows(rows: SolicitacoesPortalRpcRow[]): Solicitaco
   }));
 }
 
-async function fetchSolicitacoesPortalRpcRows(payload: SolicitacoesPortalRpcPayload) {
-  const response = await fetch(SOLICITACOES_PORTAL_RPC_ENDPOINT, {
-    method: "POST",
-    headers: {
-      apikey: SOLICITACOES_PORTAL_API_KEY,
-      Authorization: `Bearer ${SOLICITACOES_PORTAL_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  });
+type SolicitacoesPortalSupabasePayload = {
+  limit: number;
+  offset: number;
+  busca: string;
+};
 
-  if (!response.ok) {
+const SOLICITACOES_PORTAL_SEARCH_MAX_ROWS = 5000;
+
+function sanitizeSolicitacoesSearch(value: string) {
+  return value.replace(/[(),]/g, " ").trim();
+}
+
+function matchesSolicitacoesSearch(row: SolicitacoesPortalRpcRow, buscaRaw: string) {
+  const busca = normalizeLoose(buscaRaw);
+  if (!busca) {
+    return true;
+  }
+
+  const buscaDigits = buscaRaw.replace(/\D/g, "");
+  const nome = asString(row.nome ?? row.pessoa_nome ?? row.nome_cliente ?? row.cliente, "");
+  const cep = asString(row.cep, "");
+  const cidade = asString(row.cidade, "");
+  const estado = asString(row.estado ?? row.uf_estado ?? row.uf, "");
+  const metragem = asString(row.metragem ?? row.sqm, "");
+
+  const textCandidates = [nome, cep, cidade, estado, metragem];
+  if (textCandidates.some((value) => normalizeLoose(value).includes(busca))) {
+    return true;
+  }
+
+  if (buscaDigits.length > 0) {
+    const numericCandidates = [cep, metragem]
+      .map((value) => value.replace(/\D/g, ""))
+      .filter((value) => value.length > 0);
+    if (numericCandidates.some((value) => value.includes(buscaDigits))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function fetchSolicitacoesPortalSupabaseRows(payload: SolicitacoesPortalSupabasePayload) {
+  const supabase = await createServerSupabaseClient();
+  const limit = Math.max(1, Math.trunc(payload.limit));
+  const offset = Math.max(0, Math.trunc(payload.offset));
+  const busca = sanitizeSolicitacoesSearch(payload.busca);
+
+  let query = supabase
+    .from("pedidos")
+    .select("id,nome,metragem,cep,cidade,uf_estado,criado_em")
+    .order("criado_em", { ascending: false });
+
+  if (busca.length > 0) {
+    query = query.range(0, SOLICITACOES_PORTAL_SEARCH_MAX_ROWS - 1);
+  } else {
+    query = query.range(offset, offset + limit - 1);
+  }
+
+  const { data, error } = await query;
+  if (error || !data?.length) {
     return [] as SolicitacoesPortalRpcRow[];
   }
 
-  const text = await response.text();
-  if (!text.trim()) {
-    return [] as SolicitacoesPortalRpcRow[];
+  const rows = data as SolicitacoesPortalRpcRow[];
+  if (busca.length === 0) {
+    return rows;
   }
 
-  const json = JSON.parse(text) as unknown;
-  if (Array.isArray(json)) {
-    return json as SolicitacoesPortalRpcRow[];
-  }
-
-  if (json && typeof json === "object") {
-    return [json as SolicitacoesPortalRpcRow];
-  }
-
-  return [] as SolicitacoesPortalRpcRow[];
+  const filtered = rows.filter((row) => matchesSolicitacoesSearch(row, busca));
+  return filtered.slice(offset, offset + limit);
 }
 
 export async function getSolicitacoesPortalRows(filters: SolicitacoesPortalApiFilters = {}) {
-  const limit = Math.max(0, Math.trunc(filters.limit ?? 10));
+  const limit = Math.max(1, Math.trunc(filters.limit ?? 10));
   const offset = Math.max(0, Math.trunc(filters.offset ?? 0));
-  const resolvedUserId =
-    typeof filters.userId === "number" ? filters.userId : await getCurrentUsuarioLegacyId();
-  const userId = Math.max(0, Math.trunc(asNumber(resolvedUserId, 0)));
   const busca = asString(filters.busca, "").trim();
 
-  const payload: SolicitacoesPortalRpcPayload = {
-    limit: String(limit),
-    offset: String(offset),
-    user_id: String(userId),
-    busca,
-  };
-
   try {
-    const rows = await fetchSolicitacoesPortalRpcRows(payload);
+    const rows = await fetchSolicitacoesPortalSupabaseRows({
+      limit,
+      offset,
+      busca,
+    });
     if (!rows.length) {
       return [] as SolicitacoesPortalApiRow[];
     }
@@ -2644,29 +2713,20 @@ export async function getSolicitacoesPortalPageSnapshot(
 ): Promise<SolicitacoesPortalPageSnapshot> {
   const limit = Math.max(1, Math.trunc(filters.limit ?? 10));
   const offset = Math.max(0, Math.trunc(filters.offset ?? 0));
-  const resolvedUserId =
-    typeof filters.userId === "number" ? filters.userId : await getCurrentUsuarioLegacyId();
-  const userId = Math.max(0, Math.trunc(asNumber(resolvedUserId, 0)));
   const busca = asString(filters.busca, "").trim();
-
-  const currentPayload: SolicitacoesPortalRpcPayload = {
-    limit: String(limit),
-    offset: String(offset),
-    user_id: String(userId),
-    busca,
-  };
-
-  const nextPageProbePayload: SolicitacoesPortalRpcPayload = {
-    limit: "1",
-    offset: String(offset + limit),
-    user_id: String(userId),
-    busca,
-  };
 
   try {
     const [rows, probe] = await Promise.all([
-      fetchSolicitacoesPortalRpcRows(currentPayload),
-      fetchSolicitacoesPortalRpcRows(nextPageProbePayload),
+      fetchSolicitacoesPortalSupabaseRows({
+        limit,
+        offset,
+        busca,
+      }),
+      fetchSolicitacoesPortalSupabaseRows({
+        limit: 1,
+        offset: offset + limit,
+        busca,
+      }),
     ]);
 
     return {

@@ -80,7 +80,7 @@ export function SolicitacoesControlShell({
               handleSearch();
             }
           }}
-          placeholder="Busca"
+          placeholder="Nome da empresa ou CEP"
           className="h-10 w-full max-w-[190px] rounded-lg border border-[#d4e6e3] bg-[#c6dfde] px-3 text-sm text-[#2f5153] placeholder:text-[#5f7b7c]"
         />
         <Button
@@ -107,7 +107,7 @@ export function SolicitacoesControlShell({
           <tbody>
             {rows.length > 0 ? (
               rows.map((row) => (
-                <tr key={row.id} className="bg-[#eef0f1] text-[#9db0b2]">
+                <tr key={row.id} className="bg-[#eef0f1] text-[#285154]">
                   <td className="rounded-l-xl px-4 py-2.5 text-sm">{row.data}</td>
                   <td className="px-4 py-2.5 text-sm">{row.nome}</td>
                   <td className="px-4 py-2.5 text-sm">{row.cep}</td>
@@ -127,7 +127,7 @@ export function SolicitacoesControlShell({
         </table>
       </div>
 
-      <div className="flex items-center justify-between gap-3 pt-48">
+      <div className="flex items-center justify-between gap-3 pt-2">
         <Button
           type="button"
           variant="secondary"

@@ -305,6 +305,20 @@ function getFunilTotalCellValue(totals: DashboardFunilTotals, key: FunilColumnKe
   return totals[key as keyof DashboardFunilTotals];
 }
 
+function formatFunilFooterCellValue(key: FunilColumnKey, value: string | number) {
+  if (key === "tv") {
+    const numericValue = typeof value === "number" ? value : Number(value);
+    if (Number.isFinite(numericValue)) {
+      return numericValue.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+  }
+
+  return String(value);
+}
+
 function getRetratoRowCellValue(row: DashboardRetratoRow, key: RetratoColumnKey) {
   if (key === "nome") {
     return row.nome;
@@ -757,11 +771,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                           const totalValue = getFunilTotalCellValue(dashboardSnapshot!.totals, column.key);
 
                           if (!percentageMode || !percentageBaseKey) {
-                            return String(totalValue);
+                            return formatFunilFooterCellValue(column.key, totalValue);
                           }
 
                           if (column.key === "n21" || !HASH_FUNIL_COLUMN_KEYS.includes(column.key)) {
-                            return String(totalValue);
+                            return formatFunilFooterCellValue(column.key, totalValue);
                           }
 
                           if (column.key === percentageBaseKey) {
