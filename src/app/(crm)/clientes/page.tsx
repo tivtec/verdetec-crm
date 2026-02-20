@@ -11,6 +11,8 @@ import {
 } from "@/services/crm/api";
 import { formatDateTime } from "@/utils/format";
 
+const PAGE_SIZE = 10;
+
 const fallbackRows: ClienteControleRow[] = [
   {
     id: "1",
@@ -166,6 +168,12 @@ function normalizeUsuarioFilterValue(value: string) {
   return String(parsed);
 }
 
+function normalizePageValue(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const parsed = Math.max(1, Math.trunc(Number(raw ?? "1") || 1));
+  return Number.isFinite(parsed) ? parsed : 1;
+}
+
 type ClientesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -176,6 +184,8 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
   const telefone = getSearchValue(params.telefone) ?? "";
   const nome = getSearchValue(params.nome) ?? "";
   const etiqueta = normalizeEtiquetaFilterValue(getSearchValue(params.etiqueta) ?? "");
+  const requestedPage = normalizePageValue(params.page);
+  const offset = (requestedPage - 1) * PAGE_SIZE;
 
   const [dashboardAccessScope, equipamentos, currentUserId] = await Promise.all([
     getDashboardViewerAccessScope(),
@@ -223,20 +233,65 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
     etiqueta,
   };
 
-  const webhookRowsRaw = await getClientesControleRows({
-    usuarioId: selectedUsuario,
-    telefone,
-    etiqueta,
-    nome,
-  });
+  const requiresAllowedFilterPagination = !dashboardAccessScope.isGerencia && selectedUsuario.trim().length === 0;
+  let webhookRows: ClienteControleRow[] = [];
+  let webhookHasNextPage = false;
 
-  const webhookRows =
-    dashboardAccessScope.isGerencia || selectedUsuario.trim().length > 0
-      ? webhookRowsRaw
-      : webhookRowsRaw.filter((row) => {
-          const rowUsuarioId = typeof row.usuarioId === "number" ? row.usuarioId : Number.NaN;
-          return Number.isFinite(rowUsuarioId) && allowedRepresentanteIds.has(rowUsuarioId);
-        });
+  if (requiresAllowedFilterPagination) {
+    const targetLength = offset + PAGE_SIZE + 1;
+    const chunkSize = 250;
+    const maxIterations = 40;
+    const collectedRows: ClienteControleRow[] = [];
+    let cursorOffset = 0;
+    let iteration = 0;
+
+    while (collectedRows.length < targetLength && iteration < maxIterations) {
+      const chunkRows = await getClientesControleRows({
+        usuarioId: selectedUsuario,
+        telefone,
+        etiqueta,
+        nome,
+        limit: chunkSize,
+        offset: cursorOffset,
+      });
+
+      if (!chunkRows.length) {
+        break;
+      }
+
+      const scopedChunkRows = chunkRows.filter((row) => {
+        const rowUsuarioId = typeof row.usuarioId === "number" ? row.usuarioId : Number.NaN;
+        return Number.isFinite(rowUsuarioId) && allowedRepresentanteIds.has(rowUsuarioId);
+      });
+
+      if (scopedChunkRows.length > 0) {
+        collectedRows.push(...scopedChunkRows);
+      }
+
+      if (chunkRows.length < chunkSize) {
+        break;
+      }
+
+      cursorOffset += chunkSize;
+      iteration += 1;
+    }
+
+    const pagedRows = collectedRows.slice(offset, offset + PAGE_SIZE + 1);
+    webhookHasNextPage = pagedRows.length > PAGE_SIZE;
+    webhookRows = webhookHasNextPage ? pagedRows.slice(0, PAGE_SIZE) : pagedRows;
+  } else {
+    const pagedRows = await getClientesControleRows({
+      usuarioId: selectedUsuario,
+      telefone,
+      etiqueta,
+      nome,
+      limit: PAGE_SIZE + 1,
+      offset,
+    });
+
+    webhookHasNextPage = pagedRows.length > PAGE_SIZE;
+    webhookRows = webhookHasNextPage ? pagedRows.slice(0, PAGE_SIZE) : pagedRows;
+  }
 
   const hasFilters =
     selectedUsuario.trim().length > 0 ||
@@ -262,14 +317,31 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
     };
   });
 
+  const fallbackRowsFromSupabasePaged = fallbackRowsFromSupabase.slice(offset, offset + PAGE_SIZE + 1);
+  const fallbackRowsFromSupabaseHasNext = fallbackRowsFromSupabasePaged.length > PAGE_SIZE;
+  const fallbackRowsFromSupabasePageRows = fallbackRowsFromSupabaseHasNext
+    ? fallbackRowsFromSupabasePaged.slice(0, PAGE_SIZE)
+    : fallbackRowsFromSupabasePaged;
+  const fallbackRowsPaged = fallbackRows.slice(offset, offset + PAGE_SIZE + 1);
+  const fallbackRowsHasNext = fallbackRowsPaged.length > PAGE_SIZE;
+  const fallbackRowsPageRows = fallbackRowsHasNext ? fallbackRowsPaged.slice(0, PAGE_SIZE) : fallbackRowsPaged;
+
   const rows =
     webhookRows.length > 0
       ? webhookRows
-      : fallbackRowsFromSupabase.length > 0
-        ? fallbackRowsFromSupabase
+      : fallbackRowsFromSupabasePageRows.length > 0
+        ? fallbackRowsFromSupabasePageRows
         : hasFilters
           ? []
-          : fallbackRows;
+          : fallbackRowsPageRows;
+  const hasNextPage =
+    webhookRows.length > 0
+      ? webhookHasNextPage
+      : fallbackRowsFromSupabasePageRows.length > 0
+        ? fallbackRowsFromSupabaseHasNext
+        : !hasFilters
+          ? fallbackRowsHasNext
+          : false;
 
   return (
     <PageContainer className="flex h-full min-h-0 flex-col gap-5 bg-[#eceef0]">
@@ -280,11 +352,13 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
       <div className="min-h-0 flex-1 rounded-2xl bg-[#e4e6e8] p-4">
         <div className="h-full overflow-hidden">
           <ClientesControlShell
-            key={`${selectedUsuario}:${telefone}:${nome}:${etiqueta}`}
+            key={`${selectedUsuario}:${telefone}:${nome}:${etiqueta}:${requestedPage}`}
             initialRows={rows}
             representantes={representantes}
             equipamentos={equipamentos}
             initialFilters={initialFilters}
+            currentPage={requestedPage}
+            hasNextPage={hasNextPage}
             currentUserId={currentUserId}
             lockUsuarioSelection={!canSelectUsuario}
             canShowEtiqueta50={dashboardAccessScope.isGerencia || dashboardAccessScope.isGestor}

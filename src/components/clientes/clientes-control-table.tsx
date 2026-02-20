@@ -32,7 +32,7 @@ type ClientesControlTableProps = {
   representantes: ClienteRepresentanteOption[];
   equipamentos: ClienteEquipamentoOption[];
   page: number;
-  pageSize: number;
+  hasNextPage: boolean;
   currentUserId: number | null;
   canShowEtiqueta50?: boolean;
   selectedIds: string[];
@@ -97,7 +97,7 @@ export function ClientesControlTable({
   representantes,
   equipamentos,
   page,
-  pageSize,
+  hasNextPage,
   currentUserId,
   canShowEtiqueta50 = false,
   selectedIds,
@@ -137,13 +137,11 @@ export function ClientesControlTable({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const columnsMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
-  const safePage = Math.min(Math.max(page, 1), totalPages);
-  const start = (safePage - 1) * pageSize;
-  const currentRows = rows.slice(start, start + pageSize);
+  const safePage = Math.max(1, Math.trunc(page));
+  const currentRows = rows;
   const selectedSet = new Set(selectedIds);
   const canGoPrev = safePage > 1;
-  const canGoNext = safePage < totalPages;
+  const canGoNext = hasNextPage;
   const visibleColumns = CLIENTES_TABLE_COLUMNS.filter((column) => visibleColumnKeys.includes(column.key));
   const totalTableColumns = visibleColumns.length + 2;
   const allColumnsSelected = visibleColumnKeys.length === CLIENTES_TABLE_COLUMNS.length;

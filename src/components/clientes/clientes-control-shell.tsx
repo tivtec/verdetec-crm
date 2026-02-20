@@ -19,12 +19,12 @@ type ClientesControlShellProps = {
   representantes: ClienteRepresentanteOption[];
   equipamentos: ClienteEquipamentoOption[];
   initialFilters: ClientesControlFiltersValue;
+  currentPage: number;
+  hasNextPage: boolean;
   currentUserId: number | null;
   lockUsuarioSelection?: boolean;
   canShowEtiqueta50?: boolean;
 };
-
-const PAGE_SIZE = 10;
 
 type LeadDuplicateInfo = {
   id?: number;
@@ -42,6 +42,8 @@ export function ClientesControlShell({
   representantes,
   equipamentos,
   initialFilters,
+  currentPage,
+  hasNextPage,
   currentUserId,
   lockUsuarioSelection = false,
   canShowEtiqueta50 = false,
@@ -49,7 +51,6 @@ export function ClientesControlShell({
   const pathname = usePathname();
   const router = useRouter();
   const [draftFilters, setDraftFilters] = useState<ClientesControlFiltersValue>(initialFilters);
-  const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBatchRepresentanteModalOpen, setIsBatchRepresentanteModalOpen] = useState(false);
   const [selectedBatchRepresentanteId, setSelectedBatchRepresentanteId] = useState("");
@@ -119,34 +120,41 @@ export function ClientesControlShell({
     return () => window.clearTimeout(timeout);
   }, [leadSuccessAlert]);
 
-  const totalPages = Math.max(1, Math.ceil(initialRows.length / PAGE_SIZE));
-  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const safePage = Math.max(1, Math.trunc(currentPage));
 
-  const handleSearch = (next: ClientesControlFiltersValue) => {
+  const buildClientesQuery = (filters: ClientesControlFiltersValue, page: number) => {
     const searchParams = new URLSearchParams();
 
-    if (next.usuario) {
-      searchParams.set("usuario", next.usuario);
+    if (filters.usuario) {
+      searchParams.set("usuario", filters.usuario);
     }
-    if (next.telefone.trim()) {
-      searchParams.set("telefone", next.telefone.trim());
+    if (filters.telefone.trim()) {
+      searchParams.set("telefone", filters.telefone.trim());
     }
-    if (next.nome.trim()) {
-      searchParams.set("nome", next.nome.trim());
+    if (filters.nome.trim()) {
+      searchParams.set("nome", filters.nome.trim());
     }
-    if (next.etiqueta.trim()) {
-      searchParams.set("etiqueta", next.etiqueta.trim());
+    if (filters.etiqueta.trim()) {
+      searchParams.set("etiqueta", filters.etiqueta.trim());
+    }
+    if (page > 1) {
+      searchParams.set("page", String(page));
     }
 
-    const query = searchParams.toString();
+    return searchParams.toString();
+  };
+
+  const handleSearch = (next: ClientesControlFiltersValue) => {
+    const query = buildClientesQuery(next, 1);
     router.push(query ? `${pathname}?${query}` : pathname);
-    setPage(1);
     setSelectedIds([]);
   };
 
   const handlePageChange = (next: number) => {
-    const clampedPage = Math.min(Math.max(next, 1), totalPages);
-    setPage(clampedPage);
+    const clampedPage = Math.max(next, 1);
+    const query = buildClientesQuery(initialFilters, clampedPage);
+    router.push(query ? `${pathname}?${query}` : pathname);
+    setSelectedIds([]);
   };
 
   const handleToggleSelect = (id: string) => {
@@ -397,7 +405,7 @@ export function ClientesControlShell({
           representantes={representantes}
           equipamentos={equipamentos}
           page={safePage}
-          pageSize={PAGE_SIZE}
+          hasNextPage={hasNextPage}
           currentUserId={currentUserId}
           canShowEtiqueta50={canShowEtiqueta50}
           selectedIds={selectedIds}

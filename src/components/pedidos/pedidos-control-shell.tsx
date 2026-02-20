@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -26,40 +26,50 @@ export type PedidosControlFiltersValue = {
 type PedidosControlShellProps = {
   initialRows: PedidoControleRow[];
   initialFilters: PedidosControlFiltersValue;
+  currentPage: number;
+  hasNextPage: boolean;
 };
 
-const PAGE_SIZE = 10;
+function buildPedidosQuery(filters: PedidosControlFiltersValue, page: number) {
+  const searchParams = new URLSearchParams();
+  const nome = filters.nome.trim();
+  const cep = filters.cep.trim();
 
-export function PedidosControlShell({ initialRows, initialFilters }: PedidosControlShellProps) {
+  if (nome.length > 0) {
+    searchParams.set("nome", nome);
+  }
+
+  if (cep.length > 0) {
+    searchParams.set("cep", cep);
+  }
+
+  if (page > 1) {
+    searchParams.set("page", String(page));
+  }
+
+  return searchParams.toString();
+}
+
+export function PedidosControlShell({
+  initialRows,
+  initialFilters,
+  currentPage,
+  hasNextPage,
+}: PedidosControlShellProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const [page, setPage] = useState(1);
   const [draftFilters, setDraftFilters] = useState<PedidosControlFiltersValue>(initialFilters);
-  const totalPages = Math.max(1, Math.ceil(initialRows.length / PAGE_SIZE));
-  const safePage = Math.min(Math.max(page, 1), totalPages);
-
-  const rows = useMemo(
-    () => initialRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
-    [initialRows, safePage],
-  );
 
   const handleSearch = () => {
-    const searchParams = new URLSearchParams();
-    const nome = draftFilters.nome.trim();
-    const cep = draftFilters.cep.trim();
-
-    if (nome.length > 0) {
-      searchParams.set("nome", nome);
-    }
-
-    if (cep.length > 0) {
-      searchParams.set("cep", cep);
-    }
-
-    const query = searchParams.toString();
+    const query = buildPedidosQuery(draftFilters, 1);
     router.push(query ? `${pathname}?${query}` : pathname);
-    setPage(1);
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    const safePage = Math.max(1, Math.trunc(nextPage));
+    const query = buildPedidosQuery(initialFilters, safePage);
+    router.push(query ? `${pathname}?${query}` : pathname);
   };
 
   return (
@@ -117,8 +127,8 @@ export function PedidosControlShell({ initialRows, initialFilters }: PedidosCont
             </tr>
           </thead>
           <tbody>
-            {rows.length > 0 ? (
-              rows.map((row) => (
+            {initialRows.length > 0 ? (
+              initialRows.map((row) => (
                 <tr key={row.id} className="bg-[#eef0f1] text-[#567275]">
                   <td className="rounded-l-xl px-4 py-3 text-sm">{row.data || "-"}</td>
                   <td className="px-4 py-3 text-sm">{row.nome || "-"}</td>
@@ -144,21 +154,21 @@ export function PedidosControlShell({ initialRows, initialFilters }: PedidosCont
           type="button"
           variant="secondary"
           size="lg"
-          onClick={() => setPage((current) => Math.max(1, current - 1))}
-          disabled={safePage <= 1}
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
           className="h-10 min-w-[95px] rounded-lg border-0 bg-[#0f5050] px-4 text-sm font-semibold text-white hover:bg-[#0c4343] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
           Anterior
         </Button>
 
-        <p className="text-sm text-[#444a4f]">Pagina[{safePage}]</p>
+        <p className="text-sm text-[#444a4f]">Pagina[{currentPage}]</p>
 
         <Button
           type="button"
           size="lg"
-          onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-          disabled={safePage >= totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={!hasNextPage}
           className="h-10 min-w-[95px] rounded-lg border-0 bg-[#0f5050] px-4 text-sm font-semibold text-white hover:bg-[#0c4343] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ChevronRight className="mr-1 h-4 w-4" />
