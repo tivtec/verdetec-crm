@@ -282,6 +282,27 @@ function normalizeLoose(value: string | null | undefined) {
     .trim();
 }
 
+function buildPhoneFuzzyLikePattern(phoneDigits: string) {
+  const digits = phoneDigits.replace(/\D/g, "");
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.length <= 4) {
+    return `%${digits}%`;
+  }
+
+  if (digits.length <= 7) {
+    return `%${digits.slice(0, -4)}%${digits.slice(-4)}%`;
+  }
+
+  const dddLength = digits.length > 10 ? digits.length - 9 : 2;
+  const ddd = digits.slice(0, dddLength);
+  const middle = digits.slice(dddLength, -4);
+  const tail = digits.slice(-4);
+  return `%${ddd}%${middle}%${tail}%`;
+}
+
 function toEtiquetaCode(value: string, fallback = "") {
   const digits = value.replace(/\D/g, "").slice(0, 2);
   if (!digits) {
@@ -384,6 +405,68 @@ function hasUsableClientesControleRows(rows: ClienteControleWebhookRow[]) {
     }
 
     return firstNonEmptyString(row, ["nome", "nome_pessoa", "pessoa_nome", "cliente", "nome_cliente"]).length > 0;
+  });
+}
+
+function hasAnyClientesControleFilter(filters: ClienteControleApiFilters) {
+  const usuarioId = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
+  return (
+    usuarioId > 0 ||
+    asString(filters.nome).trim().length > 0 ||
+    asString(filters.telefone).trim().length > 0 ||
+    asString(filters.etiqueta).trim().length > 0
+  );
+}
+
+function applyClientesControleLocalFilters(
+  rows: ClienteControleApiRow[],
+  filters: ClienteControleApiFilters,
+) {
+  if (!rows.length) {
+    return rows;
+  }
+
+  const selectedUsuario = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
+  const nomeFilter = normalizeLoose(asString(filters.nome));
+  const telefoneFilterRaw = asString(filters.telefone).trim();
+  const telefoneFilter = normalizeLoose(telefoneFilterRaw);
+  const telefoneFilterDigits = telefoneFilterRaw.replace(/\D/g, "");
+  const etiquetaFilterRaw = asString(filters.etiqueta);
+  const etiquetaFilterNormalized = normalizeLoose(etiquetaFilterRaw);
+  const etiquetaFilterCode = extractEtiquetaCode(etiquetaFilterRaw);
+
+  return rows.filter((row) => {
+    if (selectedUsuario > 0) {
+      const rowUsuarioId = typeof row.usuarioId === "number" ? Math.max(0, Math.trunc(row.usuarioId)) : 0;
+      if (rowUsuarioId > 0 && rowUsuarioId !== selectedUsuario) {
+        return false;
+      }
+    }
+
+    if (nomeFilter && !normalizeLoose(row.nome).includes(nomeFilter)) {
+      return false;
+    }
+
+    if (telefoneFilter) {
+      const telefoneRaw = asString(row.telefone).trim();
+      const telefoneNormalized = normalizeLoose(telefoneRaw);
+      const telefoneDigits = telefoneRaw.replace(/\D/g, "");
+      const matchesRaw = telefoneNormalized.includes(telefoneFilter);
+      const matchesDigits = telefoneFilterDigits.length > 0 && telefoneDigits.includes(telefoneFilterDigits);
+      if (!matchesRaw && !matchesDigits) {
+        return false;
+      }
+    }
+
+    if (etiquetaFilterCode.length > 0) {
+      return extractEtiquetaCode(row.etiqueta) === etiquetaFilterCode;
+    }
+
+    if (etiquetaFilterNormalized.length > 0) {
+      return normalizeLoose(row.etiqueta).includes(etiquetaFilterNormalized);
+    }
+
+    return true;
   });
 }
 
@@ -1054,12 +1137,25 @@ async function getClientesControleRowsFromAgregacao(
       .from("pessoa")
       .select("id,telefone")
       .not("id", "is", null)
-      .order("id", { ascending: false })
-      .limit(20000);
+      .order("id", { ascending: false });
 
     if (nomeFilterRaw.length > 0) {
       pessoaQuery = pessoaQuery.ilike("nome", `%${nomeFilterRaw}%`);
     }
+
+    if (telefoneFilterDigits.length > 0) {
+      const phoneFilters = new Set<string>();
+      phoneFilters.add(`telefone.ilike.%${telefoneFilterDigits}%`);
+
+      const fuzzyPhonePattern = buildPhoneFuzzyLikePattern(telefoneFilterDigits);
+      if (fuzzyPhonePattern && fuzzyPhonePattern !== `%${telefoneFilterDigits}%`) {
+        phoneFilters.add(`telefone.ilike.${fuzzyPhonePattern}`);
+      }
+
+      pessoaQuery = pessoaQuery.or(Array.from(phoneFilters).join(","));
+    }
+
+    pessoaQuery = pessoaQuery.limit(20000);
 
     const { data: pessoaSearchRows, error: pessoaSearchError } = await pessoaQuery;
     if (pessoaSearchError || !pessoaSearchRows?.length) {
@@ -1360,23 +1456,46 @@ export async function getClientesControleRows(
     const fallbackAgregacaoRows = await getClientesControleRowsFromAgregacao(filters);
     if (fallbackAgregacaoRows.length > 0) {
       const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgregacaoRows);
-      return enrichClientesRowsWithEquipamento(withEtiquetaDatas);
+      return applyClientesControleLocalFilters(
+        await enrichClientesRowsWithEquipamento(withEtiquetaDatas),
+        filters,
+      );
     }
 
     const fallbackAgendamentoRows = await getClientesControleRowsFromAgendamentos(filters);
     const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgendamentoRows);
-    return enrichClientesRowsWithEquipamento(withEtiquetaDatas);
+    return applyClientesControleLocalFilters(
+      await enrichClientesRowsWithEquipamento(withEtiquetaDatas),
+      filters,
+    );
   }
 
-  const mappedRows = await enrichClientesRowsWithEquipamento(
-    await enrichClientesRowsWithEtiquetaDatas(mapClientesControleRows(rows)),
+  const mappedRows = applyClientesControleLocalFilters(
+    await enrichClientesRowsWithEquipamento(
+      await enrichClientesRowsWithEtiquetaDatas(mapClientesControleRows(rows)),
+    ),
+    filters,
   );
-  const etiquetaCodeFilter = extractEtiquetaCode(etiqueta);
-  if (etiquetaCodeFilter.length === 0) {
+
+  if (mappedRows.length > 0 || !hasAnyClientesControleFilter(filters)) {
     return mappedRows;
   }
 
-  return mappedRows.filter((row) => extractEtiquetaCode(row.etiqueta) === etiquetaCodeFilter);
+  const fallbackAgregacaoRows = await getClientesControleRowsFromAgregacao(filters);
+  if (fallbackAgregacaoRows.length > 0) {
+    const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgregacaoRows);
+    return applyClientesControleLocalFilters(
+      await enrichClientesRowsWithEquipamento(withEtiquetaDatas),
+      filters,
+    );
+  }
+
+  const fallbackAgendamentoRows = await getClientesControleRowsFromAgendamentos(filters);
+  const fallbackWithEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgendamentoRows);
+  return applyClientesControleLocalFilters(
+    await enrichClientesRowsWithEquipamento(fallbackWithEtiquetaDatas),
+    filters,
+  );
 }
 
 type ClientesRepresentantesOptions = {
@@ -2566,6 +2685,7 @@ export async function getUsuariosControleRows(): Promise<UsuarioControleApiRow[]
 }
 
 export type DashboardFunilRow = {
+  usuarioId: number;
   nome: string;
   lead: number;
   plusL100: number;
@@ -2621,6 +2741,7 @@ export type DashboardFunilFilters = {
   verticalId?: string;
   allowedUsuarioIds?: number[];
   allowedUsuarioNomes?: string[];
+  allowedRepresentantes?: DashboardRepresentanteOption[];
 };
 
 export type DashboardRepresentanteOption = {
@@ -2664,6 +2785,7 @@ const DASHBOARD_VERTICAL_BY_TIPO: Record<string, string> = {
 
 const mockDashboardFunilRows: DashboardFunilRow[] = [
   {
+    usuarioId: 0,
     nome: "Ana S.",
     lead: 17,
     plusL100: 98,
@@ -2685,6 +2807,7 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     umbler: 2298,
   },
   {
+    usuarioId: 0,
     nome: "Edson T.",
     lead: 17,
     plusL100: 45,
@@ -2706,6 +2829,7 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     umbler: 2382,
   },
   {
+    usuarioId: 0,
     nome: "Evanderson U.",
     lead: 16,
     plusL100: 42,
@@ -2727,6 +2851,7 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     umbler: 432,
   },
   {
+    usuarioId: 0,
     nome: "Felipe P.",
     lead: 17,
     plusL100: 88,
@@ -2748,6 +2873,7 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     umbler: 472,
   },
   {
+    usuarioId: 0,
     nome: "Jaqueline O.",
     lead: 16,
     plusL100: 70,
@@ -2769,6 +2895,7 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     umbler: 1540,
   },
   {
+    usuarioId: 0,
     nome: "Lauriane A.",
     lead: 16,
     plusL100: 20,
@@ -2790,6 +2917,7 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     umbler: 1431,
   },
   {
+    usuarioId: 0,
     nome: "Lazaro S.",
     lead: 16,
     plusL100: 13,
@@ -2992,7 +3120,14 @@ function resolveVerticalForPayload(selectedVertical: string, selectedTipo: strin
 }
 
 function hasUsableDashboardRows(rows: DashboardWebhookRow[]) {
-  return rows.some((row) => Object.keys(row).length > 0 && asString(row.nome_usuario).length > 0);
+  return rows.some((row) => {
+    if (Object.keys(row).length === 0) {
+      return false;
+    }
+
+    const nome = firstNonEmptyString(row, ["nome_usuario", "usuario_nome", "nome"]);
+    return nome.length > 0;
+  });
 }
 
 function fallbackTipoByVertical(vertical: string) {
@@ -3185,29 +3320,194 @@ export async function getDashboardViewerAccessScope(): Promise<DashboardViewerAc
 }
 
 function buildDashboardRows(rows: DashboardWebhookRow[]): DashboardFunilRow[] {
+  const readNumber = (row: DashboardWebhookRow, keys: string[], fallback = 0) => {
+    for (const key of keys) {
+      if (!Object.prototype.hasOwnProperty.call(row, key)) {
+        continue;
+      }
+
+      const parsed = asNumber(row[key], Number.NaN);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+
+    return fallback;
+  };
+
+  const readString = (row: DashboardWebhookRow, keys: string[], fallback = "") => {
+    return firstNonEmptyString(row, keys, fallback);
+  };
+
   return rows
-    .filter((row) => asString(row.nome_usuario).length > 0)
+    .filter((row) => readString(row, ["nome_usuario", "usuario_nome", "nome"]).length > 0)
     .map((row) => ({
-      nome: asString(row.nome_usuario, "Sem nome"),
-      lead: asNumber(row.total_leads_qualificados, 0),
-      plusL100: asNumber(row.valor, 0),
-      l100: asNumber(row.valor_exebicao, 0),
-      n00: asNumber(row.etiqueta_00, 0),
-      n10: asNumber(row.etiqueta_10, 0),
-      n21: asNumber(row.etiqueta_21, 0),
-      n05: asNumber(row.etiqueta_05, 0),
-      n30: asNumber(row.etiqueta_30, 0),
-      n40: asNumber(row.etiqueta_40, 0),
-      n50: asNumber(row.etiqueta_50, 0),
-      n60: asNumber(row.etiqueta_60, 0),
-      n61: asNumber(row.etiqueta_61, 0),
-      n62: asNumber(row.etiqueta_62, 0),
-      n66: asNumber(row.etiqueta_66, 0),
-      tv: asNumber(row.media_dias_entre_entrada_e_conversao_individual, 0),
-      min: asString(row.des_dur_falada, "00:00:00"),
-      qtd: asNumber(row.quantidade_linhas, 0),
-      umbler: asNumber(row.mensagem_umbler, 0),
+      usuarioId: Math.max(
+        0,
+        Math.trunc(
+          readNumber(row, ["id_usuario", "usuario_id", "id_user", "idUsuario", "id"], 0),
+        ),
+      ),
+      nome: readString(row, ["nome_usuario", "usuario_nome", "nome"], "Sem nome"),
+      lead: readNumber(row, ["total_leads_qualificados", "lead", "leads", "qtde_etiquetas_selecionadas"], 0),
+      plusL100: readNumber(row, ["valor", "plus_l100", "plusL100"], 0),
+      l100: readNumber(row, ["valor_exebicao", "l100", "valor_exibicao"], 0),
+      n00: readNumber(row, ["etiqueta_00", "qtde_etiqueta_00", "n00"], 0),
+      n10: readNumber(row, ["etiqueta_10", "qtde_etiqueta_10", "n10"], 0),
+      n21: readNumber(row, ["etiqueta_21", "qtde_etiqueta_21", "n21"], 0),
+      n05: readNumber(row, ["etiqueta_05", "qtde_etiqueta_05", "n05"], 0),
+      n30: readNumber(row, ["etiqueta_30", "qtde_etiqueta_30", "n30"], 0),
+      n40: readNumber(row, ["etiqueta_40", "qtde_etiqueta_40", "n40"], 0),
+      n50: readNumber(row, ["etiqueta_50", "qtde_etiqueta_50", "n50"], 0),
+      n60: readNumber(row, ["etiqueta_60", "qtde_etiqueta_60", "n60"], 0),
+      n61: readNumber(row, ["etiqueta_61", "qtde_etiqueta_61", "n61"], 0),
+      n62: readNumber(row, ["etiqueta_62", "qtde_etiqueta_62", "n62"], 0),
+      n66: readNumber(row, ["etiqueta_66", "qtde_etiqueta_66", "n66"], 0),
+      tv: readNumber(
+        row,
+        [
+          "media_dias_entre_entrada_e_conversao_individual",
+          "media_dias_entre_entrada_e_conversao",
+          "tv",
+        ],
+        0,
+      ),
+      min: readString(row, ["des_dur_falada", "duracao_falada", "min"], "00:00:00"),
+      qtd: readNumber(row, ["quantidade_linhas", "total_quantidade_linhas", "qtd"], 0),
+      umbler: readNumber(row, ["mensagem_umbler", "mensagens_umbler", "total_mensagens_gerais", "umbler"], 0),
     }));
+}
+
+function dashboardIsEtiqueta50Value(value: unknown) {
+  const raw = asString(value).trim();
+  if (!raw) {
+    return false;
+  }
+
+  const normalized = raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (normalized === "#50" || normalized === "50") {
+    return true;
+  }
+
+  if (normalized.includes("#50")) {
+    return true;
+  }
+
+  return normalized.startsWith("50 ");
+}
+
+function buildDayBoundsIso(inputDate: string, endInputDate?: string) {
+  const normalizedStart = normalizeInputDate(inputDate);
+  const normalizedEnd = normalizeInputDate(endInputDate ?? inputDate, normalizedStart);
+  return {
+    startIso: `${normalizedStart}T00:00:00`,
+    endIso: `${normalizedEnd}T23:59:59.999`,
+  };
+}
+
+async function loadDashboardEtiqueta50ByUsuario(
+  dataInicioInput: string,
+  dataFimInput: string,
+  usuarioIds: number[],
+) {
+  const normalizedIds = Array.from(
+    new Set(
+      usuarioIds
+        .map((id) => Math.max(0, Math.trunc(asNumber(id, 0))))
+        .filter((id) => id > 0),
+    ),
+  );
+
+  if (!normalizedIds.length) {
+    return new Map<number, number>();
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { startIso, endIso } = buildDayBoundsIso(dataInicioInput, dataFimInput);
+    const agregacaoRows: Array<{ id_usuario: number; id_etiqueta: number }> = [];
+    const userChunkSize = 100;
+    for (let userIndex = 0; userIndex < normalizedIds.length; userIndex += userChunkSize) {
+      const userChunk = normalizedIds.slice(userIndex, userIndex + userChunkSize);
+      let offset = 0;
+      const pageSize = 2000;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from("agregacao")
+          .select("id_usuario,id_etiqueta,data_criacao")
+          .in("id_usuario", userChunk)
+          .gte("data_criacao", startIso)
+          .lte("data_criacao", endIso)
+          .range(offset, offset + pageSize - 1);
+
+        if (error || !data?.length) {
+          break;
+        }
+
+        for (const row of data as Array<Record<string, unknown>>) {
+          const idUsuario = Math.max(0, Math.trunc(asNumber(row.id_usuario, 0)));
+          const idEtiqueta = Math.max(0, Math.trunc(asNumber(row.id_etiqueta, 0)));
+          if (idUsuario <= 0 || idEtiqueta <= 0) {
+            continue;
+          }
+
+          agregacaoRows.push({
+            id_usuario: idUsuario,
+            id_etiqueta: idEtiqueta,
+          });
+        }
+
+        if (data.length < pageSize) {
+          break;
+        }
+
+        offset += pageSize;
+      }
+    }
+
+    if (!agregacaoRows.length) {
+      return new Map<number, number>();
+    }
+
+    const etiquetaIds = Array.from(new Set(agregacaoRows.map((row) => row.id_etiqueta)));
+    const etiquetaById = new Map<number, string>();
+    const etiquetaChunkSize = 1000;
+    for (let etiquetaIndex = 0; etiquetaIndex < etiquetaIds.length; etiquetaIndex += etiquetaChunkSize) {
+      const idChunk = etiquetaIds.slice(etiquetaIndex, etiquetaIndex + etiquetaChunkSize);
+      const { data, error } = await supabase.from("etiqueta").select("id,etiqueta").in("id", idChunk);
+      if (error || !data?.length) {
+        continue;
+      }
+
+      for (const row of data as Array<Record<string, unknown>>) {
+        const idEtiqueta = Math.max(0, Math.trunc(asNumber(row.id, 0)));
+        if (idEtiqueta <= 0) {
+          continue;
+        }
+
+        etiquetaById.set(idEtiqueta, asString(row.etiqueta, ""));
+      }
+    }
+
+    const countByUsuario = new Map<number, number>();
+    for (const row of agregacaoRows) {
+      const etiquetaValue = etiquetaById.get(row.id_etiqueta);
+      if (!dashboardIsEtiqueta50Value(etiquetaValue)) {
+        continue;
+      }
+
+      countByUsuario.set(row.id_usuario, (countByUsuario.get(row.id_usuario) ?? 0) + 1);
+    }
+
+    return countByUsuario;
+  } catch {
+    return new Map<number, number>();
+  }
 }
 
 function sumBy(rows: DashboardFunilRow[], key: keyof DashboardFunilRow) {
@@ -3291,6 +3591,8 @@ function normalizeDashboardComparableName(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
     .toLowerCase()
     .trim();
 }
@@ -3300,7 +3602,7 @@ function rowBelongsToAllowedDashboardUsers(
   allowedIds: Set<number>,
   allowedNames: Set<string>,
 ) {
-  const nomeUsuario = asString(row.nome_usuario).trim();
+  const nomeUsuario = firstNonEmptyString(row, ["nome_usuario", "usuario_nome", "nome"]);
   if (!nomeUsuario) {
     return false;
   }
@@ -3476,13 +3778,448 @@ function buildPayloadAttempts(
   return Array.from(uniqueAttempts.values());
 }
 
+type DashboardSupabaseClient = Awaited<ReturnType<typeof createServerSupabaseClient>>;
+
+type DashboardEligibleUsuario = {
+  id: number;
+  nome: string;
+};
+
+type DashboardEtiquetaCounters = {
+  lead: number;
+  n00: number;
+  n10: number;
+  n21: number;
+  n05: number;
+  n30: number;
+  n40: number;
+  n50: number;
+  n60: number;
+  n61: number;
+  n62: number;
+  n66: number;
+};
+
+function emptyDashboardEtiquetaCounters(): DashboardEtiquetaCounters {
+  return {
+    lead: 0,
+    n00: 0,
+    n10: 0,
+    n21: 0,
+    n05: 0,
+    n30: 0,
+    n40: 0,
+    n50: 0,
+    n60: 0,
+    n61: 0,
+    n62: 0,
+    n66: 0,
+  };
+}
+
+function resolveDashboardEtiquetaCounterKey(value: unknown): keyof Omit<DashboardEtiquetaCounters, "lead"> | null {
+  const raw = asString(value).trim();
+  if (!raw) {
+    return null;
+  }
+
+  const match = raw.match(/#?\s*(\d{2})/);
+  if (!match) {
+    return null;
+  }
+
+  switch (match[1]) {
+    case "00":
+      return "n00";
+    case "10":
+      return "n10";
+    case "21":
+      return "n21";
+    case "05":
+      return "n05";
+    case "30":
+      return "n30";
+    case "40":
+      return "n40";
+    case "50":
+      return "n50";
+    case "60":
+      return "n60";
+    case "61":
+      return "n61";
+    case "62":
+      return "n62";
+    case "66":
+      return "n66";
+    default:
+      return null;
+  }
+}
+
+function readDashboardViewString(
+  row: Record<string, unknown> | undefined,
+  keys: string[],
+  fallback = "",
+) {
+  if (!row) {
+    return fallback;
+  }
+
+  return firstNonEmptyString(row, keys, fallback);
+}
+
+function readDashboardViewNumber(
+  row: Record<string, unknown> | undefined,
+  keys: string[],
+  fallback = 0,
+) {
+  if (!row) {
+    return fallback;
+  }
+
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(row, key)) {
+      continue;
+    }
+
+    const parsed = asNumber(row[key], Number.NaN);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+function parseDashboardDurationToSecondsFlexible(value: unknown) {
+  const raw = asString(value).trim();
+  if (!raw) {
+    return 0;
+  }
+
+  const parts = raw.split(":");
+  if (parts.length !== 3) {
+    return 0;
+  }
+
+  const hours = Number.parseInt(parts[0], 10);
+  const minutes = Number.parseInt(parts[1], 10);
+  const seconds = Number.parseInt(parts[2], 10);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+    return 0;
+  }
+
+  return Math.max(0, hours * 3600 + minutes * 60 + seconds);
+}
+
+async function loadDashboardFunilEligibleUsuarios(
+  supabase: DashboardSupabaseClient,
+  options: {
+    selectedTipo: string;
+    selectedUsuario: number;
+    selectedVertical: string;
+    allowedIds: Set<number>;
+    allowedNames: Set<string>;
+  },
+) {
+  const { selectedTipo, selectedUsuario, selectedVertical, allowedIds, allowedNames } = options;
+
+  try {
+    let query = supabase
+      .from("usuarios")
+      .select("id,nome,tipo_acesso_2,id_vertical")
+      .eq("usuario_ativo", true)
+      .limit(5000);
+
+    if (selectedUsuario > 0) {
+      query = query.eq("id", selectedUsuario);
+    } else {
+      if (selectedTipo.length > 0) {
+        const tipoCandidates = Array.from(new Set(getTipoCandidates(selectedTipo)));
+        query =
+          tipoCandidates.length > 1
+            ? query.in("tipo_acesso_2", tipoCandidates)
+            : query.eq("tipo_acesso_2", tipoCandidates[0] ?? selectedTipo);
+      }
+
+      if (selectedVertical.length > 0) {
+        query = query.eq("id_vertical", selectedVertical);
+      }
+    }
+
+    const { data, error } = await query;
+    if (error || !data?.length) {
+      return [] as DashboardEligibleUsuario[];
+    }
+
+    let rows = (data as Array<Record<string, unknown>>)
+      .map((row) => ({
+        id: Math.max(0, Math.trunc(asNumber(row.id, 0))),
+        nome: asString(row.nome).trim(),
+      }))
+      .filter((row) => row.id > 0 && row.nome.length > 0);
+
+    if (allowedIds.size > 0) {
+      rows = rows.filter((row) => allowedIds.has(row.id));
+    } else if (allowedNames.size > 0) {
+      rows = rows.filter((row) => allowedNames.has(normalizeDashboardComparableName(row.nome)));
+    }
+
+    return rows.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  } catch {
+    return [] as DashboardEligibleUsuario[];
+  }
+}
+
+async function loadDashboardPrincipalViewRowsByName(
+  supabase: DashboardSupabaseClient,
+) {
+  try {
+    const rawClient = supabase as unknown as {
+      from: (table: string) => {
+        select: (columns?: string) => Promise<{ data: Array<Record<string, unknown>> | null; error: unknown }>;
+      };
+    };
+
+    const { data, error } = await rawClient.from("vw_dashboard_principal").select("*");
+    if (error || !data?.length) {
+      return new Map<string, Record<string, unknown>>();
+    }
+
+    const byName = new Map<string, Record<string, unknown>>();
+    for (const row of data) {
+      const nome = readDashboardViewString(row, ["Nome", "nome"], "").trim();
+      const normalizedName = normalizeDashboardComparableName(nome);
+      if (!normalizedName) {
+        continue;
+      }
+
+      if (!byName.has(normalizedName)) {
+        byName.set(normalizedName, row);
+      }
+    }
+
+    return byName;
+  } catch {
+    return new Map<string, Record<string, unknown>>();
+  }
+}
+
+async function loadDashboardEtiquetaCountersByUsuario(
+  supabase: DashboardSupabaseClient,
+  userIds: number[],
+  startIso: string,
+  endIso: string,
+) {
+  const result = new Map<number, DashboardEtiquetaCounters>();
+  if (!userIds.length) {
+    return result;
+  }
+
+  const agregacaoRows: Array<{ id_usuario: number; id_etiqueta: number }> = [];
+  const chunkSize = 200;
+  const pageSize = 1000;
+  for (let index = 0; index < userIds.length; index += chunkSize) {
+    const chunk = userIds.slice(index, index + chunkSize);
+    let offset = 0;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from("agregacao")
+        .select("id_usuario,id_etiqueta,data_criacao")
+        .in("id_usuario", chunk)
+        .gte("data_criacao", startIso)
+        .lte("data_criacao", endIso)
+        .order("data_criacao", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+
+      if (error || !data?.length) {
+        break;
+      }
+
+      for (const row of data as Array<Record<string, unknown>>) {
+        const idUsuario = Math.max(0, Math.trunc(asNumber(row.id_usuario, 0)));
+        const idEtiqueta = Math.max(0, Math.trunc(asNumber(row.id_etiqueta, 0)));
+        if (idUsuario <= 0) {
+          continue;
+        }
+
+        if (idEtiqueta <= 0) {
+          continue;
+        }
+
+        agregacaoRows.push({
+          id_usuario: idUsuario,
+          id_etiqueta: idEtiqueta,
+        });
+      }
+
+      if (data.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
+  }
+
+  if (!agregacaoRows.length) {
+    return result;
+  }
+
+  const etiquetaIds = Array.from(new Set(agregacaoRows.map((row) => row.id_etiqueta)));
+  const etiquetaById = new Map<number, string>();
+  const etiquetaChunkSize = 1000;
+  for (let index = 0; index < etiquetaIds.length; index += etiquetaChunkSize) {
+    const chunk = etiquetaIds.slice(index, index + etiquetaChunkSize);
+    const { data, error } = await supabase.from("etiqueta").select("id,etiqueta").in("id", chunk);
+    if (error || !data?.length) {
+      continue;
+    }
+
+    for (const row of data as Array<Record<string, unknown>>) {
+      const idEtiqueta = Math.max(0, Math.trunc(asNumber(row.id, 0)));
+      if (idEtiqueta <= 0) {
+        continue;
+      }
+
+      etiquetaById.set(idEtiqueta, asString(row.etiqueta, ""));
+    }
+  }
+
+  for (const row of agregacaoRows) {
+    const etiqueta = etiquetaById.get(row.id_etiqueta);
+    const key = resolveDashboardEtiquetaCounterKey(etiqueta);
+    if (!key) {
+      continue;
+    }
+
+    const counters = result.get(row.id_usuario) ?? emptyDashboardEtiquetaCounters();
+    counters[key] += 1;
+    if (key === "n00" || key === "n21") {
+      counters.lead += 1;
+    }
+
+    result.set(row.id_usuario, counters);
+  }
+
+  return result;
+}
+
+async function loadDashboardZenviaStatsByUsuario(
+  supabase: DashboardSupabaseClient,
+  userIds: number[],
+  startIso: string,
+  endIso: string,
+) {
+  const secondsByUsuario = new Map<number, number>();
+  const countByUsuario = new Map<number, number>();
+
+  if (!userIds.length) {
+    return { secondsByUsuario, countByUsuario };
+  }
+
+  const chunkSize = 200;
+  const pageSize = 1000;
+  for (let index = 0; index < userIds.length; index += chunkSize) {
+    const chunk = userIds.slice(index, index + chunkSize);
+    let offset = 0;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from("zenvia")
+        .select("id_usuario,des_dur_falada,data_ligacao")
+        .in("id_usuario", chunk)
+        .gte("data_ligacao", startIso)
+        .lte("data_ligacao", endIso)
+        .order("data_ligacao", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+
+      if (error || !data?.length) {
+        break;
+      }
+
+      for (const row of data as Array<Record<string, unknown>>) {
+        const idUsuario = Math.max(0, Math.trunc(asNumber(row.id_usuario, 0)));
+        if (idUsuario <= 0) {
+          continue;
+        }
+
+        countByUsuario.set(idUsuario, (countByUsuario.get(idUsuario) ?? 0) + 1);
+        const seconds = parseDashboardDurationToSecondsFlexible(row.des_dur_falada);
+        if (seconds > 0) {
+          secondsByUsuario.set(idUsuario, (secondsByUsuario.get(idUsuario) ?? 0) + seconds);
+        }
+      }
+
+      if (data.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
+  }
+
+  return { secondsByUsuario, countByUsuario };
+}
+
+async function loadDashboardWassiTotalsByUsuario(
+  supabase: DashboardSupabaseClient,
+  userIds: number[],
+  startIso: string,
+  endIso: string,
+) {
+  const totals = new Map<number, number>();
+  if (!userIds.length) {
+    return totals;
+  }
+
+  const chunkSize = 200;
+  const pageSize = 1000;
+  for (let index = 0; index < userIds.length; index += chunkSize) {
+    const chunk = userIds.slice(index, index + chunkSize);
+    let offset = 0;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from("wassi")
+        .select("id_usuarios,qtd_mensagens,data_mensagem")
+        .in("id_usuarios", chunk)
+        .gte("data_mensagem", startIso)
+        .lte("data_mensagem", endIso)
+        .order("data_mensagem", { ascending: true })
+        .range(offset, offset + pageSize - 1);
+
+      if (error || !data?.length) {
+        break;
+      }
+
+      for (const row of data as Array<Record<string, unknown>>) {
+        const idUsuario = Math.max(0, Math.trunc(asNumber(row.id_usuarios, 0)));
+        if (idUsuario <= 0) {
+          continue;
+        }
+
+        const quantidade = asNumber(row.qtd_mensagens, 0);
+        totals.set(idUsuario, (totals.get(idUsuario) ?? 0) + quantidade);
+      }
+
+      if (data.length < pageSize) {
+        break;
+      }
+
+      offset += pageSize;
+    }
+  }
+
+  return totals;
+}
+
 export async function getDashboardFunilSnapshot(
   filters: DashboardFunilFilters = {},
 ): Promise<DashboardFunilSnapshot> {
   const defaultDateRange = getDefaultDateRangeInput();
   const dataInicioInput = normalizeInputDate(filters.dataInicioInput, defaultDateRange.dataInicio);
   const dataFimInput = normalizeInputDate(filters.dataFimInput, defaultDateRange.dataFim);
-  const context = await getCurrentDashboardContext();
   const selectedTipo = normalizeTipoAcesso2(filters.tipoAcesso2);
   const selectedUsuario = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
   const selectedVertical = asString(filters.verticalId, "").trim();
@@ -3496,69 +4233,116 @@ export async function getDashboardFunilSnapshot(
       .map((nome) => normalizeDashboardComparableName(asString(nome)))
       .filter((nome) => nome.length > 0),
   );
-  const hasEligibilityFilter = allowedIds.size > 0 || allowedNames.size > 0;
-  const hasExplicitVerticalFilter = typeof filters.verticalId !== "undefined";
+  const allowedRepresentanteIdByName = new Map<string, number>();
+  for (const representante of filters.allowedRepresentantes ?? []) {
+    const id = Math.max(0, Math.trunc(asNumber(representante.id, 0)));
+    const normalizedName = normalizeDashboardComparableName(asString(representante.nome));
+    if (id <= 0 || normalizedName.length === 0) {
+      continue;
+    }
+    if (!allowedRepresentanteIdByName.has(normalizedName)) {
+      allowedRepresentanteIdByName.set(normalizedName, id);
+    }
+  }
   const strictTipo = selectedTipo.length > 0;
   const strictUsuario = selectedUsuario > 0;
+  try {
+    const supabase = await createServerSupabaseClient();
+    const eligibleUsers = await loadDashboardFunilEligibleUsuarios(supabase, {
+      selectedTipo,
+      selectedUsuario,
+      selectedVertical,
+      allowedIds,
+      allowedNames,
+    });
 
-  const basePayload: DashboardWebhookPayload = {
-    p_data_inicio: toWebhookDate(dataInicioInput),
-    p_data_fim: toWebhookDate(dataFimInput),
-    vertical: hasExplicitVerticalFilter
-      ? selectedVertical
-      : resolveVerticalForPayload(selectedVertical, selectedTipo, context.vertical),
-    p_tipo_acesso_2: selectedTipo,
-    p_id_usuario: selectedUsuario,
-  };
-
-  let payloadRows: DashboardWebhookRow[] = [];
-
-  for (const payload of buildPayloadAttempts(basePayload, { strictTipo, strictUsuario })) {
-    payloadRows = await fetchDashboardWebhookRows(payload);
-    if (hasEligibilityFilter) {
-      payloadRows = payloadRows.filter((row) => rowBelongsToAllowedDashboardUsers(row, allowedIds, allowedNames));
-    }
-    if (hasUsableDashboardRows(payloadRows)) {
-      break;
-    }
-  }
-
-  if (!hasUsableDashboardRows(payloadRows)) {
-    if (strictTipo || strictUsuario) {
+    if (!eligibleUsers.length) {
       return {
-        rows: [],
-        totals: emptyDashboardFunilTotals,
+        rows: strictTipo || strictUsuario ? [] : mockDashboardFunilRows,
+        totals: strictTipo || strictUsuario ? emptyDashboardFunilTotals : mockDashboardFunilTotals,
+      };
+    }
+
+    const normalizedIds = eligibleUsers.map((user) => user.id);
+    const { startIso, endIso } = buildDayBoundsIso(dataInicioInput, dataFimInput);
+
+    const [viewRowsByName, etiquetaByUsuario, zenviaStats, wassiByUsuario] = await Promise.all([
+      loadDashboardPrincipalViewRowsByName(supabase),
+      loadDashboardEtiquetaCountersByUsuario(supabase, normalizedIds, startIso, endIso),
+      loadDashboardZenviaStatsByUsuario(supabase, normalizedIds, startIso, endIso),
+      loadDashboardWassiTotalsByUsuario(supabase, normalizedIds, startIso, endIso),
+    ]);
+
+    const rows = eligibleUsers
+      .map((user) => {
+        const normalizedName = normalizeDashboardComparableName(user.nome);
+        const viewRow = viewRowsByName.get(normalizedName);
+        const inferredId = allowedRepresentanteIdByName.get(normalizedName) ?? 0;
+        const etiqueta = etiquetaByUsuario.get(user.id) ?? emptyDashboardEtiquetaCounters();
+        const seconds = zenviaStats.secondsByUsuario.get(user.id) ?? 0;
+        const qtdLigacoes = zenviaStats.countByUsuario.get(user.id) ?? 0;
+        const umbler = wassiByUsuario.get(user.id) ?? 0;
+        const viewMinNumber = readDashboardViewNumber(viewRow, ["Min", "min"], 0);
+        const viewTvText = readDashboardViewString(viewRow, ["TV", "tv"], "00:00:00");
+        const durationSecondsFallback = parseDashboardDurationToSecondsFlexible(viewTvText);
+        const tvFromDuration = durationSecondsFallback > 0 ? Math.round(durationSecondsFallback / 60) : 0;
+        const tv = seconds > 0 ? Math.round(seconds / 60) : viewMinNumber || tvFromDuration;
+
+        return {
+          usuarioId: user.id > 0 ? user.id : inferredId,
+          nome: user.nome,
+          lead: etiqueta.lead,
+          plusL100: readDashboardViewNumber(viewRow, ["+L100", "plusL100", "valor"], 0),
+          l100: readDashboardViewNumber(viewRow, ["L100", "l100", "valor_exebicao", "valor_exibicao"], 0),
+          n00: etiqueta.n00,
+          n10: etiqueta.n10,
+          n21: etiqueta.n21,
+          n05: etiqueta.n05,
+          n30: etiqueta.n30,
+          n40: etiqueta.n40,
+          n50: etiqueta.n50,
+          n60: etiqueta.n60,
+          n61: etiqueta.n61,
+          n62: etiqueta.n62,
+          n66: etiqueta.n66,
+          tv,
+          min:
+            seconds > 0
+              ? formatDashboardDuration(seconds)
+              : durationSecondsFallback > 0
+                ? formatDashboardDuration(durationSecondsFallback)
+                : "00:00:00",
+          qtd: qtdLigacoes,
+          umbler,
+        } satisfies DashboardFunilRow;
+      })
+      .sort((a, b) => {
+        if (b.lead !== a.lead) {
+          return b.lead - a.lead;
+        }
+
+        return a.nome.localeCompare(b.nome, "pt-BR");
+      });
+
+    if (!rows.length) {
+      return {
+        rows: strictTipo || strictUsuario ? [] : mockDashboardFunilRows,
+        totals: strictTipo || strictUsuario ? emptyDashboardFunilTotals : mockDashboardFunilTotals,
       };
     }
 
     return {
-      rows: mockDashboardFunilRows,
-      totals: mockDashboardFunilTotals,
+      rows,
+      totals: buildDashboardTotals(rows, [], {
+        usePayloadSourceTotals: false,
+      }),
     };
-  }
-
-  const rows = buildDashboardRows(payloadRows);
-
-  if (!rows.length) {
-    if (strictTipo || strictUsuario) {
-      return {
-        rows: [],
-        totals: emptyDashboardFunilTotals,
-      };
-    }
-
+  } catch {
     return {
-      rows: mockDashboardFunilRows,
-      totals: mockDashboardFunilTotals,
+      rows: strictTipo || strictUsuario ? [] : mockDashboardFunilRows,
+      totals: strictTipo || strictUsuario ? emptyDashboardFunilTotals : mockDashboardFunilTotals,
     };
   }
-
-  return {
-    rows,
-    totals: buildDashboardTotals(rows, payloadRows, {
-      usePayloadSourceTotals: !hasEligibilityFilter,
-    }),
-  };
 }
 
 export type DashboardRetratoRow = {

@@ -76,6 +76,11 @@ function toEtiquetaCode(label: string) {
   return `#${digits.padStart(2, "0")}`;
 }
 
+function getEtiquetaCodeFromValue(value: unknown) {
+  const code = toEtiquetaCode(asLabel(value));
+  return code.toUpperCase();
+}
+
 function toNumberValue(value: string) {
   const cleaned = value.replace(/[^\d,.-]/g, "").trim();
   if (!cleaned) {
@@ -183,6 +188,59 @@ async function getAgregacaoEtiquetaCode(idAgregacao: number) {
   }
 
   return asLabel((etiquetaRow as Record<string, unknown>).etiqueta).toUpperCase();
+}
+
+async function resolveLatestEtiquetaIdByPessoa(
+  pessoaId: number,
+  expectedEtiquetaCode: string,
+) {
+  const admin = createAdminSupabaseClient();
+  const { data, error } = await admin
+    .from("etiqueta")
+    .select("id,etiqueta")
+    .eq("id_pessoa", pessoaId)
+    .order("id", { ascending: false })
+    .limit(100);
+
+  if (error || !data?.length) {
+    return null;
+  }
+
+  for (const row of data as Array<Record<string, unknown>>) {
+    const idEtiqueta = asPositiveInt(row.id);
+    if (!idEtiqueta) {
+      continue;
+    }
+
+    const rowCode = getEtiquetaCodeFromValue(row.etiqueta);
+    if (expectedEtiquetaCode && rowCode !== expectedEtiquetaCode) {
+      continue;
+    }
+
+    return idEtiqueta;
+  }
+
+  const latestId = asPositiveInt((data[0] as Record<string, unknown>).id);
+  return latestId ?? null;
+}
+
+async function syncAgregacaoEtiquetaWithLatestPessoaEtiqueta(
+  idAgregacao: number,
+  pessoaId: number,
+  expectedEtiquetaCode: string,
+) {
+  const latestEtiquetaId = await resolveLatestEtiquetaIdByPessoa(pessoaId, expectedEtiquetaCode);
+  if (!latestEtiquetaId) {
+    return false;
+  }
+
+  const admin = createAdminSupabaseClient();
+  const { error } = await admin
+    .from("agregacao")
+    .update({ id_etiqueta: latestEtiquetaId })
+    .eq("id", idAgregacao);
+
+  return !error;
 }
 
 async function delay(ms: number) {
@@ -375,6 +433,7 @@ export async function POST(request: NextRequest) {
   };
   const expectedEtiqueta = toEtiquetaCode(etiquetaCode);
   const beforeEtiqueta = await getAgregacaoEtiquetaCode(idAgregacao);
+  const pessoaId = asPositiveInt(payload.id_pessoa) ?? (await resolvePessoaIdByAgregacao(idAgregacao));
 
   try {
     const response = await fetch(UPDATE_ETIQUETA_ENDPOINT, {
@@ -416,6 +475,30 @@ export async function POST(request: NextRequest) {
       await delay(1200);
     }
 
+    const syncAttempted = Boolean(expectedEtiqueta && pessoaId);
+    let synced = false;
+    if (expectedEtiqueta && pessoaId) {
+      synced = await syncAgregacaoEtiquetaWithLatestPessoaEtiqueta(idAgregacao, pessoaId, expectedEtiqueta);
+      if (synced) {
+        const syncedEtiqueta = await getAgregacaoEtiquetaCode(idAgregacao);
+        if (syncedEtiqueta) {
+          afterEtiqueta = syncedEtiqueta;
+        }
+
+        if (syncedEtiqueta === expectedEtiqueta) {
+          return NextResponse.json({
+            ok: true,
+            confirmed: true,
+            synced: true,
+            result: parsedBody,
+            sent: webhookPayload,
+            etiqueta_before: beforeEtiqueta,
+            etiqueta_after: syncedEtiqueta,
+          });
+        }
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       confirmed: false,
@@ -425,6 +508,8 @@ export async function POST(request: NextRequest) {
       etiqueta_before: beforeEtiqueta,
       etiqueta_after: afterEtiqueta,
       expected: expectedEtiqueta,
+      sync_attempted: syncAttempted,
+      synced,
       webhook_result: parsedBody,
     });
   } catch {

@@ -571,6 +571,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       verticalId: selectedVerticalId,
       allowedUsuarioIds: representantes.map((representante) => representante.id),
       allowedUsuarioNomes: representantes.map((representante) => representante.nome),
+      allowedRepresentantes: representantes,
     });
   } else {
     if (activeView === "retrato") {
