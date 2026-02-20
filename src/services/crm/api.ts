@@ -2317,17 +2317,16 @@ const mockPedidos: Pedido[] = [
   },
 ];
 
-type PedidoControleRpcPayload = {
-  limit: string;
-  offset: string;
-  user_id: string;
-};
-
 type PedidoControleRpcRow = {
   id?: string | number | null;
   pedido_uuid?: string | null;
   uuid?: string | null;
   nome?: string | null;
+  cep?: string | number | null;
+  cidade?: string | null;
+  uf_estado?: string | null;
+  estado?: string | null;
+  metragem?: string | number | null;
   nome_pessoa?: string | null;
   pessoa_nome?: string | null;
   cliente?: string | null;
@@ -2347,9 +2346,12 @@ type PedidoControleRpcRow = {
 
 export type PedidoControleApiRow = {
   id: string;
-  nome: string;
-  telefone: string;
   data: string;
+  nome: string;
+  cep: string;
+  cidade: string;
+  estado: string;
+  metragem: string;
   status: string;
 };
 
@@ -2357,15 +2359,9 @@ export type PedidoControleApiFilters = {
   limit?: number;
   offset?: number;
   userId?: number | null;
+  nome?: string;
+  cep?: string;
 };
-
-const PEDIDOS_CONTROLE_RPC_ENDPOINT =
-  process.env.PEDIDOS_CONTROLE_RPC_ENDPOINT ??
-  "https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/fluterflow_listar_pedidos2";
-
-const PEDIDOS_CONTROLE_API_KEY =
-  process.env.PEDIDOS_CONTROLE_API_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpvc2R4dW50dmhyemp1dG12ZHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjY4NTE3MDQsImV4cCI6MjA0MjQyNzcwNH0.Yz9v10j4W3jG4lkHjuYj_ca3dp66PGcLlVJllQVrYUY";
 
 function formatPedidosControleDate(value: unknown) {
   const raw = asString(value).trim();
@@ -2409,64 +2405,47 @@ function mapPedidosControleStatus(row: PedidoControleRpcRow) {
 function mapPedidosControleRows(rows: PedidoControleRpcRow[]): PedidoControleApiRow[] {
   return rows.map((row, index) => ({
     id: asString(row.id ?? row.pedido_uuid ?? row.uuid, String(index + 1)),
-    nome: asString(row.nome ?? row.nome_pessoa ?? row.pessoa_nome ?? row.cliente, "").trim() || "-",
-    telefone:
-      asString(row.telefone ?? row.fone ?? row.whatsapp ?? row.pessoa_telefone, "").trim() || "-",
     data: formatPedidosControleDate(
       row.data ?? row.data_criacao ?? row.created_at ?? row.criado_em ?? row.inicio_reuniao,
     ),
+    nome: asString(row.nome ?? row.nome_pessoa ?? row.pessoa_nome ?? row.cliente, "").trim() || "-",
+    cep: asString(row.cep).trim() || "-",
+    cidade: asString(row.cidade).trim() || "-",
+    estado: asString(row.uf_estado ?? row.estado).trim() || "-",
+    metragem: asString(row.metragem).trim() || "-",
     status: mapPedidosControleStatus(row),
   }));
-}
-
-async function fetchPedidosControleRpcRows(payload: PedidoControleRpcPayload) {
-  const response = await fetch(PEDIDOS_CONTROLE_RPC_ENDPOINT, {
-    method: "POST",
-    headers: {
-      apikey: PEDIDOS_CONTROLE_API_KEY,
-      Authorization: `Bearer ${PEDIDOS_CONTROLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return [] as PedidoControleRpcRow[];
-  }
-
-  const text = await response.text();
-  if (!text.trim()) {
-    return [] as PedidoControleRpcRow[];
-  }
-
-  const json = JSON.parse(text) as unknown;
-  if (Array.isArray(json)) {
-    return json as PedidoControleRpcRow[];
-  }
-
-  if (json && typeof json === "object") {
-    return [json as PedidoControleRpcRow];
-  }
-
-  return [] as PedidoControleRpcRow[];
 }
 
 export async function getPedidosControleRows(filters: PedidoControleApiFilters = {}) {
   const limit = Math.max(0, Math.trunc(filters.limit ?? 0));
   const offset = Math.max(0, Math.trunc(filters.offset ?? 0));
-  const resolvedUserId =
-    typeof filters.userId === "number" ? filters.userId : await getCurrentUsuarioLegacyId();
-  const userId = Math.max(0, Math.trunc(asNumber(resolvedUserId, 0)));
-
-  const payload: PedidoControleRpcPayload = {
-    limit: String(limit),
-    offset: String(offset),
-    user_id: String(userId),
-  };
+  const nome = asString(filters.nome).trim();
+  const cep = asString(filters.cep).trim();
+  const pageLimit = limit > 0 ? limit : 5000;
 
   try {
-    const rows = await fetchPedidosControleRpcRows(payload);
+    const supabase = await createServerSupabaseClient();
+    let query = supabase
+      .from("pedidos")
+      .select("id,nome,cep,cidade,uf_estado,metragem,criado_em,status")
+      .order("criado_em", { ascending: false })
+      .range(offset, offset + pageLimit - 1);
+
+    if (nome.length > 0) {
+      query = query.ilike("nome", `%${nome}%`);
+    }
+
+    if (cep.length > 0) {
+      query = query.ilike("cep", `%${cep}%`);
+    }
+
+    const { data, error } = await query;
+    if (error || !data?.length) {
+      return [] as PedidoControleApiRow[];
+    }
+
+    const rows = data as PedidoControleRpcRow[];
     if (!rows.length) {
       return [] as PedidoControleApiRow[];
     }
