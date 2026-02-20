@@ -1034,15 +1034,78 @@ async function getClientesControleRowsFromAgregacao(
 ): Promise<ClienteControleApiRow[]> {
   const usuarioId = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
   const supabase = await createServerSupabaseClient();
+  const nomeFilterRaw = asString(filters.nome).trim();
+  const telefoneFilterRaw = asString(filters.telefone).trim();
+  const nomeFilter = normalizeLoose(nomeFilterRaw);
+  const telefoneFilter = normalizeLoose(telefoneFilterRaw);
+  const telefoneFilterDigits = telefoneFilterRaw.replace(/\D/g, "");
+  const etiquetaFilterRaw = asString(filters.etiqueta);
+  const etiquetaFilterNormalized = normalizeLoose(etiquetaFilterRaw);
+  const etiquetaFilterCode = extractEtiquetaCode(etiquetaFilterRaw);
+  const hasOffset = filters.offset !== undefined && filters.offset !== null;
+  const hasLimit = filters.limit !== undefined && filters.limit !== null;
+  const offset = hasOffset ? Math.max(0, Math.trunc(asNumber(filters.offset, 0))) : 0;
+  const limit = hasLimit ? Math.max(1, Math.trunc(asNumber(filters.limit, 10))) : Number.MAX_SAFE_INTEGER;
+  const hasPessoaSearchFilters = nomeFilterRaw.length > 0 || telefoneFilterRaw.length > 0;
+
+  let pessoaIdsFilter: number[] = [];
+  if (hasPessoaSearchFilters) {
+    let pessoaQuery = supabase
+      .from("pessoa")
+      .select("id,telefone")
+      .not("id", "is", null)
+      .order("id", { ascending: false })
+      .limit(20000);
+
+    if (nomeFilterRaw.length > 0) {
+      pessoaQuery = pessoaQuery.ilike("nome", `%${nomeFilterRaw}%`);
+    }
+
+    const { data: pessoaSearchRows, error: pessoaSearchError } = await pessoaQuery;
+    if (pessoaSearchError || !pessoaSearchRows?.length) {
+      return [];
+    }
+
+    const pessoaIdsSet = new Set<number>();
+    for (const row of pessoaSearchRows as Array<Record<string, unknown>>) {
+      const pessoaId = Math.max(0, Math.trunc(asNumber(row.id, 0)));
+      if (pessoaId <= 0) {
+        continue;
+      }
+
+      if (telefoneFilterRaw.length > 0) {
+        const telefoneRaw = asString(row.telefone).trim();
+        const telefoneDigits = telefoneRaw.replace(/\D/g, "");
+        const matchesRaw = normalizeLoose(telefoneRaw).includes(telefoneFilter);
+        const matchesDigits = telefoneFilterDigits.length > 0 && telefoneDigits.includes(telefoneFilterDigits);
+        if (!matchesRaw && !matchesDigits) {
+          continue;
+        }
+      }
+
+      pessoaIdsSet.add(pessoaId);
+    }
+
+    if (pessoaIdsSet.size === 0) {
+      return [];
+    }
+
+    pessoaIdsFilter = Array.from(pessoaIdsSet);
+  }
 
   let query = supabase
     .from("agregacao")
     .select("id,id_usuario,id_pessoa,id_etiqueta,created_at,data_criacao")
-    .order("id", { ascending: false })
-    .limit(5000);
+    .order("id", { ascending: false });
 
   if (usuarioId > 0) {
     query = query.eq("id_usuario", usuarioId);
+  }
+
+  if (pessoaIdsFilter.length > 0) {
+    query = query.in("id_pessoa", pessoaIdsFilter.slice(0, 2000)).limit(20000);
+  } else {
+    query = query.limit(5000);
   }
 
   const { data, error } = await query;
@@ -1087,16 +1150,6 @@ async function getClientesControleRowsFromAgregacao(
     }
   }
 
-  const nomeFilter = normalizeLoose(asString(filters.nome));
-  const telefoneFilter = normalizeLoose(asString(filters.telefone));
-  const etiquetaFilterRaw = asString(filters.etiqueta);
-  const etiquetaFilterNormalized = normalizeLoose(etiquetaFilterRaw);
-  const etiquetaFilterCode = extractEtiquetaCode(etiquetaFilterRaw);
-  const hasOffset = filters.offset !== undefined && filters.offset !== null;
-  const hasLimit = filters.limit !== undefined && filters.limit !== null;
-  const offset = hasOffset ? Math.max(0, Math.trunc(asNumber(filters.offset, 0))) : 0;
-  const limit = hasLimit ? Math.max(1, Math.trunc(asNumber(filters.limit, 10))) : Number.MAX_SAFE_INTEGER;
-
   const rows: ClienteControleApiRow[] = [];
 
   for (const agregacao of agregacaoRows) {
@@ -1120,8 +1173,14 @@ async function getClientesControleRowsFromAgregacao(
       continue;
     }
 
-    if (telefoneFilter && !normalizeLoose(telefone).includes(telefoneFilter)) {
-      continue;
+    if (telefoneFilter) {
+      const telefoneNormalized = normalizeLoose(telefone);
+      const telefoneDigits = asString(telefone).replace(/\D/g, "");
+      const matchesRaw = telefoneNormalized.includes(telefoneFilter);
+      const matchesDigits = telefoneFilterDigits.length > 0 && telefoneDigits.includes(telefoneFilterDigits);
+      if (!matchesRaw && !matchesDigits) {
+        continue;
+      }
     }
 
     if (etiquetaFilterCode.length > 0) {
@@ -1202,6 +1261,7 @@ async function getClientesControleRowsFromAgendamentos(
 
   const nomeFilter = normalizeLoose(asString(filters.nome));
   const telefoneFilter = normalizeLoose(asString(filters.telefone));
+  const telefoneFilterDigits = asString(filters.telefone).replace(/\D/g, "");
   const etiquetaFilterRaw = asString(filters.etiqueta);
   const etiquetaFilterNormalized = normalizeLoose(etiquetaFilterRaw);
   const etiquetaFilterCode = extractEtiquetaCode(etiquetaFilterRaw);
@@ -1228,8 +1288,14 @@ async function getClientesControleRowsFromAgendamentos(
       continue;
     }
 
-    if (telefoneFilter && !normalizeLoose(telefone).includes(telefoneFilter)) {
-      continue;
+    if (telefoneFilter) {
+      const telefoneNormalized = normalizeLoose(telefone);
+      const telefoneDigits = asString(telefone).replace(/\D/g, "");
+      const matchesRaw = telefoneNormalized.includes(telefoneFilter);
+      const matchesDigits = telefoneFilterDigits.length > 0 && telefoneDigits.includes(telefoneFilterDigits);
+      if (!matchesRaw && !matchesDigits) {
+        continue;
+      }
     }
 
     if (etiquetaFilterCode.length > 0) {
