@@ -110,7 +110,9 @@ export function ClientesControlTable({
   const [isRepresentanteModalOpen, setIsRepresentanteModalOpen] = useState(false);
   const [isPropostaModalOpen, setIsPropostaModalOpen] = useState(false);
   const [isVisualizarModalOpen, setIsVisualizarModalOpen] = useState(false);
+  const [isContratoModalOpen, setIsContratoModalOpen] = useState(false);
   const [propostaTargetRowId, setPropostaTargetRowId] = useState<string | null>(null);
+  const [contratoTargetRowId, setContratoTargetRowId] = useState<string | null>(null);
   const [selectedEquipamentoId, setSelectedEquipamentoId] = useState("");
   const [propostaFeedback, setPropostaFeedback] = useState<string | null>(null);
   const [representanteTargetRowId, setRepresentanteTargetRowId] = useState<string | null>(null);
@@ -134,6 +136,16 @@ export function ClientesControlTable({
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<ClientesTableColumnKey[]>(
     CLIENTES_TABLE_COLUMNS.map((column) => column.key),
   );
+  const [contratoFormData, setContratoFormData] = useState({
+    telefoneProposta: "",
+    telefoneCobranca: "",
+    emailNotaFiscal: "",
+    emailResponsavel: "",
+    numeroIdentificacao: "",
+    arquivoContrato: null as File | null,
+  });
+  const [isSubmittingContrato, setIsSubmittingContrato] = useState(false);
+  const [contratoFeedback, setContratoFeedback] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const columnsMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -155,7 +167,8 @@ export function ClientesControlTable({
       !isEtiquetaModalOpen &&
       !isRepresentanteModalOpen &&
       !isPropostaModalOpen &&
-      !isVisualizarModalOpen
+      !isVisualizarModalOpen &&
+      !isContratoModalOpen
     ) {
       return;
     }
@@ -170,6 +183,11 @@ export function ClientesControlTable({
         setIsLoadingVisualizacao(false);
         setVisualizacaoFeedback(null);
         setVisualizacaoData(null);
+        return;
+      }
+
+      if (isContratoModalOpen) {
+        closeContratoModal();
         return;
       }
 
@@ -205,6 +223,7 @@ export function ClientesControlTable({
         isRepresentanteModalOpen ||
         isPropostaModalOpen ||
         isVisualizarModalOpen ||
+        isContratoModalOpen ||
         !menuAnchor
       ) {
         return;
@@ -232,7 +251,8 @@ export function ClientesControlTable({
         !isEtiquetaModalOpen &&
         !isRepresentanteModalOpen &&
         !isPropostaModalOpen &&
-        !isVisualizarModalOpen
+        !isVisualizarModalOpen &&
+        !isContratoModalOpen
       ) {
         setMenuAnchor(null);
       }
@@ -249,7 +269,7 @@ export function ClientesControlTable({
       window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("scroll", handleViewportChange, true);
     };
-  }, [isEtiquetaModalOpen, isPropostaModalOpen, isRepresentanteModalOpen, isVisualizarModalOpen, menuAnchor]);
+  }, [isEtiquetaModalOpen, isPropostaModalOpen, isRepresentanteModalOpen, isVisualizarModalOpen, isContratoModalOpen, menuAnchor]);
 
   useEffect(() => {
     if (!isColumnsMenuOpen) {
@@ -518,6 +538,141 @@ export function ClientesControlTable({
     setIsLoadingVisualizacao(false);
     setVisualizacaoFeedback(null);
     setVisualizacaoData(null);
+  };
+
+  const openContratoModal = () => {
+    if (!menuAnchor) {
+      return;
+    }
+
+    setContratoTargetRowId(menuAnchor.rowId);
+    setContratoFormData({
+      telefoneProposta: "",
+      telefoneCobranca: "",
+      emailNotaFiscal: "",
+      emailResponsavel: "",
+      numeroIdentificacao: "",
+      arquivoContrato: null,
+    });
+    setContratoFeedback(null);
+    setIsSubmittingContrato(false);
+    setIsContratoModalOpen(true);
+    setMenuAnchor(null);
+  };
+
+  const closeContratoModal = () => {
+    setIsContratoModalOpen(false);
+    setContratoTargetRowId(null);
+    setContratoFormData({
+      telefoneProposta: "",
+      telefoneCobranca: "",
+      emailNotaFiscal: "",
+      emailResponsavel: "",
+      numeroIdentificacao: "",
+      arquivoContrato: null,
+    });
+    setContratoFeedback(null);
+    setIsSubmittingContrato(false);
+  };
+
+  const handleCadastrarContrato = async () => {
+    const { telefoneProposta, telefoneCobranca, emailNotaFiscal, emailResponsavel, numeroIdentificacao, arquivoContrato } = contratoFormData;
+
+    if (!telefoneProposta.trim()) {
+      setContratoFeedback("Informe o telefone da proposta de valor.");
+      return;
+    }
+
+    if (!telefoneCobranca.trim()) {
+      setContratoFeedback("Informe o telefone para cobrança.");
+      return;
+    }
+
+    if (!emailNotaFiscal.trim()) {
+      setContratoFeedback("Informe o e-mail de nota fiscal e boleto.");
+      return;
+    }
+
+    if (!emailResponsavel.trim()) {
+      setContratoFeedback("Informe o e-mail do responsável pela empresa.");
+      return;
+    }
+
+    if (!numeroIdentificacao.trim()) {
+      setContratoFeedback("Informe o número de identificação da proposta de valor.");
+      return;
+    }
+
+    if (!contratoTargetRowId) {
+      setContratoFeedback("Cliente selecionado inválido.");
+      return;
+    }
+
+    const targetRow = rows.find((row) => row.id === contratoTargetRowId);
+    if (!targetRow) {
+      setContratoFeedback("Nao foi possivel localizar o cliente selecionado.");
+      return;
+    }
+
+    const idPessoaFromRow = (() => {
+      if (typeof targetRow.pessoaId === "number" && targetRow.pessoaId > 0) {
+        return targetRow.pessoaId;
+      }
+
+      const parsed = Number(targetRow.id);
+      return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+    })();
+
+    if (!idPessoaFromRow && !targetRow.agregacaoId) {
+      setContratoFeedback("Nao foi possivel resolver id_pessoa ou id_agregacao.");
+      return;
+    }
+
+    setIsSubmittingContrato(true);
+    setContratoFeedback(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("id_pessoa", String(idPessoaFromRow || ""));
+      formData.append("id_agregacao", String(targetRow.agregacaoId || ""));
+      formData.append("telefone_proposta", telefoneProposta);
+      formData.append("telefone_cobranca", telefoneCobranca);
+      formData.append("email_nota_fiscal", emailNotaFiscal);
+      formData.append("email_responsavel", emailResponsavel);
+      formData.append("numero_identificacao", numeroIdentificacao);
+      if (arquivoContrato) {
+        formData.append("arquivo_contrato", arquivoContrato);
+      }
+
+      const response = await fetch("/api/clientes/cadastrar-contrato", {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; id_contrato?: number; debug_id?: string; debug?: unknown }
+        | null;
+
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[clientes/cadastrar-contrato] response", {
+          httpStatus: response.status,
+          payload,
+        });
+      }
+
+      if (!response.ok || !payload?.ok) {
+        setContratoFeedback(payload?.error ?? "Falha ao cadastrar contrato.");
+        return;
+      }
+
+      closeContratoModal();
+      setSuccessAlert("Contrato cadastrado com sucesso.");
+      router.refresh();
+    } catch {
+      setContratoFeedback("Erro ao cadastrar contrato.");
+    } finally {
+      setIsSubmittingContrato(false);
+    }
   };
 
   const handleCepChange = (value: string) => {
@@ -1070,6 +1225,14 @@ export function ClientesControlTable({
             </button>
             <button
               type="button"
+              onClick={openContratoModal}
+              className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
+            >
+              <FileText className="h-5 w-5 text-[#a8acac]" />
+              Cadastrar contrato
+            </button>
+            <button
+              type="button"
               onClick={openVisualizarModal}
               className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
             >
@@ -1402,6 +1565,136 @@ export function ClientesControlTable({
               ) : (
                 <p className="py-8 text-center text-sm text-[#466568]">Nenhum dado encontrado.</p>
               )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isContratoModalOpen ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4"
+          onClick={closeContratoModal}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-[720px] rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Cadastrar Contrato"
+          >
+            <div className="flex items-start justify-between">
+              <h3 className="text-2xl font-semibold text-[#0f5050]">Cadastrar Contrato</h3>
+              <button
+                type="button"
+                aria-label="Fechar"
+                onClick={closeContratoModal}
+                className="text-slate-600 hover:text-slate-800"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Telefone Proposta de Valor
+                </label>
+                <input
+                  type="tel"
+                  value={contratoFormData.telefoneProposta}
+                  onChange={(e) => setContratoFormData({ ...contratoFormData, telefoneProposta: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Telefone para Cobrança
+                </label>
+                <input
+                  type="tel"
+                  value={contratoFormData.telefoneCobranca}
+                  onChange={(e) => setContratoFormData({ ...contratoFormData, telefoneCobranca: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  E-mail de Nota Fiscal e Boleto
+                </label>
+                <input
+                  type="email"
+                  value={contratoFormData.emailNotaFiscal}
+                  onChange={(e) => setContratoFormData({ ...contratoFormData, emailNotaFiscal: e.target.value })}
+                  placeholder="nota fiscal@email.com"
+                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  E-mail do Responsável pela Empresa
+                </label>
+                <input
+                  type="email"
+                  value={contratoFormData.emailResponsavel}
+                  onChange={(e) => setContratoFormData({ ...contratoFormData, emailResponsavel: e.target.value })}
+                  placeholder="responsavel@email.com"
+                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Número de Identificação da Proposta de Valor
+                </label>
+                <input
+                  type="text"
+                  value={contratoFormData.numeroIdentificacao}
+                  onChange={(e) => setContratoFormData({ ...contratoFormData, numeroIdentificacao: e.target.value })}
+                  placeholder="Ex: 12345"
+                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Anexar o Contrato Social ou CNH
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setContratoFormData({ ...contratoFormData, arquivoContrato: file });
+                  }}
+                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-[#0f5050] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#0c4343]"
+                />
+                {contratoFormData.arquivoContrato && (
+                  <p className="mt-2 text-sm text-[#2f7437]">
+                    Arquivo selecionado: {contratoFormData.arquivoContrato.name}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {contratoFeedback ? (
+              <p className="mt-3 text-sm text-[#7b2323]">{contratoFeedback}</p>
+            ) : null}
+
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleCadastrarContrato}
+                disabled={isSubmittingContrato}
+              >
+                {isSubmittingContrato ? "Cadastrando..." : "Cadastrar"}
+              </Button>
             </div>
           </div>
         </div>
