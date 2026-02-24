@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { DashboardFiltersForm } from "@/components/dashboard/dashboard-filters-form";
 import { OrcamentosFiltersForm } from "@/components/dashboard/orcamentos-filters-form";
 import { RetratoFiltersForm } from "@/components/dashboard/retrato-filters-form";
 import { PageContainer } from "@/components/layout/page-container";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   getDashboardFunilSnapshot,
   getDashboardOrcamentosSnapshot,
@@ -443,6 +445,8 @@ type DashboardPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+type DashboardRepresentanteOption = Awaited<ReturnType<typeof getDashboardRepresentantesByTipo>>[number];
+
 function normalizeDashboardVerticalScope(
   verticalDescricao: string,
 ): "gerencia" | "prime" | "crv" | "time-negocios" | "other" {
@@ -487,6 +491,287 @@ function getVisibleDashboardViews(verticalDescricao: string): DashboardView[] {
   }
 
   return ["dashboard", "retrato", "orcamentos"];
+}
+
+type DashboardListLoadingProps = {
+  label: string;
+};
+
+function DashboardListLoading({ label }: DashboardListLoadingProps) {
+  return (
+    <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
+      <div className="flex min-h-[240px] items-center justify-center">
+        <LoadingSpinner size="lg" label={label} />
+      </div>
+    </div>
+  );
+}
+
+type DashboardListContentProps = {
+  activeView: DashboardView;
+  dataInicioInput: string;
+  dataFimInput: string;
+  selectedTipoAcesso: string;
+  selectedUsuario: number;
+  selectedVerticalId: string;
+  representantes: DashboardRepresentanteOption[];
+  visibleFunilColumns: FunilColumn[];
+  percentageMode: boolean;
+  percentageBaseKey: FunilColumnKey | null;
+  selectedTipoRepre: string;
+  orcamentosScopedUsuarioId: number | undefined;
+};
+
+async function DashboardListContent({
+  activeView,
+  dataInicioInput,
+  dataFimInput,
+  selectedTipoAcesso,
+  selectedUsuario,
+  selectedVerticalId,
+  representantes,
+  visibleFunilColumns,
+  percentageMode,
+  percentageBaseKey,
+  selectedTipoRepre,
+  orcamentosScopedUsuarioId,
+}: DashboardListContentProps) {
+  if (activeView === "dashboard") {
+    const dashboardSnapshot = await getDashboardFunilSnapshot({
+      dataInicioInput,
+      dataFimInput,
+      tipoAcesso2: selectedTipoAcesso,
+      usuarioId: selectedUsuario || undefined,
+      verticalId: selectedVerticalId,
+      allowedUsuarioIds: representantes.map((representante) => representante.id),
+      allowedUsuarioNomes: representantes.map((representante) => representante.nome),
+      allowedRepresentantes: representantes,
+    });
+
+    return (
+      <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
+        <table className="w-max min-w-full border-collapse">
+          <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
+            <tr>
+              {visibleFunilColumns.map((column) => (
+                <th
+                  key={column.key}
+                  className={`${baseCellClass(column.widthClass)} ${
+                    isFunilNumericColumn(column.key) ? "text-right" : "text-left"
+                  } text-[0.92rem] font-semibold text-[#18484a]`}
+                >
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dashboardSnapshot.rows.map((row, rowIndex) => {
+              const rowKey = `${
+                Number.isFinite(row.usuarioId) && row.usuarioId > 0
+                  ? `u${Math.trunc(row.usuarioId)}`
+                  : `n${row.nome}`
+              }-${rowIndex}`;
+
+              return (
+                <tr
+                  key={rowKey}
+                  className="border-t border-white/10"
+                  style={{ backgroundColor: getFunilRowBackgroundColor(row.l100) }}
+                >
+                  {visibleFunilColumns.map((column) => (
+                    <td
+                      key={`${rowKey}-${column.key}`}
+                      className={`${baseCellClass(column.widthClass)} ${
+                        column.key === "min"
+                          ? "text-[0.84rem] tracking-wide text-slate-700"
+                          : "text-[0.95rem] text-slate-700"
+                      } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
+                    >
+                      <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
+                        {(() => {
+                          const rowValue = getFunilRowCellValue(row, column.key);
+
+                          if (!percentageMode || !percentageBaseKey) {
+                            return String(rowValue);
+                          }
+
+                          if (column.key === "n21" || !HASH_FUNIL_COLUMN_KEYS.includes(column.key)) {
+                            return String(rowValue);
+                          }
+
+                          if (column.key === percentageBaseKey) {
+                            return "100%";
+                          }
+
+                          const baseValue = getFunilRowCellValue(row, percentageBaseKey);
+                          return formatPercentageValue(rowValue, baseValue);
+                        })()}
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-[#c9c9cb] bg-[#d6d6d8]">
+              {visibleFunilColumns.map((column) => (
+                <td
+                  key={`total-${column.key}`}
+                  className={`${baseCellClass(column.widthClass)} font-semibold ${
+                    column.key === "min"
+                      ? "text-[0.86rem] tracking-wide text-[#18484a]"
+                      : "text-[1.02rem] text-[#18484a]"
+                  } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
+                >
+                  <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
+                    {(() => {
+                      const totalValue = getFunilTotalCellValue(dashboardSnapshot.totals, column.key);
+
+                      if (!percentageMode || !percentageBaseKey) {
+                        return formatFunilFooterCellValue(column.key, totalValue);
+                      }
+
+                      if (column.key === "n21" || !HASH_FUNIL_COLUMN_KEYS.includes(column.key)) {
+                        return formatFunilFooterCellValue(column.key, totalValue);
+                      }
+
+                      if (column.key === percentageBaseKey) {
+                        return "100%";
+                      }
+
+                      const totalBaseValue = getFunilTotalCellValue(dashboardSnapshot.totals, percentageBaseKey);
+                      return formatPercentageValue(totalValue, totalBaseValue);
+                    })()}
+                  </span>
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    );
+  }
+
+  if (activeView === "retrato") {
+    const retratoSnapshot = await getDashboardRetratoSnapshot({
+      tipoAcesso2: selectedTipoAcesso,
+      usuarioId: selectedUsuario || undefined,
+      verticalId: selectedVerticalId || undefined,
+    });
+
+    return (
+      <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
+        <table className="w-full table-fixed border-collapse">
+          <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
+            <tr>
+              {retratoColumns.map((column) => (
+                <th
+                  key={column.key}
+                  className={`${baseCellClass(column.widthClass)} text-left text-[clamp(0.82rem,0.98vw,1rem)] font-semibold text-[#18484a]`}
+                >
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {retratoSnapshot.rows.map((row, rowIndex) => (
+              <tr key={`${row.nome}-${rowIndex}`} className="border-t border-white/10 bg-white/40">
+                {retratoColumns.map((column) => (
+                  <td
+                    key={`${row.nome}-${rowIndex}-${column.key}`}
+                    className={`${baseCellClass(column.widthClass)} text-[clamp(0.8rem,0.95vw,0.98rem)] text-slate-700`}
+                  >
+                    {String(getRetratoRowCellValue(row, column.key))}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t border-white/20 bg-[#d6d6d8]/60 backdrop-blur-sm">
+              {retratoColumns.map((column) => (
+                <td
+                  key={`retrato-total-${column.key}`}
+                  className={`${baseCellClass(column.widthClass)} text-[clamp(0.92rem,1.06vw,1.2rem)] font-semibold text-[#18484a]`}
+                >
+                  {String(getRetratoTotalCellValue(retratoSnapshot.totals, column.key))}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    );
+  }
+
+  const orcamentosSnapshot = await getDashboardOrcamentosSnapshot({
+    dataInicioInput,
+    dataFimInput,
+    tipoRepre: selectedTipoRepre,
+    usuarioId: orcamentosScopedUsuarioId,
+  });
+
+  return (
+    <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
+      <table className="w-full table-fixed border-collapse">
+        <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
+          <tr>
+            {orcamentosColumns.map((column) => (
+              <th
+                key={column.key}
+                className={`${baseCellClass(column.widthClass)} text-left text-[clamp(0.82rem,0.98vw,1rem)] font-semibold text-[#18484a]`}
+              >
+                {column.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {orcamentosSnapshot.rows.length > 0 ? (
+            <>
+              {orcamentosSnapshot.rows.map((row, rowIndex) => (
+                <tr key={`${row.idUsuario}-${rowIndex}`} className="border-t border-white/10 bg-white/40">
+                  {orcamentosColumns.map((column) => (
+                    <td
+                      key={`${row.idUsuario}-${rowIndex}-${column.key}`}
+                      className={`${baseCellClass(column.widthClass)} text-[clamp(0.8rem,0.95vw,0.98rem)] text-slate-700`}
+                    >
+                      {formatOrcamentosCellValue(column.key, getOrcamentosRowCellValue(row, column.key))}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </>
+          ) : null}
+        </tbody>
+        {orcamentosSnapshot.rows.length > 0 ? (
+          <tfoot>
+            <tr className="border-t border-white/20 bg-[#d6d6d8]/60 backdrop-blur-sm">
+              {orcamentosColumns.map((column) => (
+                <td
+                  key={`orcamentos-total-${column.key}`}
+                  className={`${baseCellClass(column.widthClass)} text-[clamp(0.92rem,1.06vw,1.1rem)] font-semibold text-[#18484a]`}
+                >
+                  {formatOrcamentosCellValue(column.key, getOrcamentosTotalCellValue(orcamentosSnapshot.totals, column.key))}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        ) : (
+          <tfoot>
+            <tr className="border-t border-white/10 bg-white/40">
+              <td colSpan={orcamentosColumns.length} className="px-4 py-8 text-center text-sm text-slate-500">
+                Nenhum registro encontrado para os filtros selecionados.
+              </td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
@@ -571,38 +856,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           ? (representantes[0]?.verticalId ?? "")
           : ""
         : dashboardAccessScope.viewerVerticalId;
-
-  let dashboardSnapshot: Awaited<ReturnType<typeof getDashboardFunilSnapshot>> | null = null;
-  let retratoSnapshot: Awaited<ReturnType<typeof getDashboardRetratoSnapshot>> | null = null;
-  let orcamentosSnapshot: Awaited<ReturnType<typeof getDashboardOrcamentosSnapshot>> | null = null;
-
-  if (activeView === "dashboard") {
-    dashboardSnapshot = await getDashboardFunilSnapshot({
-      dataInicioInput,
-      dataFimInput,
-      tipoAcesso2: selectedTipoAcesso,
-      usuarioId: selectedUsuario || undefined,
-      verticalId: selectedVerticalId,
-      allowedUsuarioIds: representantes.map((representante) => representante.id),
-      allowedUsuarioNomes: representantes.map((representante) => representante.nome),
-      allowedRepresentantes: representantes,
-    });
-  } else {
-    if (activeView === "retrato") {
-      retratoSnapshot = await getDashboardRetratoSnapshot({
-        tipoAcesso2: selectedTipoAcesso,
-        usuarioId: selectedUsuario || undefined,
-        verticalId: selectedVerticalId || undefined,
-      });
-    } else {
-      orcamentosSnapshot = await getDashboardOrcamentosSnapshot({
-        dataInicioInput,
-        dataFimInput,
-        tipoRepre: selectedTipoRepre,
-        usuarioId: orcamentosScopedUsuarioId,
-      });
-    }
-  }
 
   return (
     <PageContainer className="space-y-5 bg-[#eef0f2]">
@@ -689,216 +942,35 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </>
         )}
 
-        {activeView === "dashboard" ? (
-          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
-            <table className="w-max min-w-full border-collapse">
-              <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
-                <tr>
-                  {visibleFunilColumns.map((column) => (
-                    <th
-                      key={column.key}
-                      className={`${baseCellClass(column.widthClass)} ${
-                        isFunilNumericColumn(column.key) ? "text-right" : "text-left"
-                      } text-[0.92rem] font-semibold text-[#18484a]`}
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {dashboardSnapshot!.rows.map((row, rowIndex) => {
-                  const rowKey = `${
-                    Number.isFinite(row.usuarioId) && row.usuarioId > 0
-                      ? `u${Math.trunc(row.usuarioId)}`
-                      : `n${row.nome}`
-                  }-${rowIndex}`;
-
-                  return (
-                    <tr
-                      key={rowKey}
-                      className="border-t border-white/10"
-                      style={{ backgroundColor: getFunilRowBackgroundColor(row.l100) }}
-                    >
-                      {visibleFunilColumns.map((column) => (
-                        <td
-                          key={`${rowKey}-${column.key}`}
-                          className={`${baseCellClass(column.widthClass)} ${
-                            column.key === "min"
-                              ? "text-[0.84rem] tracking-wide text-slate-700"
-                              : "text-[0.95rem] text-slate-700"
-                          } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
-                        >
-                          <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
-                            {(() => {
-                              const rowValue = getFunilRowCellValue(row, column.key);
-
-                              if (!percentageMode || !percentageBaseKey) {
-                                return String(rowValue);
-                              }
-
-                              if (column.key === "n21" || !HASH_FUNIL_COLUMN_KEYS.includes(column.key)) {
-                                return String(rowValue);
-                              }
-
-                              if (column.key === percentageBaseKey) {
-                                return "100%";
-                              }
-
-                              const baseValue = getFunilRowCellValue(row, percentageBaseKey);
-                              return formatPercentageValue(rowValue, baseValue);
-                            })()}
-                          </span>
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr className="border-t border-[#c9c9cb] bg-[#d6d6d8]">
-                  {visibleFunilColumns.map((column) => (
-                    <td
-                      key={`total-${column.key}`}
-                      className={`${baseCellClass(column.widthClass)} font-semibold ${
-                        column.key === "min"
-                          ? "text-[0.86rem] tracking-wide text-[#18484a]"
-                          : "text-[1.02rem] text-[#18484a]"
-                      } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
-                    >
-                      <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
-                        {(() => {
-                          const totalValue = getFunilTotalCellValue(dashboardSnapshot!.totals, column.key);
-
-                          if (!percentageMode || !percentageBaseKey) {
-                            return formatFunilFooterCellValue(column.key, totalValue);
-                          }
-
-                          if (column.key === "n21" || !HASH_FUNIL_COLUMN_KEYS.includes(column.key)) {
-                            return formatFunilFooterCellValue(column.key, totalValue);
-                          }
-
-                          if (column.key === percentageBaseKey) {
-                            return "100%";
-                          }
-
-                          const totalBaseValue = getFunilTotalCellValue(
-                            dashboardSnapshot!.totals,
-                            percentageBaseKey,
-                          );
-                          return formatPercentageValue(totalValue, totalBaseValue);
-                        })()}
-                      </span>
-                    </td>
-                  ))}
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        ) : activeView === "retrato" ? (
-          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
-            <table className="w-full table-fixed border-collapse">
-              <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
-                <tr>
-                  {retratoColumns.map((column) => (
-                    <th
-                      key={column.key}
-                      className={`${baseCellClass(column.widthClass)} text-left text-[clamp(0.82rem,0.98vw,1rem)] font-semibold text-[#18484a]`}
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {retratoSnapshot!.rows.map((row, rowIndex) => (
-                  <tr key={`${row.nome}-${rowIndex}`} className="border-t border-white/10 bg-white/40">
-                    {retratoColumns.map((column) => (
-                      <td
-                        key={`${row.nome}-${rowIndex}-${column.key}`}
-                        className={`${baseCellClass(column.widthClass)} text-[clamp(0.8rem,0.95vw,0.98rem)] text-slate-700`}
-                      >
-                        {String(getRetratoRowCellValue(row, column.key))}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t border-white/20 bg-[#d6d6d8]/60 backdrop-blur-sm">
-                  {retratoColumns.map((column) => (
-                    <td
-                      key={`retrato-total-${column.key}`}
-                      className={`${baseCellClass(column.widthClass)} text-[clamp(0.92rem,1.06vw,1.2rem)] font-semibold text-[#18484a]`}
-                    >
-                      {String(getRetratoTotalCellValue(retratoSnapshot!.totals, column.key))}
-                    </td>
-                  ))}
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        ) : (
-          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
-            <table className="w-full table-fixed border-collapse">
-              <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
-                <tr>
-                  {orcamentosColumns.map((column) => (
-                    <th
-                      key={column.key}
-                      className={`${baseCellClass(column.widthClass)} text-left text-[clamp(0.82rem,0.98vw,1rem)] font-semibold text-[#18484a]`}
-                    >
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {orcamentosSnapshot!.rows.length > 0 ? (
-                  <>
-                    {orcamentosSnapshot!.rows.map((row, rowIndex) => (
-                      <tr key={`${row.idUsuario}-${rowIndex}`} className="border-t border-white/10 bg-white/40">
-                        {orcamentosColumns.map((column) => (
-                          <td
-                            key={`${row.idUsuario}-${rowIndex}-${column.key}`}
-                            className={`${baseCellClass(column.widthClass)} text-[clamp(0.8rem,0.95vw,0.98rem)] text-slate-700`}
-                          >
-                            {formatOrcamentosCellValue(column.key, getOrcamentosRowCellValue(row, column.key))}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </>
-                ) : null}
-              </tbody>
-              {orcamentosSnapshot!.rows.length > 0 ? (
-                <tfoot>
-                  <tr className="border-t border-white/20 bg-[#d6d6d8]/60 backdrop-blur-sm">
-                    {orcamentosColumns.map((column) => (
-                      <td
-                        key={`orcamentos-total-${column.key}`}
-                        className={`${baseCellClass(column.widthClass)} text-[clamp(0.92rem,1.06vw,1.1rem)] font-semibold text-[#18484a]`}
-                      >
-                        {formatOrcamentosCellValue(column.key, getOrcamentosTotalCellValue(orcamentosSnapshot!.totals, column.key))}
-                      </td>
-                    ))}
-                  </tr>
-                </tfoot>
-              ) : (
-                <tfoot>
-                  <tr className="border-t border-white/10 bg-white/40">
-                    <td
-                      colSpan={orcamentosColumns.length}
-                      className="px-4 py-8 text-center text-sm text-slate-500"
-                    >
-                      Nenhum registro encontrado para os filtros selecionados.
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-        )}
+        <Suspense
+          key={`${activeView}:${dataInicioInput}:${dataFimInput}:${selectedTipoAcesso}:${selectedUsuario}:${selectedTipoRepre}:${percentageMode}:${selectedFunilColumnKeys.join(",")}`}
+          fallback={
+            <DashboardListLoading
+              label={
+                activeView === "orcamentos"
+                  ? "Carregando orçamentos..."
+                  : activeView === "retrato"
+                    ? "Carregando retrato..."
+                    : "Carregando funil..."
+              }
+            />
+          }
+        >
+          <DashboardListContent
+            activeView={activeView}
+            dataInicioInput={dataInicioInput}
+            dataFimInput={dataFimInput}
+            selectedTipoAcesso={selectedTipoAcesso}
+            selectedUsuario={selectedUsuario}
+            selectedVerticalId={selectedVerticalId}
+            representantes={representantes}
+            visibleFunilColumns={visibleFunilColumns}
+            percentageMode={percentageMode}
+            percentageBaseKey={percentageBaseKey}
+            selectedTipoRepre={selectedTipoRepre}
+            orcamentosScopedUsuarioId={orcamentosScopedUsuarioId}
+          />
+        </Suspense>
       </PageContainer>
   );
 }
