@@ -10,16 +10,6 @@ const CADASTRAR_CONTRATO_ENDPOINT =
 const ENVIAR_ARQUIVO_CONTRATO_ENDPOINT =
   "https://whvtec2.verdetec.dev.br/webhook/29cf27a9-a47a-45f7-8f98-302b66912455";
 
-type CadastrarContratoPayload = {
-  id_pessoa?: number | string | null;
-  id_agregacao?: number | string | null;
-  telefone_proposta?: string;
-  telefone_cobranca?: string;
-  email_nota_fiscal?: string;
-  email_responsavel?: string;
-  numero_identificacao?: string;
-};
-
 type DebugEntry = {
   at: string;
   step: string;
@@ -37,6 +27,43 @@ function asPositiveInt(value: unknown) {
     if (Number.isFinite(parsed)) {
       const intValue = Math.trunc(parsed);
       return intValue > 0 ? intValue : null;
+    }
+  }
+
+  return null;
+}
+
+function asNonEmptyText(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(Math.trunc(value));
+  }
+
+  return null;
+}
+
+function resolvePropostaIdFromRow(row: Record<string, unknown>) {
+  const candidates = [
+    row.id_proposta_valor,
+    row.id_proposta,
+    row.proposta_id,
+    row.idproposta,
+    row.proposta,
+  ];
+
+  for (const candidate of candidates) {
+    const asInt = asPositiveInt(candidate);
+    if (asInt) {
+      return asInt;
+    }
+
+    const asText = asNonEmptyText(candidate);
+    if (asText) {
+      return asText;
     }
   }
 
@@ -98,7 +125,7 @@ async function resolveAgregacaoData(idAgregacao: number) {
 
   const { data, error } = await admin
     .from("agregacao")
-    .select("id_proposta_valor, id_pessoa, id_usuario")
+    .select("*")
     .eq("id", idAgregacao)
     .order("id", { ascending: false })
     .limit(1);
@@ -109,19 +136,97 @@ async function resolveAgregacaoData(idAgregacao: number) {
 
   const row = data[0] as Record<string, unknown>;
   return {
-    idPropostaValor: asPositiveInt(row.id_proposta_valor),
+    idPropostaValor: resolvePropostaIdFromRow(row),
     idPessoa: asPositiveInt(row.id_pessoa),
     idUsuario: asPositiveInt(row.id_usuario),
   };
 }
 
+async function resolveIdPropostaValorByIdPessoa(idPessoa: number) {
+  const admin = createAdminSupabaseClient();
+
+  const { data, error } = await admin
+    .from("agregacao")
+    .select("*")
+    .eq("id_pessoa", idPessoa)
+    .order("id", { ascending: false })
+    .limit(50);
+
+  if (error || !data?.length) {
+    return null;
+  }
+
+  for (const row of data as Record<string, unknown>[]) {
+    const resolved = resolvePropostaIdFromRow(row);
+    if (resolved) {
+      return resolved;
+    }
+  }
+
+  return null;
+}
+
+async function resolveIdPropostaValorById(idProposta: number | string) {
+  const admin = createAdminSupabaseClient();
+
+  const { data, error } = await admin
+    .from("proposta_valor")
+    .select("id")
+    .eq("id", idProposta)
+    .limit(1);
+
+  if (error || !data?.length) {
+    return null;
+  }
+
+  const row = data[0] as Record<string, unknown>;
+  return asPositiveInt(row.id) ?? asNonEmptyText(row.id);
+}
+
+async function resolveIdUsuarioByIdPessoa(idPessoa: number) {
+  const admin = createAdminSupabaseClient();
+
+  const { data, error } = await admin
+    .from("agregacao")
+    .select("id_usuario")
+    .eq("id_pessoa", idPessoa)
+    .not("id_usuario", "is", null)
+    .order("id", { ascending: false })
+    .limit(1);
+
+  if (error || !data?.length) {
+    return null;
+  }
+
+  const row = data[0] as Record<string, unknown>;
+  return asPositiveInt(row.id_usuario);
+}
+
+async function resolveIdAgregacaoByIdPessoa(idPessoa: number) {
+  const admin = createAdminSupabaseClient();
+
+  const { data, error } = await admin
+    .from("agregacao")
+    .select("id")
+    .eq("id_pessoa", idPessoa)
+    .order("id", { ascending: false })
+    .limit(1);
+
+  if (error || !data?.length) {
+    return null;
+  }
+
+  const row = data[0] as Record<string, unknown>;
+  return asPositiveInt(row.id);
+}
+
 async function uploadFileToSupabase(file: File, bucketName: string, fileName: string) {
   const admin = createAdminSupabaseClient();
-  
+
   const arrayBuffer = await file.arrayBuffer();
   const fileBuffer = Buffer.from(arrayBuffer);
 
-  const { data, error } = await admin.storage
+  const { error } = await admin.storage
     .from(bucketName)
     .upload(fileName, fileBuffer, {
       contentType: file.type,
@@ -166,22 +271,28 @@ export async function POST(request: NextRequest) {
 
     const idPessoa = asPositiveInt(formData.get("id_pessoa"));
     const idAgregacao = asPositiveInt(formData.get("id_agregacao"));
+    const idUsuarioFromPayload = asPositiveInt(formData.get("id_usuario"));
     const telefoneProposta = formData.get("telefone_proposta")?.toString() ?? "";
     const telefoneCobranca = formData.get("telefone_cobranca")?.toString() ?? "";
     const emailNotaFiscal = formData.get("email_nota_fiscal")?.toString() ?? "";
     const emailResponsavel = formData.get("email_responsavel")?.toString() ?? "";
     const numeroIdentificacao = formData.get("numero_identificacao")?.toString() ?? "";
-    const arquivoContrato = formData.get("arquivo_contrato") as File | null;
+    
+    // Suporte a múltiplos arquivos
+    const arquivosContrato = formData.getAll("arquivo_contrato") as File[];
+    const arquivosValidos = arquivosContrato.filter((file) => file && file.size > 0);
 
     pushDebug("request.parsed_fields", {
       id_pessoa: idPessoa,
       id_agregacao: idAgregacao,
+      id_usuario: idUsuarioFromPayload,
       telefone_proposta: telefoneProposta,
       telefone_cobranca: telefoneCobranca,
       email_nota_fiscal: emailNotaFiscal,
       email_responsavel: emailResponsavel,
       numero_identificacao: numeroIdentificacao,
-      has_arquivo: !!arquivoContrato,
+      arquivos_count: arquivosValidos.length,
+      arquivos_names: arquivosValidos.map((f) => f.name),
     });
 
     if (!idAgregacao && !idPessoa) {
@@ -196,7 +307,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let agregacaoData = idAgregacao ? await resolveAgregacaoData(idAgregacao) : null;
+    let resolvedIdAgregacao = idAgregacao;
+    if (!resolvedIdAgregacao && idPessoa) {
+      pushDebug("resolve.id_agregacao.by_id_pessoa.start", { id_pessoa: idPessoa });
+      resolvedIdAgregacao = await resolveIdAgregacaoByIdPessoa(idPessoa);
+      pushDebug("resolve.id_agregacao.by_id_pessoa.end", { value: resolvedIdAgregacao });
+    }
+
+    if (!resolvedIdAgregacao) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Nao foi possivel resolver p_agregacao pela tabela agregacao.",
+          debug_id: debugId,
+          debug: debugEnabled ? debugEntries : undefined,
+        },
+        { status: 400 },
+      );
+    }
+
+    let agregacaoData = await resolveAgregacaoData(resolvedIdAgregacao);
     pushDebug("resolve.agregacao_data", { value: agregacaoData });
 
     if (!agregacaoData) {
@@ -279,55 +409,141 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const idProposta = agregacaoData.idPropostaValor;
+    // Resolve id_proposta_valor se ainda não tiver
     const finalIdPessoa = idPessoa || agregacaoData.idPessoa;
-    const finalIdAgregacao = idAgregacao;
+    const finalIdAgregacao = resolvedIdAgregacao;
 
-    let idUsuario = await resolveCurrentUsuarioId();
+    let idProposta: number | string | null = agregacaoData.idPropostaValor;
+    if (!idProposta && finalIdPessoa) {
+      pushDebug("resolve.id_proposta_valor.by_id_pessoa.start", { id_pessoa: finalIdPessoa });
+      idProposta = await resolveIdPropostaValorByIdPessoa(finalIdPessoa);
+      pushDebug("resolve.id_proposta_valor.by_id_pessoa.end", { value: idProposta });
+    }
+
+    if (!idProposta) {
+      const numeroIdentificacaoDigits = numeroIdentificacao.replace(/\D/g, "");
+      const idPropostaByNumeroIdentificacao =
+        asPositiveInt(numeroIdentificacao) ?? asPositiveInt(numeroIdentificacaoDigits);
+      pushDebug("resolve.id_proposta_valor.by_numero_identificacao.start", {
+        numero_identificacao: numeroIdentificacao,
+        numero_identificacao_digits: numeroIdentificacaoDigits,
+        parsed: idPropostaByNumeroIdentificacao,
+      });
+
+      if (idPropostaByNumeroIdentificacao) {
+        idProposta = await resolveIdPropostaValorById(idPropostaByNumeroIdentificacao);
+      } else {
+        const numeroIdentificacaoTexto = asNonEmptyText(numeroIdentificacao);
+        if (numeroIdentificacaoTexto) {
+          idProposta = await resolveIdPropostaValorById(numeroIdentificacaoTexto);
+        }
+      }
+
+      pushDebug("resolve.id_proposta_valor.by_numero_identificacao.end", {
+        value: idProposta,
+      });
+    }
+
+    if (!idProposta) {
+      const numeroIdentificacaoFallback =
+        asNonEmptyText(numeroIdentificacao.replace(/\D/g, "")) ?? asNonEmptyText(numeroIdentificacao);
+      if (numeroIdentificacaoFallback) {
+        idProposta = numeroIdentificacaoFallback;
+        pushDebug("resolve.id_proposta_valor.fallback_numero_identificacao", {
+          value: idProposta,
+        });
+      }
+    }
+
+    if (!idProposta) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Nao foi possivel resolver p_id_proposta.",
+          context: {
+            id_pessoa: finalIdPessoa ?? null,
+            id_agregacao: finalIdAgregacao ?? null,
+            numero_identificacao: numeroIdentificacao || null,
+          },
+          debug_id: debugId,
+          debug: debugEnabled ? debugEntries : undefined,
+        },
+        { status: 400 },
+      );
+    }
+
+    let idUsuario = idUsuarioFromPayload ?? (await resolveCurrentUsuarioId());
     pushDebug("resolve.usuario_id", { value: idUsuario });
 
     if (!idUsuario && agregacaoData.idUsuario) {
       idUsuario = agregacaoData.idUsuario;
     }
 
-    let linkDownload = "";
+    if (!idUsuario && finalIdPessoa) {
+      pushDebug("resolve.id_usuario.by_id_pessoa.start", { id_pessoa: finalIdPessoa });
+      idUsuario = await resolveIdUsuarioByIdPessoa(finalIdPessoa);
+      pushDebug("resolve.id_usuario.by_id_pessoa.end", { value: idUsuario });
+    }
 
-    if (arquivoContrato && arquivoContrato.size > 0) {
-      pushDebug("upload.file.start", {
-        name: arquivoContrato.name,
-        size: arquivoContrato.size,
-        type: arquivoContrato.type,
+    if (!idUsuario) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Nao foi possivel resolver p_id_user para o payload.",
+          debug_id: debugId,
+          debug: debugEnabled ? debugEntries : undefined,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Upload de múltiplos arquivos
+    const linksDownload: string[] = [];
+
+    if (arquivosValidos.length > 0) {
+      pushDebug("upload.files.start", {
+        count: arquivosValidos.length,
+        files: arquivosValidos.map((f) => ({ name: f.name, size: f.size, type: f.type })),
       });
 
-      try {
-        const fileName = `contratos/${Date.now()}-${randomUUID()}-${arquivoContrato.name}`;
-        linkDownload = await uploadFileToSupabase(arquivoContrato, "contratos", fileName);
-        pushDebug("upload.file.success", { public_url: linkDownload });
-      } catch (uploadError) {
-        pushDebug("upload.file.error", {
-          message: uploadError instanceof Error ? uploadError.message : "unknown",
-        });
-        return NextResponse.json(
-          {
-            ok: false,
-            error: "Falha ao fazer upload do arquivo.",
-            debug_id: debugId,
-            debug: debugEnabled ? debugEntries : undefined,
-          },
-          { status: 500 },
-        );
+      for (const arquivo of arquivosValidos) {
+        try {
+          const fileName = `contratos/${Date.now()}-${randomUUID()}-${arquivo.name}`;
+          const publicUrl = await uploadFileToSupabase(arquivo, "contratos", fileName);
+          linksDownload.push(publicUrl);
+          pushDebug("upload.file.success", { file: arquivo.name, public_url: publicUrl });
+        } catch (uploadError) {
+          pushDebug("upload.file.error", {
+            file: arquivo.name,
+            message: uploadError instanceof Error ? uploadError.message : "unknown",
+          });
+          return NextResponse.json(
+            {
+              ok: false,
+              error: `Falha ao fazer upload do arquivo: ${arquivo.name}`,
+              debug_id: debugId,
+              debug: debugEnabled ? debugEntries : undefined,
+            },
+            { status: 500 },
+          );
+        }
       }
+
+      pushDebug("upload.files.completed", { count: linksDownload.length, urls: linksDownload });
     }
+
+    // Concatena as URLs separadas por vírgula para o webhook
+    const linkDownloadString = linksDownload.join(",");
 
     const webhookPayload = {
       p_empresa_email: emailResponsavel,
       p_agregacao: finalIdAgregacao ?? undefined,
-      p_id_user: idUsuario ?? undefined,
+      p_id_user: idUsuario,
       p_nota_email: emailNotaFiscal,
       p_fone_cobranca: telefoneCobranca,
-      p_link_download: linkDownload,
+      p_link_download: linkDownloadString,
       p_id_pessoa: finalIdPessoa ?? undefined,
-      p_id_proposta: idProposta ?? undefined,
+      p_id_proposta: idProposta,
     };
 
     pushDebug("webhook.cadastrar_contrato.request", {
@@ -375,9 +591,10 @@ export async function POST(request: NextRequest) {
         full_result: contratoData,
       });
 
-      if (arquivoContrato && arquivoContrato.size > 0 && linkDownload && idContrato) {
+      // Envia links para o segundo webhook (somente apos receber id_contrato)
+      if (linksDownload.length > 0 && idContrato) {
         const enviarArquivoPayload = {
-          file: linkDownload,
+          file: linkDownloadString,
           id_contrato: idContrato,
         };
 
@@ -405,7 +622,7 @@ export async function POST(request: NextRequest) {
 
           if (!responseArquivo.ok) {
             console.warn(
-              `[clientes/cadastrar-contrato][${debugId}] Aviso: arquivo nao enviado ao webhook secundario`,
+              `[clientes/cadastrar-contrato][${debugId}] Aviso: erro ao enviar arquivos ao webhook secundario`,
               { status: responseArquivo.status, body: resultArquivo },
             );
           }
@@ -414,7 +631,7 @@ export async function POST(request: NextRequest) {
             message: arquivoError instanceof Error ? arquivoError.message : "unknown",
           });
           console.warn(
-            `[clientes/cadastrar-contrato][${debugId}] Aviso: erro ao enviar arquivo ao webhook secundario`,
+            `[clientes/cadastrar-contrato][${debugId}] Aviso: falha de rede ao enviar arquivos ao webhook secundario`,
             arquivoError,
           );
         }
@@ -429,6 +646,7 @@ export async function POST(request: NextRequest) {
         id_contrato: idContrato,
         result: contratoData,
         sent: webhookPayload,
+        files_uploaded: linksDownload.length,
         debug_id: debugId,
         debug: debugEnabled ? debugEntries : undefined,
       });

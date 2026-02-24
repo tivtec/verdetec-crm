@@ -690,9 +690,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         )}
 
         {activeView === "dashboard" ? (
-          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
             <table className="w-max min-w-full border-collapse">
-              <thead className="bg-[#d6d6d8]">
+              <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
                 <tr>
                   {visibleFunilColumns.map((column) => (
                     <th
@@ -717,7 +717,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   return (
                     <tr
                       key={rowKey}
-                      className="border-t border-[#e5e7ea]"
+                      className="border-t border-white/10"
                       style={{ backgroundColor: getFunilRowBackgroundColor(row.l100) }}
                     >
                       {visibleFunilColumns.map((column) => (
@@ -796,9 +796,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </table>
           </div>
         ) : activeView === "retrato" ? (
-          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
             <table className="w-full table-fixed border-collapse">
-              <thead className="bg-[#d6d6d8]">
+              <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
                 <tr>
                   {retratoColumns.map((column) => (
                     <th
@@ -812,7 +812,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </thead>
               <tbody>
                 {retratoSnapshot!.rows.map((row, rowIndex) => (
-                  <tr key={`${row.nome}-${rowIndex}`} className="border-t border-[#e5e7ea] bg-[#f4f4f5]">
+                  <tr key={`${row.nome}-${rowIndex}`} className="border-t border-white/10 bg-white/40">
                     {retratoColumns.map((column) => (
                       <td
                         key={`${row.nome}-${rowIndex}-${column.key}`}
@@ -825,7 +825,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-[#c9c9cb] bg-[#d6d6d8]">
+                <tr className="border-t border-white/20 bg-[#d6d6d8]/60 backdrop-blur-sm">
                   {retratoColumns.map((column) => (
                     <td
                       key={`retrato-total-${column.key}`}
@@ -839,9 +839,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </table>
           </div>
         ) : (
-          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-slate-300 bg-white">
+          <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
             <table className="w-full table-fixed border-collapse">
-              <thead className="bg-[#d6d6d8]">
+              <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
                 <tr>
                   {orcamentosColumns.map((column) => (
                     <th
@@ -857,7 +857,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 {orcamentosSnapshot!.rows.length > 0 ? (
                   <>
                     {orcamentosSnapshot!.rows.map((row, rowIndex) => (
-                      <tr key={`${row.idUsuario}-${rowIndex}`} className="border-t border-[#e5e7ea] bg-[#f4f4f5]">
+                      <tr key={`${row.idUsuario}-${rowIndex}`} className="border-t border-white/10 bg-white/40">
                         {orcamentosColumns.map((column) => (
                           <td
                             key={`${row.idUsuario}-${rowIndex}-${column.key}`}
@@ -873,7 +873,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </tbody>
               {orcamentosSnapshot!.rows.length > 0 ? (
                 <tfoot>
-                  <tr className="border-t border-[#c9c9cb] bg-[#d6d6d8]">
+                  <tr className="border-t border-white/20 bg-[#d6d6d8]/60 backdrop-blur-sm">
                     {orcamentosColumns.map((column) => (
                       <td
                         key={`orcamentos-total-${column.key}`}
@@ -886,7 +886,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </tfoot>
               ) : (
                 <tfoot>
-                  <tr className="border-t border-[#e5e7ea] bg-[#f4f4f5]">
+                  <tr className="border-t border-white/10 bg-white/40">
                     <td
                       colSpan={orcamentosColumns.length}
                       className="px-4 py-8 text-center text-sm text-slate-500"

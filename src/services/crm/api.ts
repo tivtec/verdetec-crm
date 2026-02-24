@@ -528,16 +528,6 @@ function hasUsableClientesControleRows(rows: ClienteControleWebhookRow[]) {
   });
 }
 
-function hasAnyClientesControleFilter(filters: ClienteControleApiFilters) {
-  const usuarioId = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
-  return (
-    usuarioId > 0 ||
-    asString(filters.nome).trim().length > 0 ||
-    asString(filters.telefone).trim().length > 0 ||
-    asString(filters.etiqueta).trim().length > 0
-  );
-}
-
 function applyClientesControleLocalFilters(
   rows: ClienteControleApiRow[],
   filters: ClienteControleApiFilters,
@@ -698,7 +688,7 @@ async function fetchEtiquetaHistoricoByPessoaIds(ids: number[]) {
 
     const { data, error } = await supabase
       .from("etiqueta")
-      .select("id_pessoa,etiqueta,created_at,data_criacao")
+      .select("id,id_pessoa,etiqueta,created_at,data_criacao")
       .in("id_pessoa", chunk)
       .order("id", { ascending: false });
 
@@ -716,6 +706,43 @@ type EtiquetaHistoricoDatas = {
   data30: string | null;
   data40: string | null;
 };
+
+function resolveLatestEtiquetaDisplay(
+  rows: EtiquetaHistoricoPessoaRow[],
+  fallbackEtiquetaDisplay: string,
+) {
+  let latestTimestamp = Number.NEGATIVE_INFINITY;
+  let latestId = 0;
+  let latestEtiquetaDisplay = fallbackEtiquetaDisplay;
+
+  for (const row of rows) {
+    const etiquetaCode = extractEtiquetaCode(asString(row.etiqueta), "");
+    if (!etiquetaCode) {
+      continue;
+    }
+
+    const rawDate = asString(row.data_criacao ?? row.created_at).trim();
+    const parsedDate = rawDate ? parseDateInput(rawDate) : null;
+    const timestamp = parsedDate ? parsedDate.getTime() : Number.NEGATIVE_INFINITY;
+    const rowId = Math.max(0, Math.trunc(asNumber(row.id, 0)));
+    const etiquetaDisplay = buildEtiquetaDisplay(etiquetaCode, rawDate);
+
+    const shouldReplace =
+      timestamp > latestTimestamp ||
+      (timestamp === latestTimestamp && rowId > latestId) ||
+      (latestTimestamp === Number.NEGATIVE_INFINITY && latestId === 0);
+
+    if (!shouldReplace) {
+      continue;
+    }
+
+    latestTimestamp = timestamp;
+    latestId = rowId;
+    latestEtiquetaDisplay = etiquetaDisplay;
+  }
+
+  return latestEtiquetaDisplay;
+}
 
 function resolveHistoricoEtiquetaDatas(rows: EtiquetaHistoricoPessoaRow[]): EtiquetaHistoricoDatas {
   let data30Timestamp = -1;
@@ -812,22 +839,106 @@ async function enrichClientesRowsWithEtiquetaDatas(rows: ClienteControleApiRow[]
 
     const hasData30 = Boolean(row.data30 && row.data30.trim().length > 0);
     const hasData40 = Boolean(row.data40 && row.data40.trim().length > 0);
-    if (hasData30 && hasData40) {
-      return row;
-    }
-
     const historico = historicoByPessoaId.get(pessoaId);
     if (!historico?.length) {
       return row;
     }
 
     const resolved = resolveHistoricoEtiquetaDatas(historico);
+    const latestEtiquetaDisplay = resolveLatestEtiquetaDisplay(historico, row.etiqueta);
+    const hasAgregacaoSource =
+      typeof row.agregacaoId === "number" && Number.isFinite(row.agregacaoId) && row.agregacaoId > 0;
     return {
       ...row,
+      // When the row comes from agregacao, keep etiqueta from agregacao.id_etiqueta as source of truth.
+      etiqueta: hasAgregacaoSource ? row.etiqueta : latestEtiquetaDisplay,
       data30: hasData30 ? row.data30 : resolved.data30,
       data40: hasData40 ? row.data40 : resolved.data40,
     } satisfies ClienteControleApiRow;
   });
+}
+
+async function enrichClientesRowsWithPessoaIdsFromAgregacao(rows: ClienteControleApiRow[]) {
+  if (!rows.length) {
+    return rows;
+  }
+
+  const missingPessoaAgregacaoIds = Array.from(
+    new Set(
+      rows
+        .filter((row) => {
+          const pessoaId = typeof row.pessoaId === "number" ? Math.max(0, Math.trunc(row.pessoaId)) : 0;
+          const agregacaoId = typeof row.agregacaoId === "number" ? Math.max(0, Math.trunc(row.agregacaoId)) : 0;
+          return pessoaId <= 0 && agregacaoId > 0;
+        })
+        .map((row) => Math.max(0, Math.trunc(asNumber(row.agregacaoId, 0))))
+        .filter((id) => id > 0),
+    ),
+  );
+
+  if (!missingPessoaAgregacaoIds.length) {
+    return rows;
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const chunkSize = 400;
+  const pessoaIdByAgregacaoId = new Map<number, number>();
+
+  for (let index = 0; index < missingPessoaAgregacaoIds.length; index += chunkSize) {
+    const chunk = missingPessoaAgregacaoIds.slice(index, index + chunkSize);
+
+    const { data, error } = await supabase
+      .from("agregacao")
+      .select("id,id_pessoa")
+      .in("id", chunk);
+
+    if (error || !data?.length) {
+      continue;
+    }
+
+    for (const item of data as AgregacaoPessoaPropostaRow[]) {
+      const agregacaoId = Math.max(0, Math.trunc(asNumber(item.id, 0)));
+      const pessoaId = Math.max(0, Math.trunc(asNumber(item.id_pessoa, 0)));
+      if (agregacaoId > 0 && pessoaId > 0) {
+        pessoaIdByAgregacaoId.set(agregacaoId, pessoaId);
+      }
+    }
+  }
+
+  if (!pessoaIdByAgregacaoId.size) {
+    return rows;
+  }
+
+  return rows.map((row) => {
+    const pessoaId = typeof row.pessoaId === "number" ? Math.max(0, Math.trunc(row.pessoaId)) : 0;
+    if (pessoaId > 0) {
+      return row;
+    }
+
+    const agregacaoId = typeof row.agregacaoId === "number" ? Math.max(0, Math.trunc(row.agregacaoId)) : 0;
+    if (agregacaoId <= 0) {
+      return row;
+    }
+
+    const resolvedPessoaId = pessoaIdByAgregacaoId.get(agregacaoId);
+    if (!resolvedPessoaId) {
+      return row;
+    }
+
+    return {
+      ...row,
+      pessoaId: resolvedPessoaId,
+    } satisfies ClienteControleApiRow;
+  });
+}
+
+async function enrichClientesRowsForFreshEtiqueta(rows: ClienteControleApiRow[]) {
+  if (!rows.length) {
+    return rows;
+  }
+
+  const withPessoaIds = await enrichClientesRowsWithPessoaIdsFromAgregacao(rows);
+  return enrichClientesRowsWithEtiquetaDatas(withPessoaIds);
 }
 
 function parseNumericId(value: unknown) {
@@ -1148,6 +1259,7 @@ type EtiquetaClienteRow = {
 };
 
 type EtiquetaHistoricoPessoaRow = {
+  id?: number | string | null;
   id_pessoa?: number | string | null;
   etiqueta?: string | null;
   created_at?: string | null;
@@ -1253,12 +1365,6 @@ async function getClientesControleRowsFromAgregacao(
   const offset = hasOffset ? Math.max(0, Math.trunc(asNumber(filters.offset, 0))) : 0;
   const limit = hasLimit ? Math.max(1, Math.trunc(asNumber(filters.limit, 10))) : Number.MAX_SAFE_INTEGER;
   const hasPessoaSearchFilters = nomeFilterRaw.length > 0 || telefoneFilterRaw.length > 0;
-  const hasAnyFilter =
-    usuarioId > 0 ||
-    nomeFilterRaw.length > 0 ||
-    telefoneFilterRaw.length > 0 ||
-    etiquetaFilterCode.length > 0 ||
-    etiquetaFilterNormalized.length > 0;
 
   let pessoaIdsFilter: number[] = [];
   if (hasPessoaSearchFilters) {
@@ -1318,68 +1424,14 @@ async function getClientesControleRowsFromAgregacao(
     pessoaIdsFilter = Array.from(pessoaIdsSet);
   }
 
-  let etiquetaIdsFilter: number[] = [];
-  if (etiquetaFilterCode.length > 0) {
-    // extractEtiquetaCode already returns the canonical form (e.g. "#40").
-    const etiquetaTarget = etiquetaFilterCode;
-    const etiquetaIds: number[] = [];
-    const etiquetaPageSize = 1000;
-    let etiquetaOffset = 0;
-    const maxEtiquetaRows = 100000;
-    let scannedEtiquetaRows = 0;
-
-    while (true) {
-      const { data, error } = await supabase
-        .from("etiqueta")
-        .select("id,etiqueta")
-        .ilike("etiqueta", `%${etiquetaFilterCode}%`)
-        .order("id", { ascending: false })
-        .range(etiquetaOffset, etiquetaOffset + etiquetaPageSize - 1);
-
-      if (error || !data?.length) {
-        break;
-      }
-
-      scannedEtiquetaRows += data.length;
-      for (const row of data as Array<Record<string, unknown>>) {
-        const etiquetaCode = extractEtiquetaCode(asString(row.etiqueta));
-        if (etiquetaCode !== etiquetaTarget) {
-          continue;
-        }
-
-        const id = Math.max(0, Math.trunc(asNumber(row.id, 0)));
-        if (id > 0) {
-          etiquetaIds.push(id);
-        }
-      }
-
-      if (scannedEtiquetaRows >= maxEtiquetaRows) {
-        break;
-      }
-
-      if (data.length < etiquetaPageSize) {
-        break;
-      }
-
-      etiquetaOffset += etiquetaPageSize;
-    }
-
-    etiquetaIdsFilter = Array.from(new Set(etiquetaIds));
-    // Intentionally do not early-return when none found.
-    // Fallback to broad agregacao scan + local filter avoids false negatives.
-  }
-  const etiquetaIdsFilterSet = new Set<number>(etiquetaIdsFilter);
-
   const agregacaoRows: AgregacaoClienteRow[] = [];
-  const agregacaoPageSize = 1000;
-  const maxRows = hasAnyFilter ? 200000 : 5000;
+  const agregacaoPageSize = 1500;
+  const maxRows = hasPessoaSearchFilters || usuarioId > 0 || etiquetaFilterRaw.length > 0 ? 220000 : 50000;
 
   const readAgregacaoPage = async ({
     pessoaChunk,
-    etiquetaChunk,
   }: {
     pessoaChunk?: number[];
-    etiquetaChunk?: number[];
   }) => {
     let localOffset = 0;
     while (true) {
@@ -1388,16 +1440,8 @@ async function getClientesControleRowsFromAgregacao(
         .select("id,id_usuario,id_pessoa,id_etiqueta,created_at,data_criacao")
         .order("id", { ascending: false });
 
-      if (usuarioId > 0) {
-        query = query.eq("id_usuario", usuarioId);
-      }
-
       if (pessoaChunk && pessoaChunk.length > 0) {
         query = query.in("id_pessoa", pessoaChunk);
-      }
-
-      if (etiquetaChunk && etiquetaChunk.length > 0) {
-        query = query.in("id_etiqueta", etiquetaChunk);
       }
 
       const { data, error } = await query.range(localOffset, localOffset + agregacaoPageSize - 1);
@@ -1428,158 +1472,46 @@ async function getClientesControleRowsFromAgregacao(
         pessoaChunk: pessoaIdsFilter.slice(index, index + pessoaChunkSize),
       });
     }
-  } else if (etiquetaIdsFilter.length > 0) {
-    const etiquetaChunkSize = 300;
-    for (let index = 0; index < etiquetaIdsFilter.length; index += etiquetaChunkSize) {
-      if (agregacaoRows.length >= maxRows) {
-        break;
-      }
-      await readAgregacaoPage({
-        etiquetaChunk: etiquetaIdsFilter.slice(index, index + etiquetaChunkSize),
-      });
-    }
   } else {
     await readAgregacaoPage({});
   }
 
-  const agregacaoEtiquetaIdsSet = new Set<number>(
-    agregacaoRows
-      .map((row) => Math.max(0, Math.trunc(asNumber(row.id_etiqueta, 0))))
-      .filter((id) => id > 0),
-  );
+  if (!agregacaoRows.length) {
+    return [];
+  }
 
-  const extraEtiquetaRows: EtiquetaClienteRow[] = [];
-  const extraEtiquetaRowsMax = maxRows;
-  const extraEtiquetaSeenIds = new Set<number>();
-  const pessoaIdsFilterSet = new Set<number>(pessoaIdsFilter);
-  const hasRawEtiquetaFilter = etiquetaFilterRaw.length > 0;
-
-  const pushExtraEtiquetaRows = (data: EtiquetaClienteRow[]) => {
-    for (const row of data) {
-      if (extraEtiquetaRows.length >= extraEtiquetaRowsMax) {
-        break;
-      }
-
-      const etiquetaId = Math.max(0, Math.trunc(asNumber(row.id, 0)));
-      if (etiquetaId <= 0 || extraEtiquetaSeenIds.has(etiquetaId) || agregacaoEtiquetaIdsSet.has(etiquetaId)) {
-        continue;
-      }
-
-      const rowUsuarioId = Math.max(0, Math.trunc(asNumber(row.id_usuario, 0)));
-      if (usuarioId > 0 && rowUsuarioId > 0 && rowUsuarioId !== usuarioId) {
-        continue;
-      }
-
-      const rowPessoaId = Math.max(0, Math.trunc(asNumber(row.id_pessoa, 0)));
-      if (pessoaIdsFilterSet.size > 0 && (rowPessoaId <= 0 || !pessoaIdsFilterSet.has(rowPessoaId))) {
-        continue;
-      }
-
-      const rowEtiquetaCode = extractEtiquetaCode(asString(row.etiqueta));
-      if (etiquetaFilterCode.length > 0 && rowEtiquetaCode !== etiquetaFilterCode) {
-        continue;
-      }
-
-      if (
-        etiquetaFilterCode.length === 0 &&
-        etiquetaFilterNormalized.length > 0 &&
-        !normalizeLoose(asString(row.etiqueta)).includes(etiquetaFilterNormalized)
-      ) {
-        continue;
-      }
-
-      extraEtiquetaSeenIds.add(etiquetaId);
-      extraEtiquetaRows.push(row);
+  const latestAgregacaoByPessoa = new Map<number, AgregacaoClienteRow>();
+  for (const agregacao of agregacaoRows) {
+    const pessoaId = Math.max(0, Math.trunc(asNumber(agregacao.id_pessoa, 0)));
+    if (pessoaId <= 0 || latestAgregacaoByPessoa.has(pessoaId)) {
+      continue;
     }
-  };
+    // agregacao is loaded in desc order by id, so first row per pessoa is the latest state.
+    latestAgregacaoByPessoa.set(pessoaId, agregacao);
+  }
 
-  const readEtiquetaPage = async ({
-    pessoaChunk,
-    etiquetaChunk,
-  }: {
-    pessoaChunk?: number[];
-    etiquetaChunk?: number[];
-  }) => {
-    const etiquetaPageSize = 1000;
-    let etiquetaOffset = 0;
+  let latestAgregacaoRows = Array.from(latestAgregacaoByPessoa.values());
+  if (usuarioId > 0) {
+    latestAgregacaoRows = latestAgregacaoRows.filter((agregacao) => {
+      const rowUsuarioId = Math.max(0, Math.trunc(asNumber(agregacao.id_usuario, 0)));
+      return rowUsuarioId === usuarioId;
+    });
+  }
 
-    while (true) {
-      let query = supabase
-        .from("etiqueta")
-        .select("id,etiqueta,origem,created_at,data_criacao,id_pessoa,id_usuario")
-        .order("id", { ascending: false });
-
-      if (usuarioId > 0) {
-        query = query.eq("id_usuario", usuarioId);
-      }
-
-      if (pessoaChunk && pessoaChunk.length > 0) {
-        query = query.in("id_pessoa", pessoaChunk);
-      }
-
-      if (etiquetaChunk && etiquetaChunk.length > 0) {
-        query = query.in("id", etiquetaChunk);
-      } else if (etiquetaFilterCode.length > 0) {
-        query = query.ilike("etiqueta", `%${etiquetaFilterCode}%`);
-      } else if (etiquetaFilterNormalized.length > 0 && hasRawEtiquetaFilter) {
-        query = query.ilike("etiqueta", `%${etiquetaFilterRaw}%`);
-      }
-
-      const { data, error } = await query.range(etiquetaOffset, etiquetaOffset + etiquetaPageSize - 1);
-      if (error || !data?.length) {
-        break;
-      }
-
-      pushExtraEtiquetaRows(data as EtiquetaClienteRow[]);
-      if (extraEtiquetaRows.length >= extraEtiquetaRowsMax) {
-        break;
-      }
-
-      if (data.length < etiquetaPageSize) {
-        break;
-      }
-
-      etiquetaOffset += etiquetaPageSize;
-    }
-  };
-
-  if (hasAnyFilter) {
-    if (etiquetaIdsFilter.length > 0) {
-      const etiquetaChunkSize = 300;
-      for (let index = 0; index < etiquetaIdsFilter.length; index += etiquetaChunkSize) {
-        if (extraEtiquetaRows.length >= extraEtiquetaRowsMax) {
-          break;
-        }
-        await readEtiquetaPage({
-          etiquetaChunk: etiquetaIdsFilter.slice(index, index + etiquetaChunkSize),
-        });
-      }
-    } else if (pessoaIdsFilter.length > 0) {
-      const pessoaChunkSize = 300;
-      for (let index = 0; index < pessoaIdsFilter.length; index += pessoaChunkSize) {
-        if (extraEtiquetaRows.length >= extraEtiquetaRowsMax) {
-          break;
-        }
-        await readEtiquetaPage({
-          pessoaChunk: pessoaIdsFilter.slice(index, index + pessoaChunkSize),
-        });
-      }
-    } else {
-      await readEtiquetaPage({});
-    }
+  if (!latestAgregacaoRows.length) {
+    return [];
   }
 
   const pessoaIds = Array.from(
     new Set(
-      [
-        ...agregacaoRows.map((row) => Math.max(0, Math.trunc(asNumber(row.id_pessoa, 0)))),
-        ...extraEtiquetaRows.map((row) => Math.max(0, Math.trunc(asNumber(row.id_pessoa, 0)))),
-      ].filter((id) => id > 0),
+      latestAgregacaoRows
+        .map((row) => Math.max(0, Math.trunc(asNumber(row.id_pessoa, 0))))
+        .filter((id) => id > 0),
     ),
   );
   const etiquetaIds = Array.from(
     new Set(
-      agregacaoRows
+      latestAgregacaoRows
         .map((row) => Math.max(0, Math.trunc(asNumber(row.id_etiqueta, 0))))
         .filter((id) => id > 0),
     ),
@@ -1608,20 +1540,12 @@ async function getClientesControleRowsFromAgregacao(
 
   const rows: ClienteControleApiRow[] = [];
 
-  for (const agregacao of agregacaoRows) {
+  for (const agregacao of latestAgregacaoRows) {
     const pessoaId = Math.max(0, Math.trunc(asNumber(agregacao.id_pessoa, 0)));
     const pessoa = pessoaById.get(pessoaId);
     const etiquetaId = Math.max(0, Math.trunc(asNumber(agregacao.id_etiqueta, 0)));
     const etiquetaRow = etiquetaById.get(etiquetaId);
-    const etiquetaCodeFromRow = extractEtiquetaCode(asString(etiquetaRow?.etiqueta));
-    const matchedByEtiquetaIdFilter =
-      etiquetaFilterCode.length > 0 &&
-      etiquetaIdsFilterSet.size > 0 &&
-      etiquetaId > 0 &&
-      etiquetaIdsFilterSet.has(etiquetaId);
-    const etiquetaCode = matchedByEtiquetaIdFilter
-      ? etiquetaFilterCode
-      : extractEtiquetaCode(asString(etiquetaRow?.etiqueta), "#10");
+    const etiquetaCode = extractEtiquetaCode(asString(etiquetaRow?.etiqueta), "#10");
 
     const nome = asString(pessoa?.nome, "Sem nome");
     const telefone = asNullableString(pessoa?.telefone);
@@ -1631,7 +1555,7 @@ async function getClientesControleRowsFromAgregacao(
         agregacao.created_at ??
         agregacao.data_criacao,
     ).trim();
-    const etiqueta = buildEtiquetaDisplay(etiquetaCode || etiquetaCodeFromRow || "#10", dataRaw);
+    const etiqueta = buildEtiquetaDisplay(etiquetaCode || "#10", dataRaw);
 
     if (nomeFilter && !normalizeLoose(nome).includes(nomeFilter)) {
       continue;
@@ -1648,11 +1572,16 @@ async function getClientesControleRowsFromAgregacao(
     }
 
     if (etiquetaFilterCode.length > 0) {
-      if (!matchedByEtiquetaIdFilter && etiquetaCode !== etiquetaFilterCode) {
+      if (etiquetaCode !== etiquetaFilterCode) {
         continue;
       }
-    } else if (etiquetaFilterNormalized && !normalizeLoose(etiqueta).includes(etiquetaFilterNormalized)) {
-      continue;
+    } else if (etiquetaFilterNormalized.length > 0) {
+      const etiquetaTexto = asString(etiquetaRow?.etiqueta).trim();
+      const matchesDisplay = normalizeLoose(etiqueta).includes(etiquetaFilterNormalized);
+      const matchesTexto = etiquetaTexto.length > 0 && normalizeLoose(etiquetaTexto).includes(etiquetaFilterNormalized);
+      if (!matchesDisplay && !matchesTexto) {
+        continue;
+      }
     }
 
     rows.push({
@@ -1669,51 +1598,8 @@ async function getClientesControleRowsFromAgregacao(
     });
   }
 
-  if (extraEtiquetaRows.length > 0) {
-    for (const etiquetaRow of extraEtiquetaRows) {
-      const pessoaId = Math.max(0, Math.trunc(asNumber(etiquetaRow.id_pessoa, 0)));
-      const pessoa = pessoaById.get(pessoaId);
-      const etiquetaCode = extractEtiquetaCode(asString(etiquetaRow.etiqueta), "#10");
-      const nome = asString(pessoa?.nome, "Sem nome");
-      const telefone = asNullableString(pessoa?.telefone);
-      const dataRaw = asString(etiquetaRow.created_at ?? etiquetaRow.data_criacao).trim();
-      const etiqueta = buildEtiquetaDisplay(etiquetaCode, dataRaw);
-
-      if (nomeFilter && !normalizeLoose(nome).includes(nomeFilter)) {
-        continue;
-      }
-
-      if (telefoneFilter) {
-        const telefoneNormalized = normalizeLoose(telefone);
-        const telefoneDigits = asString(telefone).replace(/\D/g, "");
-        const matchesRaw = telefoneNormalized.includes(telefoneFilter);
-        const matchesDigits = telefoneFilterDigits.length > 0 && telefoneDigits.includes(telefoneFilterDigits);
-        if (!matchesRaw && !matchesDigits) {
-          continue;
-        }
-      }
-
-      if (etiquetaFilterCode.length > 0) {
-        if (etiquetaCode !== etiquetaFilterCode) {
-          continue;
-        }
-      } else if (etiquetaFilterNormalized && !normalizeLoose(etiqueta).includes(etiquetaFilterNormalized)) {
-        continue;
-      }
-
-      rows.push({
-        id: asString(etiquetaRow.id, `et-${rows.length + 1}`),
-        etiqueta,
-        telefone,
-        nome,
-        equipamento: null,
-        data30: null,
-        data40: null,
-        pessoaId,
-        agregacaoId: null,
-        usuarioId: asNullablePositiveInt(etiquetaRow.id_usuario),
-      });
-    }
+  if (!rows.length) {
+    return [];
   }
 
   const end = hasLimit ? offset + limit : undefined;
@@ -1842,6 +1728,14 @@ async function getClientesControleRowsFromAgendamentos(
 export async function getClientesControleRows(
   filters: ClienteControleApiFilters = {},
 ): Promise<ClienteControleApiRow[]> {
+  const mapClientesRows = async (rows: ClienteControleApiRow[]) =>
+    sortClientesRowsByEtiquetaNewest(
+      applyClientesControleLocalFilters(
+        await enrichClientesRowsWithEquipamento(await enrichClientesRowsForFreshEtiqueta(rows)),
+        filters,
+      ),
+    );
+
   const selectedUsuario = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
   const telefone = asString(filters.telefone).trim();
   const etiqueta = asString(filters.etiqueta).trim();
@@ -1866,102 +1760,24 @@ export async function getClientesControleRows(
     payload.nome = nome;
   }
 
-  // For filtered searches we use direct DB queries to avoid partial webhook pages.
-  if (hasAnyClientesControleFilter(filters)) {
-    const fallbackAgregacaoRows = await getClientesControleRowsFromAgregacao(filters);
-    if (fallbackAgregacaoRows.length > 0) {
-      const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgregacaoRows);
-      return sortClientesRowsByEtiquetaNewest(
-        applyClientesControleLocalFilters(
-          await enrichClientesRowsWithEquipamento(withEtiquetaDatas),
-          filters,
-        ),
-      );
-    }
-
-    const fallbackAgendamentoRows = await getClientesControleRowsFromAgendamentos(filters);
-    const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgendamentoRows);
-    const agendamentoMappedRows = sortClientesRowsByEtiquetaNewest(
-      applyClientesControleLocalFilters(
-        await enrichClientesRowsWithEquipamento(withEtiquetaDatas),
-        filters,
-      ),
-    );
-    if (agendamentoMappedRows.length > 0) {
-      return agendamentoMappedRows;
-    }
-
-    // Last-resort fallback: keep webhook path to avoid empty states when DB fallback is restricted.
-    const webhookRows = await fetchClientesControleWebhookRows(payload);
-    if (!hasUsableClientesControleRows(webhookRows)) {
-      return [];
-    }
-
-    return sortClientesRowsByEtiquetaNewest(
-      applyClientesControleLocalFilters(
-        await enrichClientesRowsWithEquipamento(
-          await enrichClientesRowsWithEtiquetaDatas(mapClientesControleRows(webhookRows)),
-        ),
-        filters,
-      ),
-    );
+  // Always prefer direct DB sources to keep the etiqueta column fresh after updates.
+  const fromAgregacaoRows = await getClientesControleRowsFromAgregacao(filters);
+  if (fromAgregacaoRows.length > 0) {
+    return mapClientesRows(fromAgregacaoRows);
   }
 
-  const rows = await fetchClientesControleWebhookRows(payload);
-  if (!hasUsableClientesControleRows(rows)) {
-    const fallbackAgregacaoRows = await getClientesControleRowsFromAgregacao(filters);
-    if (fallbackAgregacaoRows.length > 0) {
-      const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgregacaoRows);
-      return sortClientesRowsByEtiquetaNewest(
-        applyClientesControleLocalFilters(
-          await enrichClientesRowsWithEquipamento(withEtiquetaDatas),
-          filters,
-        ),
-      );
-    }
-
-    const fallbackAgendamentoRows = await getClientesControleRowsFromAgendamentos(filters);
-    const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgendamentoRows);
-    return sortClientesRowsByEtiquetaNewest(
-      applyClientesControleLocalFilters(
-        await enrichClientesRowsWithEquipamento(withEtiquetaDatas),
-        filters,
-      ),
-    );
+  const fromAgendamentoRows = await getClientesControleRowsFromAgendamentos(filters);
+  if (fromAgendamentoRows.length > 0) {
+    return mapClientesRows(fromAgendamentoRows);
   }
 
-  const mappedRows = sortClientesRowsByEtiquetaNewest(
-    applyClientesControleLocalFilters(
-      await enrichClientesRowsWithEquipamento(
-        await enrichClientesRowsWithEtiquetaDatas(mapClientesControleRows(rows)),
-      ),
-      filters,
-    ),
-  );
-
-  if (mappedRows.length > 0 || !hasAnyClientesControleFilter(filters)) {
-    return mappedRows;
+  // Last-resort fallback: keep webhook path only when DB sources cannot provide rows.
+  const webhookRows = await fetchClientesControleWebhookRows(payload);
+  if (!hasUsableClientesControleRows(webhookRows)) {
+    return [];
   }
 
-  const fallbackAgregacaoRows = await getClientesControleRowsFromAgregacao(filters);
-  if (fallbackAgregacaoRows.length > 0) {
-    const withEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgregacaoRows);
-    return sortClientesRowsByEtiquetaNewest(
-      applyClientesControleLocalFilters(
-        await enrichClientesRowsWithEquipamento(withEtiquetaDatas),
-        filters,
-      ),
-    );
-  }
-
-  const fallbackAgendamentoRows = await getClientesControleRowsFromAgendamentos(filters);
-  const fallbackWithEtiquetaDatas = await enrichClientesRowsWithEtiquetaDatas(fallbackAgendamentoRows);
-  return sortClientesRowsByEtiquetaNewest(
-    applyClientesControleLocalFilters(
-      await enrichClientesRowsWithEquipamento(fallbackWithEtiquetaDatas),
-      filters,
-    ),
-  );
+  return mapClientesRows(mapClientesControleRows(webhookRows));
 }
 
 type ClientesRepresentantesOptions = {

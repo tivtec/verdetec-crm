@@ -142,12 +142,13 @@ export function ClientesControlTable({
     emailNotaFiscal: "",
     emailResponsavel: "",
     numeroIdentificacao: "",
-    arquivoContrato: null as File | null,
+    arquivosContrato: [] as File[],
   });
   const [isSubmittingContrato, setIsSubmittingContrato] = useState(false);
   const [contratoFeedback, setContratoFeedback] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const columnsMenuRef = useRef<HTMLDivElement | null>(null);
+  const contratoFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const safePage = Math.max(1, Math.trunc(page));
   const currentRows = rows;
@@ -552,7 +553,7 @@ export function ClientesControlTable({
       emailNotaFiscal: "",
       emailResponsavel: "",
       numeroIdentificacao: "",
-      arquivoContrato: null,
+      arquivosContrato: [],
     });
     setContratoFeedback(null);
     setIsSubmittingContrato(false);
@@ -569,14 +570,25 @@ export function ClientesControlTable({
       emailNotaFiscal: "",
       emailResponsavel: "",
       numeroIdentificacao: "",
-      arquivoContrato: null,
+      arquivosContrato: [],
     });
     setContratoFeedback(null);
     setIsSubmittingContrato(false);
   };
 
+  const handleRemoveContratoArquivo = (fileToRemove: File) => {
+    const fileKeyToRemove = `${fileToRemove.name}-${fileToRemove.size}-${fileToRemove.lastModified}`;
+    setContratoFormData((prev) => ({
+      ...prev,
+      arquivosContrato: prev.arquivosContrato.filter((file) => {
+        const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+        return fileKey !== fileKeyToRemove;
+      }),
+    }));
+  };
+
   const handleCadastrarContrato = async () => {
-    const { telefoneProposta, telefoneCobranca, emailNotaFiscal, emailResponsavel, numeroIdentificacao, arquivoContrato } = contratoFormData;
+    const { telefoneProposta, telefoneCobranca, emailNotaFiscal, emailResponsavel, numeroIdentificacao, arquivosContrato } = contratoFormData;
 
     if (!telefoneProposta.trim()) {
       setContratoFeedback("Informe o telefone da proposta de valor.");
@@ -614,16 +626,21 @@ export function ClientesControlTable({
       return;
     }
 
-    const idPessoaFromRow = (() => {
-      if (typeof targetRow.pessoaId === "number" && targetRow.pessoaId > 0) {
-        return targetRow.pessoaId;
-      }
+    const idPessoaFromRow =
+      typeof targetRow.pessoaId === "number" && targetRow.pessoaId > 0
+        ? Math.trunc(targetRow.pessoaId)
+        : null;
+    const idAgregacaoFromRow =
+      typeof targetRow.agregacaoId === "number" && targetRow.agregacaoId > 0
+        ? Math.trunc(targetRow.agregacaoId)
+        : null;
+    const idUsuarioFromRow =
+      typeof targetRow.usuarioId === "number" && targetRow.usuarioId > 0
+        ? Math.trunc(targetRow.usuarioId)
+        : null;
+    const idUsuarioPayload = currentUserId && currentUserId > 0 ? Math.trunc(currentUserId) : idUsuarioFromRow;
 
-      const parsed = Number(targetRow.id);
-      return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
-    })();
-
-    if (!idPessoaFromRow && !targetRow.agregacaoId) {
+    if (!idPessoaFromRow && !idAgregacaoFromRow) {
       setContratoFeedback("Nao foi possivel resolver id_pessoa ou id_agregacao.");
       return;
     }
@@ -633,15 +650,24 @@ export function ClientesControlTable({
 
     try {
       const formData = new FormData();
-      formData.append("id_pessoa", String(idPessoaFromRow || ""));
-      formData.append("id_agregacao", String(targetRow.agregacaoId || ""));
+      if (idPessoaFromRow) {
+        formData.append("id_pessoa", String(idPessoaFromRow));
+      }
+      if (idAgregacaoFromRow) {
+        formData.append("id_agregacao", String(idAgregacaoFromRow));
+      }
+      if (idUsuarioPayload) {
+        formData.append("id_usuario", String(idUsuarioPayload));
+      }
       formData.append("telefone_proposta", telefoneProposta);
       formData.append("telefone_cobranca", telefoneCobranca);
       formData.append("email_nota_fiscal", emailNotaFiscal);
       formData.append("email_responsavel", emailResponsavel);
       formData.append("numero_identificacao", numeroIdentificacao);
-      if (arquivoContrato) {
-        formData.append("arquivo_contrato", arquivoContrato);
+      
+      // Adiciona múltiplos arquivos
+      for (const file of arquivosContrato) {
+        formData.append("arquivo_contrato", file);
       }
 
       const response = await fetch("/api/clientes/cadastrar-contrato", {
@@ -661,13 +687,18 @@ export function ClientesControlTable({
       }
 
       if (!response.ok || !payload?.ok) {
-        setContratoFeedback(payload?.error ?? "Falha ao cadastrar contrato.");
+        const baseError = payload?.error ?? "Falha ao cadastrar contrato.";
+        const debugSuffix = payload?.debug_id ? ` (debug: ${payload.debug_id})` : "";
+        setContratoFeedback(`${baseError}${debugSuffix}`);
         return;
       }
 
       closeContratoModal();
       setSuccessAlert("Contrato cadastrado com sucesso.");
       router.refresh();
+      window.setTimeout(() => router.refresh(), 1200);
+      window.setTimeout(() => router.refresh(), 2600);
+      window.setTimeout(() => router.refresh(), 4200);
     } catch {
       setContratoFeedback("Erro ao cadastrar contrato.");
     } finally {
@@ -1666,18 +1697,80 @@ export function ClientesControlTable({
                   Anexar o Contrato Social ou CNH
                 </label>
                 <input
+                  ref={contratoFileInputRef}
+                  id="contrato-arquivos-input"
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
+                  multiple
                   onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setContratoFormData({ ...contratoFormData, arquivoContrato: file });
+                    const files = Array.from(e.target.files || []);
+                    if (!files.length) {
+                      return;
+                    }
+
+                    setContratoFormData((prev) => {
+                      const seen = new Set(
+                        prev.arquivosContrato.map((file) => `${file.name}-${file.size}-${file.lastModified}`),
+                      );
+                      const merged = [...prev.arquivosContrato];
+
+                      for (const file of files) {
+                        const key = `${file.name}-${file.size}-${file.lastModified}`;
+                        if (!seen.has(key)) {
+                          seen.add(key);
+                          merged.push(file);
+                        }
+                      }
+
+                      return {
+                        ...prev,
+                        arquivosContrato: merged,
+                      };
+                    });
+
+                    e.currentTarget.value = "";
                   }}
-                  className="w-full rounded-lg bg-[#e6f3ef] px-4 py-3 text-slate-700 outline-none file:mr-4 file:rounded-lg file:border-0 file:bg-[#0f5050] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#0c4343]"
+                  className="sr-only"
                 />
-                {contratoFormData.arquivoContrato && (
-                  <p className="mt-2 text-sm text-[#2f7437]">
-                    Arquivo selecionado: {contratoFormData.arquivoContrato.name}
-                  </p>
+                <div className="flex items-center gap-3 rounded-lg bg-[#e6f3ef] px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => contratoFileInputRef.current?.click()}
+                    className="rounded-lg bg-[#0f5050] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0c4343]"
+                  >
+                    Escolher arquivos
+                  </button>
+                  <span className="text-sm text-slate-700">
+                    {contratoFormData.arquivosContrato.length > 0
+                      ? `${contratoFormData.arquivosContrato.length} arquivo(s) selecionado(s)`
+                      : "Nenhum arquivo selecionado"}
+                  </span>
+                </div>
+                {contratoFormData.arquivosContrato.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm font-medium text-[#2f7437]">
+                      {contratoFormData.arquivosContrato.length} arquivo(s) selecionado(s):
+                    </p>
+                    <ul className="max-h-32 overflow-y-auto text-sm text-slate-600">
+                      {contratoFormData.arquivosContrato.map((file) => (
+                        <li
+                          key={`${file.name}-${file.size}-${file.lastModified}`}
+                          className="flex items-center justify-between gap-3"
+                        >
+                          <span className="truncate">
+                            • {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveContratoArquivo(file)}
+                            className="shrink-0 rounded px-2 py-0.5 text-xs font-medium text-[#7b2323] hover:bg-[#f4dddd]"
+                          >
+                            Remover
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             </div>
