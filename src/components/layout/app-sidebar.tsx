@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { LogoutButton } from "@/components/auth/logout-button";
+import { GlassFilter } from "@/components/ui/liquid-radio";
 import { cn } from "@/utils/cn";
 
 type AppSidebarProps = {
@@ -74,15 +75,21 @@ export function AppSidebar({ profile, allowedPaths, collapsed, onToggleCollapse 
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-30 hidden h-dvh flex-col border-r border-[var(--brand-border)] bg-[var(--brand-primary-soft)] py-4 transition-[width,padding] duration-200 lg:flex",
+        "fixed inset-y-0 left-0 z-30 hidden h-dvh flex-col overflow-hidden border-r border-white/35 bg-[rgba(118,167,157,0.42)] py-4 backdrop-blur-xl transition-[width,padding] duration-200 lg:flex",
         collapsed ? "w-20 px-2" : "w-56 px-3",
       )}
     >
+      <GlassFilter />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/40 via-white/12 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 mix-blend-soft-light opacity-40" style={{ filter: 'url("#radio-glass")' }} />
+      <div className="pointer-events-none absolute -top-12 -left-12 h-44 w-44 rounded-full bg-white/30 blur-2xl" />
+      <div className="pointer-events-none absolute right-0 bottom-0 h-52 w-40 rounded-tl-[80px] bg-[#4e8f82]/25 blur-2xl" />
+
       <div className={cn("mb-3 flex", collapsed ? "justify-center" : "justify-end")}>
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--brand-border)] bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-800"
+          className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/45 bg-white/58 text-slate-600 shadow-[0_4px_18px_rgba(15,80,80,0.14),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-md transition-colors hover:bg-white/72 hover:text-slate-800"
           aria-label={collapsed ? "Expandir menu lateral" : "Minimizar menu lateral"}
           title={collapsed ? "Expandir" : "Minimizar"}
         >
@@ -92,11 +99,11 @@ export function AppSidebar({ profile, allowedPaths, collapsed, onToggleCollapse 
 
       <div
         className={cn(
-          "mx-1 mb-5 flex shrink-0 items-center rounded-xl bg-white py-2 shadow-sm",
+          "relative mx-1 mb-5 flex shrink-0 items-center rounded-xl border border-white/35 bg-white/52 py-2 shadow-[0_8px_24px_rgba(15,80,80,0.12)] backdrop-blur-md",
           collapsed ? "justify-center px-2" : "gap-2.5 px-2.5",
         )}
       >
-        <div className="shrink-0 rounded-md border border-[var(--brand-border)] bg-white p-1">
+        <div className="shrink-0 rounded-md border border-white/60 bg-white/80 p-1 shadow-sm">
           {profile.organizationLogoUrl ? (
             <img
               src={profile.organizationLogoUrl}
@@ -134,11 +141,11 @@ export function AppSidebar({ profile, allowedPaths, collapsed, onToggleCollapse 
                 <Link
                   href={item.href}
                   className={cn(
-                    "group relative flex h-11 items-center rounded-xl transition-colors",
+                    "group relative flex h-11 items-center rounded-xl border border-transparent transition-[background-color,border-color,color,box-shadow]",
                     showInlineLabel ? "w-auto min-w-[9.5rem] gap-2 px-3" : "w-11 justify-center",
                     isActive
-                      ? "bg-[var(--brand-primary)] text-white"
-                      : "text-slate-700 hover:bg-white hover:text-slate-900",
+                      ? "border-white/45 bg-[rgba(15,80,80,0.82)] text-white shadow-[0_8px_20px_rgba(15,80,80,0.25),inset_0_1px_0_rgba(255,255,255,0.18)]"
+                      : "text-slate-700 hover:border-white/40 hover:bg-white/60 hover:text-slate-900 hover:shadow-[0_6px_16px_rgba(15,80,80,0.13)]",
                   )}
                   aria-label={item.label}
                 >
@@ -168,7 +175,7 @@ export function AppSidebar({ profile, allowedPaths, collapsed, onToggleCollapse 
 
       <div
         className={cn(
-          "mx-1 mt-3 shrink-0 rounded-xl border border-[var(--brand-border)] bg-white py-2",
+          "mx-1 mt-3 shrink-0 rounded-xl border border-white/35 bg-white/52 py-2 shadow-[0_8px_24px_rgba(15,80,80,0.12)] backdrop-blur-md",
           collapsed ? "px-2" : "px-2.5",
         )}
       >

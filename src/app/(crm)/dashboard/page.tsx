@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { DashboardFiltersForm } from "@/components/dashboard/dashboard-filters-form";
 import { OrcamentosFiltersForm } from "@/components/dashboard/orcamentos-filters-form";
 import { RetratoFiltersForm } from "@/components/dashboard/retrato-filters-form";
+import { DashboardRetratoTable } from "@/components/dashboard/retrato-table";
 import { PageContainer } from "@/components/layout/page-container";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
@@ -16,8 +17,6 @@ import {
   type DashboardFunilTotals,
   type DashboardOrcamentosRow,
   type DashboardOrcamentosTotals,
-  type DashboardRetratoRow,
-  type DashboardRetratoTotals,
 } from "@/services/crm/api";
 
 export const dynamic = "force-dynamic";
@@ -47,15 +46,6 @@ type FunilColumnKey =
 
 type FunilColumn = {
   key: FunilColumnKey;
-  label: string;
-  widthClass?: string;
-};
-
-type RetratoDataColumnKey = "lead" | "n00" | "n10" | "n21" | "n30" | "n35" | "n40" | "n50";
-type RetratoColumnKey = "nome" | RetratoDataColumnKey;
-
-type RetratoColumn = {
-  key: RetratoColumnKey;
   label: string;
   widthClass?: string;
 };
@@ -98,18 +88,6 @@ const funilColumns: FunilColumn[] = [
   { key: "min", label: "Min", widthClass: "min-w-[104px]" },
   { key: "qtd", label: "Qtd", widthClass: "min-w-[84px]" },
   { key: "umbler", label: "Umbler", widthClass: "min-w-[92px]" },
-];
-
-const retratoColumns: RetratoColumn[] = [
-  { key: "nome", label: "Nome", widthClass: "w-[18%]" },
-  { key: "lead", label: "Lead", widthClass: "w-[9%]" },
-  { key: "n00", label: "#00", widthClass: "w-[9%]" },
-  { key: "n10", label: "#10", widthClass: "w-[9%]" },
-  { key: "n21", label: "#21", widthClass: "w-[9%]" },
-  { key: "n30", label: "#30", widthClass: "w-[9%]" },
-  { key: "n35", label: "#35", widthClass: "w-[9%]" },
-  { key: "n40", label: "#40", widthClass: "w-[9%]" },
-  { key: "n50", label: "#50", widthClass: "w-[9%]" },
 ];
 
 const orcamentosColumns: OrcamentosColumn[] = [
@@ -319,22 +297,6 @@ function formatFunilFooterCellValue(key: FunilColumnKey, value: string | number)
   }
 
   return String(value);
-}
-
-function getRetratoRowCellValue(row: DashboardRetratoRow, key: RetratoColumnKey) {
-  if (key === "nome") {
-    return row.nome;
-  }
-
-  return row[key];
-}
-
-function getRetratoTotalCellValue(totals: DashboardRetratoTotals, key: RetratoColumnKey) {
-  if (key === "nome") {
-    return "";
-  }
-
-  return totals[key as keyof DashboardRetratoTotals];
 }
 
 function getOrcamentosRowCellValue(row: DashboardOrcamentosRow, key: OrcamentosColumnKey) {
@@ -661,50 +623,7 @@ async function DashboardListContent({
       verticalId: selectedVerticalId || undefined,
     });
 
-    return (
-      <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
-        <table className="w-full table-fixed border-collapse">
-          <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
-            <tr>
-              {retratoColumns.map((column) => (
-                <th
-                  key={column.key}
-                  className={`${baseCellClass(column.widthClass)} text-left text-[clamp(0.82rem,0.98vw,1rem)] font-semibold text-[#18484a]`}
-                >
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {retratoSnapshot.rows.map((row, rowIndex) => (
-              <tr key={`${row.nome}-${rowIndex}`} className="border-t border-white/10 bg-white/40">
-                {retratoColumns.map((column) => (
-                  <td
-                    key={`${row.nome}-${rowIndex}-${column.key}`}
-                    className={`${baseCellClass(column.widthClass)} text-[clamp(0.8rem,0.95vw,0.98rem)] text-slate-700`}
-                  >
-                    {String(getRetratoRowCellValue(row, column.key))}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t border-white/20 bg-[#d6d6d8]/60 backdrop-blur-sm">
-              {retratoColumns.map((column) => (
-                <td
-                  key={`retrato-total-${column.key}`}
-                  className={`${baseCellClass(column.widthClass)} text-[clamp(0.92rem,1.06vw,1.2rem)] font-semibold text-[#18484a]`}
-                >
-                  {String(getRetratoTotalCellValue(retratoSnapshot.totals, column.key))}
-                </td>
-              ))}
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    );
+    return <DashboardRetratoTable rows={retratoSnapshot.rows} totals={retratoSnapshot.totals} />;
   }
 
   const orcamentosSnapshot = await getDashboardOrcamentosSnapshot({

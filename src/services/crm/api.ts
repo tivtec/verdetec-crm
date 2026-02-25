@@ -4851,6 +4851,7 @@ export async function getDashboardFunilSnapshot(
 }
 
 export type DashboardRetratoRow = {
+  idUsuario: number;
   nome: string;
   lead: number;
   n00: number;
@@ -4896,16 +4897,60 @@ const DASHBOARD_RETRATO_ENDPOINT =
   "https://webh.verdetec.dev.br/webhook/rRJvKkzgpu4DivLx/2fcf37";
 
 const mockDashboardRetratoRows: DashboardRetratoRow[] = [
-  { nome: "TI.VERTEC", lead: 94, n00: 92, n10: 2, n21: 94, n30: 0, n35: 0, n40: 0, n50: 0 },
-  { nome: "Jaqueline O.", lead: 149, n00: 6, n10: 42, n21: 149, n30: 3, n35: 2, n40: 8, n50: 54 },
-  { nome: "Lazaro S.", lead: 190, n00: 25, n10: 113, n21: 190, n30: 31, n35: 0, n40: 0, n50: 20 },
-  { nome: "Edson T.", lead: 166, n00: 22, n10: 60, n21: 166, n30: 29, n35: 0, n40: 1, n50: 35 },
-  { nome: "Ana S.", lead: 147, n00: 8, n10: 80, n21: 147, n30: 32, n35: 1, n40: 8, n50: 13 },
-  { nome: "Lauriane A.", lead: 138, n00: 22, n10: 35, n21: 138, n30: 45, n35: 0, n40: 16, n50: 11 },
-  { nome: "Gustavo M.", lead: 26, n00: 3, n10: 2, n21: 26, n30: 0, n35: 0, n40: 0, n50: 7 },
-  { nome: "Evanderson U.", lead: 111, n00: 7, n10: 70, n21: 111, n30: 20, n35: 0, n40: 3, n50: 7 },
-  { nome: "Dirceu D.", lead: 150, n00: 105, n10: 23, n21: 150, n30: 18, n35: 1, n40: 1, n50: 2 },
-  { nome: "Felipe P.", lead: 33, n00: 2, n10: 20, n21: 33, n30: 9, n35: 0, n40: 1, n50: 1 },
+  { idUsuario: 1, nome: "TI.VERTEC", lead: 94, n00: 92, n10: 2, n21: 94, n30: 0, n35: 0, n40: 0, n50: 0 },
+  {
+    idUsuario: 2,
+    nome: "Jaqueline O.",
+    lead: 149,
+    n00: 6,
+    n10: 42,
+    n21: 149,
+    n30: 3,
+    n35: 2,
+    n40: 8,
+    n50: 54,
+  },
+  {
+    idUsuario: 3,
+    nome: "Lazaro S.",
+    lead: 190,
+    n00: 25,
+    n10: 113,
+    n21: 190,
+    n30: 31,
+    n35: 0,
+    n40: 0,
+    n50: 20,
+  },
+  { idUsuario: 4, nome: "Edson T.", lead: 166, n00: 22, n10: 60, n21: 166, n30: 29, n35: 0, n40: 1, n50: 35 },
+  { idUsuario: 5, nome: "Ana S.", lead: 147, n00: 8, n10: 80, n21: 147, n30: 32, n35: 1, n40: 8, n50: 13 },
+  {
+    idUsuario: 6,
+    nome: "Lauriane A.",
+    lead: 138,
+    n00: 22,
+    n10: 35,
+    n21: 138,
+    n30: 45,
+    n35: 0,
+    n40: 16,
+    n50: 11,
+  },
+  { idUsuario: 7, nome: "Gustavo M.", lead: 26, n00: 3, n10: 2, n21: 26, n30: 0, n35: 0, n40: 0, n50: 7 },
+  {
+    idUsuario: 8,
+    nome: "Evanderson U.",
+    lead: 111,
+    n00: 7,
+    n10: 70,
+    n21: 111,
+    n30: 20,
+    n35: 0,
+    n40: 3,
+    n50: 7,
+  },
+  { idUsuario: 9, nome: "Dirceu D.", lead: 150, n00: 105, n10: 23, n21: 150, n30: 18, n35: 1, n40: 1, n50: 2 },
+  { idUsuario: 10, nome: "Felipe P.", lead: 33, n00: 2, n10: 20, n21: 33, n30: 9, n35: 0, n40: 1, n50: 1 },
 ];
 
 const mockDashboardRetratoTotals: DashboardRetratoTotals = {
@@ -4954,6 +4999,7 @@ function buildDashboardRetratoRows(payloadRows: DashboardRetratoWebhookRow[]): D
   return payloadRows
     .filter((row) => asString(row.usuario_nome).length > 0)
     .map((row) => ({
+      idUsuario: asNumber(row.id_usuario ?? row.usuario_id ?? row.id_user ?? row.id, 0),
       nome: asString(row.usuario_nome, "Sem nome"),
       lead: asNumber(row.qtde_etiquetas_selecionadas, 0),
       n00: asNumber(row.qtde_etiqueta_00, 0),
