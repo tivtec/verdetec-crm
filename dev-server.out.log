@@ -34,3 +34,312 @@
  GET /clientes 200 in 768ms (compile: 97ms, proxy.ts: 341ms, render: 330ms)
  GET /clientes 200 in 605ms (compile: 74ms, proxy.ts: 271ms, render: 260ms)
  GET /usuarios 200 in 550ms (compile: 15ms, proxy.ts: 159ms, render: 376ms)
+ GET /pedido 200 in 2.0s (compile: 1474ms, proxy.ts: 289ms, render: 274ms)
+ GET /clientes 200 in 1931ms (compile: 23ms, proxy.ts: 456ms, render: 1452ms)
+ GET /usuarios 200 in 460ms (compile: 20ms, proxy.ts: 121ms, render: 320ms)
+ GET /clientes 200 in 1498ms (compile: 6ms, proxy.ts: 318ms, render: 1174ms)
+ GET /clientes?nome=Nestor 200 in 1410ms (compile: 8ms, proxy.ts: 322ms, render: 1080ms)
+ GET /usuarios 200 in 636ms (compile: 5ms, proxy.ts: 264ms, render: 366ms)
+ GET /dashboard 200 in 9.1s (compile: 1066ms, proxy.ts: 389ms, render: 7.6s)
+ GET /dashboard?view=retrato 200 in 2.1s (compile: 10ms, proxy.ts: 155ms, render: 1979ms)
+ GET /dashboard?colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler&tipo_acesso_2=Time+Neg%C3%B3cios&usuario=&data_inicio=2026-01-26&data_fim=2026-02-25 200 in 5.8s (compile: 5ms, proxy.ts: 481ms, render: 5.3s)
+ GET /dashboard?view=retrato&tipo_acesso_2=Time+Neg%C3%B3cios&usuario= 200 in 2.3s (compile: 3ms, proxy.ts: 244ms, render: 2.1s)
+ POST /api/dashboard/retrato-clientes 200 in 1628ms (compile: 732ms, proxy.ts: 79ms, render: 818ms)
+ POST /api/dashboard/retrato-clientes 200 in 567ms (compile: 3ms, proxy.ts: 202ms, render: 362ms)
+ POST /api/dashboard/retrato-clientes 200 in 540ms (compile: 4ms, proxy.ts: 202ms, render: 334ms)
+ GET /dashboard 200 in 8.7s (compile: 40ms, proxy.ts: 286ms, render: 8.4s)
+ GET /dashboard?colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler&tipo_acesso_2=Time+Neg%C3%B3cios&usuario=&data_inicio=2026-01-26&data_fim=2026-02-25 200 in 7.4s (compile: 3ms, proxy.ts: 305ms, render: 7.1s)
+ GET /clientes 200 in 1673ms (compile: 17ms, proxy.ts: 418ms, render: 1238ms)
+ GET /clientes?telefone=1492 200 in 1198ms (compile: 12ms, proxy.ts: 293ms, render: 894ms)
+[clientes/criar-proposta][bad419e8-5c94-4f3f-8ccc-4300c0e360f8] request.received 
+[clientes/criar-proposta][bad419e8-5c94-4f3f-8ccc-4300c0e360f8] request.parsed_payload {
+  id_agregacao: 50844,
+  id_pessoa: 29569,
+  id_equipamento: 13,
+  id_usuario: 86
+}
+[clientes/criar-proposta][bad419e8-5c94-4f3f-8ccc-4300c0e360f8] resolve.id_agregacao.from_payload { value: 50844 }
+[clientes/criar-proposta][bad419e8-5c94-4f3f-8ccc-4300c0e360f8] webhook.request {
+  endpoint: 'https://whvtec2.verdetec.dev.br/webhook/68fb6120-1f8d-473e-b8f3-2c1b5f09f99a',
+  payload: { id_agregacao: 50844, id_equipamento: 13 }
+}
+ GET /clientes?telefone=1492 200 in 413ms (compile: 46ms, proxy.ts: 236ms, render: 130ms)
+ GET /clientes?telefone=1492 200 in 288ms (compile: 3ms, proxy.ts: 199ms, render: 85ms)
+[clientes/criar-proposta][bad419e8-5c94-4f3f-8ccc-4300c0e360f8] webhook.response {
+  status: 200,
+  ok: true,
+  body: {
+    resposta: 'Proposta criada com e Agregação Atualizada com sucesso!',
+    fone: '91985691492'
+  }
+}
+[clientes/criar-proposta][bad419e8-5c94-4f3f-8ccc-4300c0e360f8] request.success { duration_ms: 17821 }
+ POST /api/clientes/criar-proposta 200 in 18.8s (compile: 667ms, proxy.ts: 300ms, render: 17.8s)
+ GET /clientes?telefone=1492 200 in 2.3s (compile: 4ms, proxy.ts: 719ms, render: 1618ms)
+ GET /clientes?telefone=1492 200 in 1649ms (compile: 4ms, proxy.ts: 282ms, render: 1363ms)
+ GET /clientes?telefone=1492 200 in 931ms (compile: 129ms, proxy.ts: 608ms, render: 194ms)
+[clientes/criar-proposta][d226bb89-03c1-4ce9-a8a8-0a14e04efbe0] request.received 
+[clientes/criar-proposta][d226bb89-03c1-4ce9-a8a8-0a14e04efbe0] request.parsed_payload {
+  id_agregacao: 50844,
+  id_pessoa: 29569,
+  id_equipamento: 5,
+  id_usuario: 86
+}
+[clientes/criar-proposta][d226bb89-03c1-4ce9-a8a8-0a14e04efbe0] resolve.id_agregacao.from_payload { value: 50844 }
+[clientes/criar-proposta][d226bb89-03c1-4ce9-a8a8-0a14e04efbe0] resolve.context {
+  id_agregacao: 50844,
+  id_pessoa_payload: 29569,
+  id_pessoa_resolved: 29569,
+  id_usuario_payload: 86,
+  id_usuario_resolved: 105,
+  equipamento: {
+    id: 5,
+    codigo: 2,
+    nome: 'VTEC-2000',
+    valorTexto: '164.306,34',
+    produto: '9.01.01.037',
+    classificacao: 'principal'
+  }
+}
+[clientes/criar-proposta][d226bb89-03c1-4ce9-a8a8-0a14e04efbe0] webhook.request {
+  endpoint: 'https://whvtec2.verdetec.dev.br/webhook/68fb6120-1f8d-473e-b8f3-2c1b5f09f99a',
+  payload: {
+    id_agregacao: 50844,
+    id_equipamento: 5,
+    equipamento_id: 5,
+    id_equip: 5,
+    id_pessoa: 29569,
+    id_usuario: 105,
+    cod_equipamento: 2,
+    codigo_equipamento: 2,
+    nome_equipamento: 'VTEC-2000',
+    valor_equipamento_texto: '164.306,34',
+    Produto: '9.01.01.037',
+    produto: '9.01.01.037',
+    classificacao: 'principal'
+  }
+}
+ GET /clientes?telefone=1492 200 in 563ms (compile: 40ms, proxy.ts: 380ms, render: 143ms)
+[clientes/criar-proposta][d226bb89-03c1-4ce9-a8a8-0a14e04efbe0] webhook.response {
+  status: 200,
+  ok: true,
+  body: { resposta: 'Proposta criada com sucesso!', fone: '' }
+}
+[clientes/criar-proposta][d226bb89-03c1-4ce9-a8a8-0a14e04efbe0] request.success { duration_ms: 3118 }
+ POST /api/clientes/criar-proposta 200 in 3.5s (compile: 413ms, proxy.ts: 8ms, render: 3.1s)
+ GET /clientes?telefone=1492 200 in 554ms (compile: 54ms, proxy.ts: 335ms, render: 165ms)
+[clientes/criar-proposta][0c879088-4a9b-4561-9a1e-4f40ca3eac9f] request.received 
+[clientes/criar-proposta][0c879088-4a9b-4561-9a1e-4f40ca3eac9f] request.parsed_payload {
+  id_agregacao: 50844,
+  id_pessoa: 29569,
+  id_equipamento: 14,
+  id_usuario: 86
+}
+[clientes/criar-proposta][0c879088-4a9b-4561-9a1e-4f40ca3eac9f] resolve.id_agregacao.from_payload { value: 50844 }
+[clientes/criar-proposta][0c879088-4a9b-4561-9a1e-4f40ca3eac9f] resolve.context {
+  id_agregacao: 50844,
+  id_pessoa_payload: 29569,
+  id_pessoa_resolved: 29569,
+  id_usuario_payload: 86,
+  id_usuario_resolved: 105,
+  equipamento: {
+    id: 14,
+    codigo: 6,
+    nome: 'VTEC-8000',
+    valorTexto: '541.652,92',
+    produto: '9.01.02.001',
+    classificacao: 'principal'
+  }
+}
+[clientes/criar-proposta][0c879088-4a9b-4561-9a1e-4f40ca3eac9f] webhook.request {
+  endpoint: 'https://whvtec2.verdetec.dev.br/webhook/68fb6120-1f8d-473e-b8f3-2c1b5f09f99a',
+  payload: {
+    id_agregacao: 50844,
+    id_equipamento: 14,
+    equipamento_id: 14,
+    id_equip: 14,
+    id_pessoa: 29569,
+    id_usuario: 105,
+    cod_equipamento: 6,
+    codigo_equipamento: 6,
+    nome_equipamento: 'VTEC-8000',
+    valor_equipamento_texto: '541.652,92',
+    Produto: '9.01.02.001',
+    produto: '9.01.02.001',
+    classificacao: 'principal'
+  }
+}
+[clientes/criar-proposta][0c879088-4a9b-4561-9a1e-4f40ca3eac9f] sync.pre_webhook { propostaId: 4655, synced: true }
+[clientes/criar-proposta][0c879088-4a9b-4561-9a1e-4f40ca3eac9f] webhook.response {
+  status: 200,
+  ok: true,
+  body: { resposta: 'Proposta criada com sucesso!', fone: '' }
+}
+[clientes/criar-proposta][0c879088-4a9b-4561-9a1e-4f40ca3eac9f] sync.post_webhook { propostaId: 4655, synced: true }
+[clientes/criar-proposta][0c879088-4a9b-4561-9a1e-4f40ca3eac9f] request.success { duration_ms: 3237 }
+ POST /api/clientes/criar-proposta 200 in 3.3s (compile: 5ms, proxy.ts: 6ms, render: 3.2s)
+ GET /clientes?telefone=1492 200 in 2.3s (compile: 10ms, proxy.ts: 733ms, render: 1513ms)
+[clientes/criar-proposta][29fbd143-28c3-43f7-9040-76dd70eb2bc7] request.received 
+[clientes/criar-proposta][29fbd143-28c3-43f7-9040-76dd70eb2bc7] request.parsed_payload {
+  id_agregacao: 43032,
+  id_pessoa: 21084,
+  id_equipamento: 14,
+  id_usuario: 86
+}
+[clientes/criar-proposta][29fbd143-28c3-43f7-9040-76dd70eb2bc7] resolve.id_agregacao.from_payload { value: 43032 }
+[clientes/criar-proposta][29fbd143-28c3-43f7-9040-76dd70eb2bc7] resolve.context {
+  id_agregacao: 43032,
+  id_pessoa_payload: 21084,
+  id_pessoa_resolved: 21084,
+  id_usuario_payload: 86,
+  id_usuario_resolved: 89,
+  equipamento: {
+    id: 14,
+    codigo: 6,
+    nome: 'VTEC-8000',
+    valorTexto: '541.652,92',
+    produto: '9.01.02.001',
+    classificacao: 'principal'
+  }
+}
+[clientes/criar-proposta][29fbd143-28c3-43f7-9040-76dd70eb2bc7] webhook.request {
+  endpoint: 'https://whvtec2.verdetec.dev.br/webhook/68fb6120-1f8d-473e-b8f3-2c1b5f09f99a',
+  payload: {
+    id_agregacao: 43032,
+    id_equipamento: 14,
+    equipamento_id: 14,
+    id_equip: 14,
+    id_pessoa: 21084,
+    id_usuario: 89,
+    cod_equipamento: 6,
+    codigo_equipamento: 6,
+    nome_equipamento: 'VTEC-8000',
+    valor_equipamento_texto: '541.652,92',
+    Produto: '9.01.02.001',
+    produto: '9.01.02.001',
+    classificacao: 'principal'
+  }
+}
+[clientes/criar-proposta][29fbd143-28c3-43f7-9040-76dd70eb2bc7] sync.pre_webhook {
+  propostaId: null,
+  synced: false,
+  reason: 'id_proposta_valor ausente na agregacao'
+}
+[clientes/criar-proposta][29fbd143-28c3-43f7-9040-76dd70eb2bc7] webhook.response {
+  status: 200,
+  ok: true,
+  body: { resposta: 'Mensagem enviada com sucesso!', fone: '85985149236' }
+}
+[clientes/criar-proposta][29fbd143-28c3-43f7-9040-76dd70eb2bc7] sync.post_webhook { propostaId: 4659, synced: true }
+[clientes/criar-proposta][29fbd143-28c3-43f7-9040-76dd70eb2bc7] request.success { duration_ms: 12285 }
+ POST /api/clientes/criar-proposta 200 in 12.5s (compile: 4ms, proxy.ts: 196ms, render: 12.3s)
+ GET /clientes?telefone=1492 200 in 1257ms (compile: 7ms, proxy.ts: 166ms, render: 1085ms)
+ GET /clientes?telefone=1492 200 in 1132ms (compile: 6ms, proxy.ts: 163ms, render: 963ms)
+[clientes/criar-proposta][b552ff86-3bab-463b-9565-7532f7985086] request.received 
+[clientes/criar-proposta][b552ff86-3bab-463b-9565-7532f7985086] request.parsed_payload {
+  id_agregacao: 50933,
+  id_pessoa: 29569,
+  id_equipamento: 14,
+  id_usuario: 86
+}
+[clientes/criar-proposta][b552ff86-3bab-463b-9565-7532f7985086] resolve.id_agregacao.from_payload { value: 50933 }
+[clientes/criar-proposta][b552ff86-3bab-463b-9565-7532f7985086] resolve.context {
+  id_agregacao: 50933,
+  id_pessoa_payload: 29569,
+  id_pessoa_resolved: 29569,
+  id_usuario_payload: 86,
+  id_usuario_resolved: 105,
+  equipamento: {
+    id: 14,
+    codigo: 6,
+    nome: 'VTEC-8000',
+    valorTexto: '541.652,92',
+    produto: '9.01.02.001',
+    classificacao: 'principal'
+  }
+}
+[clientes/criar-proposta][b552ff86-3bab-463b-9565-7532f7985086] webhook.request {
+  endpoint: 'https://whvtec2.verdetec.dev.br/webhook/68fb6120-1f8d-473e-b8f3-2c1b5f09f99a',
+  payload: {
+    id_agregacao: 50933,
+    id_equipamento: 14,
+    equipamento_id: 14,
+    id_equip: 14,
+    id_pessoa: 29569,
+    id_usuario: 105,
+    cod_equipamento: 6,
+    codigo_equipamento: 6,
+    nome_equipamento: 'VTEC-8000',
+    valor_equipamento_texto: '541.652,92',
+    Produto: '9.01.02.001',
+    produto: '9.01.02.001',
+    classificacao: 'principal'
+  }
+}
+[clientes/criar-proposta][b552ff86-3bab-463b-9565-7532f7985086] sync.pre_webhook { propostaId: 4658, synced: true }
+[clientes/criar-proposta][b552ff86-3bab-463b-9565-7532f7985086] webhook.response {
+  status: 200,
+  ok: true,
+  body: { resposta: 'Proposta criada com sucesso!', fone: '' }
+}
+[clientes/criar-proposta][b552ff86-3bab-463b-9565-7532f7985086] sync.post_webhook { propostaId: 4658, synced: true }
+[clientes/criar-proposta][b552ff86-3bab-463b-9565-7532f7985086] request.success { duration_ms: 2764 }
+ POST /api/clientes/criar-proposta 200 in 3.0s (compile: 5ms, proxy.ts: 205ms, render: 2.8s)
+ GET /clientes?telefone=1492 200 in 1304ms (compile: 6ms, proxy.ts: 136ms, render: 1162ms)
+ GET /clientes?telefone=1492 200 in 1059ms (compile: 6ms, proxy.ts: 160ms, render: 893ms)
+[clientes/criar-proposta][8c0ba931-5c04-4fc9-bfeb-170c8b526948] request.received 
+[clientes/criar-proposta][8c0ba931-5c04-4fc9-bfeb-170c8b526948] request.parsed_payload {
+  id_agregacao: 50935,
+  id_pessoa: 29569,
+  id_equipamento: 20,
+  id_usuario: 86
+}
+[clientes/criar-proposta][8c0ba931-5c04-4fc9-bfeb-170c8b526948] resolve.id_agregacao.from_payload { value: 50935 }
+[clientes/criar-proposta][8c0ba931-5c04-4fc9-bfeb-170c8b526948] resolve.context {
+  id_agregacao: 50935,
+  id_pessoa_payload: 29569,
+  id_pessoa_resolved: 29569,
+  id_usuario_payload: 86,
+  id_usuario_resolved: 105,
+  equipamento: {
+    id: 20,
+    codigo: 7,
+    nome: 'VTEC-12000',
+    valorTexto: '713.027,54',
+    produto: '9.01.02.003',
+    classificacao: 'principal'
+  }
+}
+[clientes/criar-proposta][8c0ba931-5c04-4fc9-bfeb-170c8b526948] webhook.request {
+  endpoint: 'https://whvtec2.verdetec.dev.br/webhook/68fb6120-1f8d-473e-b8f3-2c1b5f09f99a',
+  payload: {
+    id_agregacao: 50935,
+    id_equipamento: 20,
+    equipamento_id: 20,
+    id_equip: 20,
+    id_pessoa: 29569,
+    id_usuario: 105,
+    cod_equipamento: 7,
+    codigo_equipamento: 7,
+    nome_equipamento: 'VTEC-12000',
+    valor_equipamento_texto: '713.027,54',
+    Produto: '9.01.02.003',
+    produto: '9.01.02.003',
+    classificacao: 'principal'
+  }
+}
+[clientes/criar-proposta][8c0ba931-5c04-4fc9-bfeb-170c8b526948] sync.pre_webhook { propostaId: 4660, synced: true }
+[clientes/criar-proposta][8c0ba931-5c04-4fc9-bfeb-170c8b526948] webhook.response {
+  status: 200,
+  ok: true,
+  body: { resposta: 'Proposta criada com sucesso!', fone: '' }
+}
+[clientes/criar-proposta][8c0ba931-5c04-4fc9-bfeb-170c8b526948] sync.post_webhook { propostaId: 4660, synced: true }
+[clientes/criar-proposta][8c0ba931-5c04-4fc9-bfeb-170c8b526948] request.success { duration_ms: 3493 }
+ POST /api/clientes/criar-proposta 200 in 4.0s (compile: 6ms, proxy.ts: 498ms, render: 3.5s)
+ GET /clientes?telefone=1492 200 in 1181ms (compile: 8ms, proxy.ts: 141ms, render: 1032ms)
+ GET /clientes?telefone=1492 200 in 1153ms (compile: 6ms, proxy.ts: 141ms, render: 1006ms)
+ GET /clientes?telefone=1492 200 in 2.1s (compile: 88ms, proxy.ts: 1795ms, render: 184ms)
+ GET /clientes?telefone=1492 200 in 948ms (compile: 47ms, proxy.ts: 772ms, render: 130ms)
+ GET /clientes?telefone=1492 200 in 486ms (compile: 37ms, proxy.ts: 302ms, render: 147ms)
+ GET /clientes?telefone=1492 200 in 705ms (compile: 60ms, proxy.ts: 427ms, render: 218ms)

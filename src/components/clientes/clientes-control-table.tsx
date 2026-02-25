@@ -31,6 +31,7 @@ import { formatDateTime } from "@/utils/format";
 type ClientesControlTableProps = {
   rows: ClienteControleRow[];
   representantes: ClienteRepresentanteOption[];
+  representantesPopup?: ClienteRepresentanteOption[];
   equipamentos: ClienteEquipamentoOption[];
   page: number;
   hasNextPage: boolean;
@@ -104,6 +105,7 @@ const ETIQUETA_OPTIONS_BASE = [
 export function ClientesControlTable({
   rows,
   representantes,
+  representantesPopup,
   equipamentos,
   page,
   hasNextPage,
@@ -174,6 +176,7 @@ export function ClientesControlTable({
   const visibleColumns = CLIENTES_TABLE_COLUMNS.filter((column) => visibleColumnKeys.includes(column.key));
   const totalTableColumns = visibleColumns.length + 2;
   const allColumnsSelected = visibleColumnKeys.length === CLIENTES_TABLE_COLUMNS.length;
+  const representantesNoPopup = representantesPopup && representantesPopup.length > 0 ? representantesPopup : representantes;
   const etiquetaOptions = canShowEtiqueta50
     ? [...ETIQUETA_OPTIONS_BASE.slice(0, 1), { label: "50 Hidrossemeador", value: "50" }, ...ETIQUETA_OPTIONS_BASE.slice(1)]
     : ETIQUETA_OPTIONS_BASE;
@@ -1635,7 +1638,7 @@ export function ClientesControlTable({
                   className="h-11 w-full appearance-none rounded-xl border-0 bg-[#f4f6f6] px-4 pr-10 text-sm text-[#2a4f51] outline-none"
                 >
                   <option value="">Selecione</option>
-                  {representantes.map((representante) => (
+                  {representantesNoPopup.map((representante) => (
                     <option key={representante.id} value={String(representante.id)}>
                       {representante.nome}
                     </option>

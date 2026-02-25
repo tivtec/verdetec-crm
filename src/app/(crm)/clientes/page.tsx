@@ -195,10 +195,15 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
 
   const canSelectUsuario = dashboardAccessScope.isGerencia || dashboardAccessScope.isGestor;
   const viewerUsuarioId = Math.max(0, Math.trunc(dashboardAccessScope.viewerUsuarioId));
+  const shouldExpandPopupRepresentantes = dashboardAccessScope.isGestor && !dashboardAccessScope.isGerencia;
 
-  let representantes = await getClientesRepresentantes(
-    dashboardAccessScope.isGerencia ? {} : { verticalId: dashboardAccessScope.viewerVerticalId },
-  );
+  const [baseRepresentantes, popupRepresentantes] = await Promise.all([
+    getClientesRepresentantes(
+      dashboardAccessScope.isGerencia ? {} : { verticalId: dashboardAccessScope.viewerVerticalId },
+    ),
+    shouldExpandPopupRepresentantes ? getClientesRepresentantes() : Promise.resolve([]),
+  ]);
+  let representantes = baseRepresentantes;
 
   if (!canSelectUsuario) {
     if (viewerUsuarioId > 0) {
@@ -355,6 +360,7 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
             key={`${selectedUsuario}:${telefone}:${nome}:${etiqueta}:${requestedPage}`}
             initialRows={rows}
             representantes={representantes}
+            representantesPopup={shouldExpandPopupRepresentantes ? popupRepresentantes : undefined}
             equipamentos={equipamentos}
             initialFilters={initialFilters}
             currentPage={requestedPage}

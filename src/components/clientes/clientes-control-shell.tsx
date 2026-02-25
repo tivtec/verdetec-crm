@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 type ClientesControlShellProps = {
   initialRows: ClienteControleRow[];
   representantes: ClienteRepresentanteOption[];
+  representantesPopup?: ClienteRepresentanteOption[];
   equipamentos: ClienteEquipamentoOption[];
   initialFilters: ClientesControlFiltersValue;
   currentPage: number;
@@ -40,6 +41,7 @@ type LeadDuplicateInfo = {
 export function ClientesControlShell({
   initialRows,
   representantes,
+  representantesPopup,
   equipamentos,
   initialFilters,
   currentPage,
@@ -403,6 +405,7 @@ export function ClientesControlShell({
         <ClientesControlTable
           rows={initialRows}
           representantes={representantes}
+          representantesPopup={representantesPopup}
           equipamentos={equipamentos}
           page={safePage}
           hasNextPage={hasNextPage}
