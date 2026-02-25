@@ -1,7 +1,8 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   Check,
@@ -32,8 +33,16 @@ type MenuAnchor = {
 const PAGE_SIZE = 10;
 const MENU_WIDTH = 340;
 const MENU_HEIGHT = 320;
-const MENU_GAP = 8;
 const MENU_MARGIN = 12;
+
+function clampToRange(value: number, min: number, max: number) {
+  if (max < min) {
+    return min;
+  }
+
+  return Math.min(Math.max(value, min), max);
+}
+
 const TIPO_ACESSO_OPTIONS = ["Time Negócios", "Prime", "CRV", "Gestor"] as const;
 const USUARIO_EDIT_OPTIONS = [
   "SuperAdm",
@@ -97,6 +106,8 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
   const [dispoLeadsResultMessage, setDispoLeadsResultMessage] = useState("");
   const [isResetSenhaNoticeModalOpen, setIsResetSenhaNoticeModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isBrowser, setIsBrowser] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!feedback) {
@@ -109,6 +120,10 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
 
     return () => window.clearTimeout(timeout);
   }, [feedback]);
+
+  useEffect(() => {
+    setIsBrowser(true);
+  }, []);
 
   useEffect(() => {
     if (
@@ -176,6 +191,29 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
     menuAnchor,
   ]);
 
+  useLayoutEffect(() => {
+    if (!isBrowser || !menuAnchor) {
+      return;
+    }
+
+    const menuElement = menuRef.current;
+    if (!menuElement) {
+      return;
+    }
+
+    const rect = menuElement.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const maxLeft = Math.max(MENU_MARGIN, viewportWidth - rect.width - MENU_MARGIN);
+    const maxTop = Math.max(MENU_MARGIN, viewportHeight - rect.height - MENU_MARGIN);
+    const nextLeft = clampToRange(menuAnchor.left, MENU_MARGIN, maxLeft);
+    const nextTop = clampToRange(menuAnchor.top, MENU_MARGIN, maxTop);
+
+    if (Math.abs(nextLeft - menuAnchor.left) > 0.5 || Math.abs(nextTop - menuAnchor.top) > 0.5) {
+      setMenuAnchor((current) => (current ? { ...current, left: nextLeft, top: nextTop } : current));
+    }
+  }, [isBrowser, menuAnchor]);
+
   const visibleRows = showInactiveUsers ? rows : rows.filter((row) => row.ativo);
   const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
@@ -193,22 +231,15 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
     const rect = event.currentTarget.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    const menuWidth = Math.min(MENU_WIDTH, Math.max(0, viewportWidth - MENU_MARGIN * 2));
+    const menuHeight = Math.min(MENU_HEIGHT, Math.max(0, viewportHeight - MENU_MARGIN * 2));
+    const maxLeft = Math.max(MENU_MARGIN, viewportWidth - menuWidth - MENU_MARGIN);
+    const maxTop = Math.max(MENU_MARGIN, viewportHeight - menuHeight - MENU_MARGIN);
+    const anchorRight = rect.right;
+    const anchorBottom = rect.bottom;
 
-    let left = rect.right - MENU_WIDTH;
-    if (left < MENU_MARGIN) {
-      left = MENU_MARGIN;
-    }
-    if (left + MENU_WIDTH > viewportWidth - MENU_MARGIN) {
-      left = viewportWidth - MENU_WIDTH - MENU_MARGIN;
-    }
-
-    let top = rect.bottom + MENU_GAP;
-    if (top + MENU_HEIGHT > viewportHeight - MENU_MARGIN) {
-      top = rect.top - MENU_HEIGHT - MENU_GAP;
-    }
-    if (top < MENU_MARGIN) {
-      top = MENU_MARGIN;
-    }
+    const left = clampToRange(anchorRight - menuWidth, MENU_MARGIN, maxLeft);
+    const top = clampToRange(anchorBottom - menuHeight, MENU_MARGIN, maxTop);
 
     setMenuAnchor({ rowId, top, left });
   };
@@ -823,78 +854,82 @@ export function UsuariosControlShell({ initialRows }: UsuariosControlShellProps)
         </div>
       </div>
 
-      {menuAnchor ? (
-        <div className="fixed inset-0 z-[70] bg-black/35" onClick={() => setMenuAnchor(null)} role="presentation">
-          <div
-            className="fixed w-[340px] max-w-[calc(100vw-24px)] rounded-2xl bg-[#f4f6f6] p-4 shadow-2xl"
-            style={{ top: menuAnchor.top, left: menuAnchor.left }}
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="false"
-            aria-label="Menu de Opções"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-2xl font-semibold text-[#1d4d50]">Menu de Opções</h3>
-              <button
-                type="button"
-                onClick={() => setMenuAnchor(null)}
-                aria-label="Fechar menu de opções"
-                className="rounded-md p-1 text-[#5e6567] hover:bg-[#e3e7e7]"
+      {menuAnchor && isBrowser
+        ? createPortal(
+            <div className="fixed inset-0 z-[70] bg-black/35" onClick={() => setMenuAnchor(null)} role="presentation">
+              <div
+                ref={menuRef}
+                className="fixed w-[340px] max-h-[calc(100vh-24px)] max-w-[calc(100vw-24px)] overflow-y-auto rounded-2xl bg-[#f4f6f6] p-4 shadow-2xl"
+                style={{ top: menuAnchor.top, left: menuAnchor.left }}
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+                aria-modal="false"
+                aria-label="Menu de Opções"
               >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-2xl font-semibold text-[#1d4d50]">Menu de Opções</h3>
+                  <button
+                    type="button"
+                    onClick={() => setMenuAnchor(null)}
+                    aria-label="Fechar menu de opções"
+                    className="rounded-md p-1 text-[#5e6567] hover:bg-[#e3e7e7]"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
 
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={openStatusConfirmModal}
-                className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                <UserMinus className="h-5 w-5 text-[#a8acac]" />
-                {menuTargetRow?.ativo === false ? "Reativar Usuário" : "Desativar Usuário"}
-              </button>
-              <button
-                type="button"
-                onClick={openL100Modal}
-                className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6]"
-              >
-                <Pencil className="h-5 w-5 text-[#a8acac]" />
-                Alterar L100
-              </button>
-              <button
-                type="button"
-                onClick={handleEditFromMenu}
-                className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6]"
-              >
-                <Pencil className="h-5 w-5 text-[#a8acac]" />
-                Editar Usuário
-              </button>
-              <button
-                type="button"
-                onClick={handleToggleDispoLeads}
-                disabled={isSubmittingDispoLeads}
-                className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6]"
-              >
-                <UserX className="h-5 w-5 text-[#a8acac]" />
-                {isSubmittingDispoLeads
-                  ? "Atualizando..."
-                  : menuTargetDispoLeads
-                    ? "Desativar Leads"
-                    : "Ativar Leads"}
-              </button>
-              <button
-                type="button"
-                onClick={openResetSenhaNoticeModal}
-                className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6]"
-              >
-                <KeyRound className="h-5 w-5 text-[#a8acac]" />
-                Redefinir Senha
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={openStatusConfirmModal}
+                    className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <UserMinus className="h-5 w-5 text-[#a8acac]" />
+                    {menuTargetRow?.ativo === false ? "Reativar Usuário" : "Desativar Usuário"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openL100Modal}
+                    className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6]"
+                  >
+                    <Pencil className="h-5 w-5 text-[#a8acac]" />
+                    Alterar L100
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleEditFromMenu}
+                    className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6]"
+                  >
+                    <Pencil className="h-5 w-5 text-[#a8acac]" />
+                    Editar Usuário
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleToggleDispoLeads}
+                    disabled={isSubmittingDispoLeads}
+                    className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6]"
+                  >
+                    <UserX className="h-5 w-5 text-[#a8acac]" />
+                    {isSubmittingDispoLeads
+                      ? "Atualizando..."
+                      : menuTargetDispoLeads
+                        ? "Desativar Leads"
+                        : "Ativar Leads"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openResetSenhaNoticeModal}
+                    className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-base text-[#4e5659] hover:bg-[#bcd8d6]"
+                  >
+                    <KeyRound className="h-5 w-5 text-[#a8acac]" />
+                    Redefinir Senha
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {isStatusConfirmModalOpen ? (
         <div

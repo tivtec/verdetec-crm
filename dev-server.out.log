@@ -1,0 +1,36 @@
+
+> verdetec-crm@0.1.0 dev
+> next dev --webpack --hostname 0.0.0.0 --port 3000
+
+▲ Next.js 16.1.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 2.9s
+○ Compiling / ...
+ GET / 307 in 5.8s (compile: 5.2s, proxy.ts: 304ms, render: 316ms)
+ GET / 307 in 56ms (compile: 10ms, proxy.ts: 8ms, render: 39ms)
+ GET /splash 307 in 69ms (compile: 5ms, proxy.ts: 7ms, render: 56ms)
+ GET /login 200 in 2.4s (compile: 2.0s, proxy.ts: 5ms, render: 331ms)
+ GET /clientes 200 in 2.2s (compile: 534ms, proxy.ts: 200ms, render: 1456ms)
+ GET /dashboard 200 in 11.1s (compile: 901ms, proxy.ts: 565ms, render: 9.7s)
+ GET /clientes?nome=Clayton 200 in 1188ms (compile: 8ms, proxy.ts: 283ms, render: 897ms)
+ POST /api/clientes/alterar-nome 200 in 917ms (compile: 625ms, proxy.ts: 189ms, render: 104ms)
+ GET /clientes?nome=Clayton 200 in 980ms (compile: 32ms, proxy.ts: 121ms, render: 826ms)
+ GET /clientes?nome=Clayton 200 in 642ms (compile: 91ms, proxy.ts: 311ms, render: 239ms)
+ GET /clientes?nome=Clayton 200 in 2.4s (compile: 7ms, proxy.ts: 895ms, render: 1474ms)
+ GET /usuarios 200 in 1522ms (compile: 787ms, proxy.ts: 285ms, render: 450ms)
+ GET /clientes 200 in 1582ms (compile: 14ms, proxy.ts: 288ms, render: 1280ms)
+ GET /clientes 200 in 647ms (compile: 63ms, proxy.ts: 311ms, render: 274ms)
+ GET /clientes 200 in 1022ms (compile: 79ms, proxy.ts: 669ms, render: 273ms)
+ GET /clientes 200 in 604ms (compile: 32ms, proxy.ts: 358ms, render: 214ms)
+ GET /clientes 200 in 482ms (compile: 37ms, proxy.ts: 251ms, render: 194ms)
+ GET /clientes 200 in 382ms (compile: 28ms, proxy.ts: 156ms, render: 198ms)
+ GET /clientes 200 in 2.3s (compile: 6ms, proxy.ts: 280ms, render: 2.0s)
+ GET /usuarios 200 in 505ms (compile: 13ms, proxy.ts: 152ms, render: 340ms)
+ GET /clientes 200 in 1569ms (compile: 5ms, proxy.ts: 327ms, render: 1238ms)
+ GET /clientes 200 in 768ms (compile: 97ms, proxy.ts: 341ms, render: 330ms)
+ GET /clientes 200 in 605ms (compile: 74ms, proxy.ts: 271ms, render: 260ms)
+ GET /usuarios 200 in 550ms (compile: 15ms, proxy.ts: 159ms, render: 376ms)

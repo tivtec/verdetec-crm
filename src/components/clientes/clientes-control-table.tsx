@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 
 import {
   ChevronDown,
@@ -73,7 +74,15 @@ type ClientesTableColumn = {
 const MENU_WIDTH = 332;
 const MENU_HEIGHT = 292;
 const MENU_MARGIN = 12;
-const MENU_GAP = 8;
+
+function clampToRange(value: number, min: number, max: number) {
+  if (max < min) {
+    return min;
+  }
+
+  return Math.min(Math.max(value, min), max);
+}
+
 const CLIENTES_TABLE_COLUMNS: ClientesTableColumn[] = [
   { key: "etiqueta", label: "Etiqueta", getValue: (row) => row.etiqueta || "-" },
   { key: "telefone", label: "Telefone", getValue: (row) => row.telefone || "-" },
@@ -107,10 +116,15 @@ export function ClientesControlTable({
   const router = useRouter();
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [isEtiquetaModalOpen, setIsEtiquetaModalOpen] = useState(false);
+  const [isNomeModalOpen, setIsNomeModalOpen] = useState(false);
   const [isRepresentanteModalOpen, setIsRepresentanteModalOpen] = useState(false);
   const [isPropostaModalOpen, setIsPropostaModalOpen] = useState(false);
   const [isVisualizarModalOpen, setIsVisualizarModalOpen] = useState(false);
   const [isContratoModalOpen, setIsContratoModalOpen] = useState(false);
+  const [nomeTargetRowId, setNomeTargetRowId] = useState<string | null>(null);
+  const [nomeInputValue, setNomeInputValue] = useState("");
+  const [isSavingNome, setIsSavingNome] = useState(false);
+  const [nomeFeedback, setNomeFeedback] = useState<string | null>(null);
   const [propostaTargetRowId, setPropostaTargetRowId] = useState<string | null>(null);
   const [contratoTargetRowId, setContratoTargetRowId] = useState<string | null>(null);
   const [selectedEquipamentoId, setSelectedEquipamentoId] = useState("");
@@ -133,6 +147,7 @@ export function ClientesControlTable({
   const [successAlert, setSuccessAlert] = useState<string | null>(null);
   const [errorAlert, setErrorAlert] = useState<string | null>(null);
   const [isColumnsMenuOpen, setIsColumnsMenuOpen] = useState(false);
+  const [isBrowser, setIsBrowser] = useState(false);
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<ClientesTableColumnKey[]>(
     CLIENTES_TABLE_COLUMNS.map((column) => column.key),
   );
@@ -149,9 +164,10 @@ export function ClientesControlTable({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const columnsMenuRef = useRef<HTMLDivElement | null>(null);
   const contratoFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [tableRows, setTableRows] = useState(rows);
 
   const safePage = Math.max(1, Math.trunc(page));
-  const currentRows = rows;
+  const currentRows = tableRows;
   const selectedSet = new Set(selectedIds);
   const canGoPrev = safePage > 1;
   const canGoNext = hasNextPage;
@@ -166,6 +182,7 @@ export function ClientesControlTable({
     if (
       !menuAnchor &&
       !isEtiquetaModalOpen &&
+      !isNomeModalOpen &&
       !isRepresentanteModalOpen &&
       !isPropostaModalOpen &&
       !isVisualizarModalOpen &&
@@ -215,12 +232,18 @@ export function ClientesControlTable({
         return;
       }
 
+      if (isNomeModalOpen) {
+        closeNomeModal();
+        return;
+      }
+
       setMenuAnchor(null);
     };
 
     const handlePointerDown = (event: MouseEvent) => {
       if (
         isEtiquetaModalOpen ||
+        isNomeModalOpen ||
         isRepresentanteModalOpen ||
         isPropostaModalOpen ||
         isVisualizarModalOpen ||
@@ -250,6 +273,7 @@ export function ClientesControlTable({
       if (
         menuAnchor &&
         !isEtiquetaModalOpen &&
+        !isNomeModalOpen &&
         !isRepresentanteModalOpen &&
         !isPropostaModalOpen &&
         !isVisualizarModalOpen &&
@@ -270,7 +294,38 @@ export function ClientesControlTable({
       window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("scroll", handleViewportChange, true);
     };
-  }, [isEtiquetaModalOpen, isPropostaModalOpen, isRepresentanteModalOpen, isVisualizarModalOpen, isContratoModalOpen, menuAnchor]);
+  }, [isEtiquetaModalOpen, isNomeModalOpen, isPropostaModalOpen, isRepresentanteModalOpen, isVisualizarModalOpen, isContratoModalOpen, menuAnchor]);
+
+  useEffect(() => {
+    setTableRows(rows);
+  }, [rows]);
+
+  useEffect(() => {
+    setIsBrowser(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!isBrowser || !menuAnchor) {
+      return;
+    }
+
+    const menuElement = menuRef.current;
+    if (!menuElement) {
+      return;
+    }
+
+    const rect = menuElement.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const maxLeft = Math.max(MENU_MARGIN, viewportWidth - rect.width - MENU_MARGIN);
+    const maxTop = Math.max(MENU_MARGIN, viewportHeight - rect.height - MENU_MARGIN);
+    const nextLeft = clampToRange(menuAnchor.left, MENU_MARGIN, maxLeft);
+    const nextTop = clampToRange(menuAnchor.top, MENU_MARGIN, maxTop);
+
+    if (Math.abs(nextLeft - menuAnchor.left) > 0.5 || Math.abs(nextTop - menuAnchor.top) > 0.5) {
+      setMenuAnchor((current) => (current ? { ...current, left: nextLeft, top: nextTop } : current));
+    }
+  }, [isBrowser, menuAnchor]);
 
   useEffect(() => {
     if (!isColumnsMenuOpen) {
@@ -349,24 +404,31 @@ export function ClientesControlTable({
     const rect = event.currentTarget.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    const menuWidth = Math.min(MENU_WIDTH, Math.max(0, viewportWidth - MENU_MARGIN * 2));
+    const menuHeight = Math.min(MENU_HEIGHT, Math.max(0, viewportHeight - MENU_MARGIN * 2));
+    const maxLeft = Math.max(MENU_MARGIN, viewportWidth - menuWidth - MENU_MARGIN);
+    const maxTop = Math.max(MENU_MARGIN, viewportHeight - menuHeight - MENU_MARGIN);
+    const anchorRight = rect.right;
+    const anchorBottom = rect.bottom;
 
-    let left = rect.right - MENU_WIDTH;
-    if (left < MENU_MARGIN) {
-      left = MENU_MARGIN;
-    }
-    if (left + MENU_WIDTH > viewportWidth - MENU_MARGIN) {
-      left = viewportWidth - MENU_WIDTH - MENU_MARGIN;
-    }
-
-    let top = rect.bottom + MENU_GAP;
-    if (top + MENU_HEIGHT > viewportHeight - MENU_MARGIN) {
-      top = rect.top - MENU_HEIGHT - MENU_GAP;
-    }
-    if (top < MENU_MARGIN) {
-      top = MENU_MARGIN;
-    }
+    const left = clampToRange(anchorRight - menuWidth, MENU_MARGIN, maxLeft);
+    const top = clampToRange(anchorBottom - menuHeight, MENU_MARGIN, maxTop);
 
     setMenuAnchor({ rowId, top, left });
+  };
+
+  const openNomeModal = (rowId: string) => {
+    const targetRow = tableRows.find((row) => row.id === rowId);
+    if (!targetRow) {
+      setErrorAlert("Nao foi possivel localizar o cliente selecionado.");
+      return;
+    }
+
+    setNomeTargetRowId(rowId);
+    setNomeInputValue((targetRow.nome ?? "").trim());
+    setNomeFeedback(null);
+    setIsSavingNome(false);
+    setIsNomeModalOpen(true);
   };
 
   const openEtiquetaModal = () => {
@@ -414,7 +476,7 @@ export function ClientesControlTable({
       return;
     }
 
-    const targetRow = rows.find((row) => row.id === menuAnchor.rowId);
+    const targetRow = tableRows.find((row) => row.id === menuAnchor.rowId);
     if (!targetRow) {
       setErrorAlert("Nao foi possivel localizar o cliente selecionado.");
       setMenuAnchor(null);
@@ -516,6 +578,14 @@ export function ClientesControlTable({
     setEtiquetaCep("");
     setEtiquetaFeedback(null);
     setIsSavingEtiqueta(false);
+  };
+
+  const closeNomeModal = () => {
+    setIsNomeModalOpen(false);
+    setNomeTargetRowId(null);
+    setNomeInputValue("");
+    setNomeFeedback(null);
+    setIsSavingNome(false);
   };
 
   const closeRepresentanteModal = () => {
@@ -620,7 +690,7 @@ export function ClientesControlTable({
       return;
     }
 
-    const targetRow = rows.find((row) => row.id === contratoTargetRowId);
+    const targetRow = tableRows.find((row) => row.id === contratoTargetRowId);
     if (!targetRow) {
       setContratoFeedback("Nao foi possivel localizar o cliente selecionado.");
       return;
@@ -706,6 +776,84 @@ export function ClientesControlTable({
     }
   };
 
+  const handleSaveNome = async () => {
+    const nextNome = nomeInputValue.trim();
+    if (!nextNome) {
+      setNomeFeedback("Informe o nome do cliente.");
+      return;
+    }
+
+    if (!nomeTargetRowId) {
+      setNomeFeedback("Cliente selecionado invalido.");
+      return;
+    }
+
+    const targetRow = tableRows.find((row) => row.id === nomeTargetRowId);
+    if (!targetRow) {
+      setNomeFeedback("Nao foi possivel localizar o cliente selecionado.");
+      return;
+    }
+
+    const idPessoaFromRow = (() => {
+      if (typeof targetRow.pessoaId === "number" && targetRow.pessoaId > 0) {
+        return targetRow.pessoaId;
+      }
+
+      const parsed = Number(targetRow.id);
+      return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+    })();
+
+    if (!idPessoaFromRow) {
+      setNomeFeedback("Nao foi possivel resolver id_pessoa.");
+      return;
+    }
+
+    setIsSavingNome(true);
+    setNomeFeedback(null);
+
+    try {
+      const response = await fetch("/api/clientes/alterar-nome", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id_pessoa: idPessoaFromRow,
+          nome: nextNome,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; nome?: string }
+        | null;
+
+      if (!response.ok || !payload?.ok) {
+        setNomeFeedback(payload?.error ?? "Falha ao atualizar nome do cliente.");
+        return;
+      }
+
+      const nomeAtualizado = payload?.nome?.trim() || nextNome;
+      setTableRows((current) =>
+        current.map((row) => (row.id === nomeTargetRowId ? { ...row, nome: nomeAtualizado } : row)),
+      );
+      setVisualizacaoData((current) => {
+        if (!current || current.id_pessoa !== idPessoaFromRow) {
+          return current;
+        }
+
+        return { ...current, nome: nomeAtualizado };
+      });
+
+      closeNomeModal();
+      setSuccessAlert("Nome do cliente alterado com sucesso.");
+      router.refresh();
+    } catch {
+      setNomeFeedback("Erro ao atualizar nome do cliente.");
+    } finally {
+      setIsSavingNome(false);
+    }
+  };
+
   const handleCepChange = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 8);
     if (digits.length <= 5) {
@@ -727,7 +875,7 @@ export function ClientesControlTable({
       return;
     }
 
-    const targetRow = rows.find((row) => row.id === etiquetaTargetRowId);
+    const targetRow = tableRows.find((row) => row.id === etiquetaTargetRowId);
     if (!targetRow) {
       setEtiquetaFeedback("Nao foi possivel localizar o cliente selecionado.");
       return;
@@ -801,7 +949,7 @@ export function ClientesControlTable({
       return;
     }
 
-    const targetRow = rows.find((row) => row.id === representanteTargetRowId);
+    const targetRow = tableRows.find((row) => row.id === representanteTargetRowId);
     if (!targetRow) {
       setRepresentanteFeedback("Nao foi possivel localizar o cliente selecionado.");
       return;
@@ -869,7 +1017,7 @@ export function ClientesControlTable({
       return;
     }
 
-    const targetRow = rows.find((row) => row.id === menuAnchor.rowId);
+    const targetRow = tableRows.find((row) => row.id === menuAnchor.rowId);
     if (!targetRow) {
       setErrorAlert("Nao foi possivel localizar o cliente selecionado.");
       setMenuAnchor(null);
@@ -943,7 +1091,7 @@ export function ClientesControlTable({
       return;
     }
 
-    const targetRow = rows.find((row) => row.id === propostaTargetRowId);
+    const targetRow = tableRows.find((row) => row.id === propostaTargetRowId);
     if (!targetRow) {
       setPropostaFeedback("Nao foi possivel localizar o cliente selecionado.");
       return;
@@ -1057,7 +1205,7 @@ export function ClientesControlTable({
       ) : null}
 
       <div className="flex h-full min-h-0 flex-col gap-4">
-        <div className="min-h-0 flex-1 overflow-auto rounded-xl bg-[#e5e7ea] p-2">
+        <div className="min-h-0 flex-1 overflow-hidden rounded-xl bg-[#e5e7ea] p-2">
           <div className="mb-2 flex justify-end">
             <div className="relative" ref={columnsMenuRef}>
               <Button
@@ -1110,65 +1258,77 @@ export function ClientesControlTable({
             </div>
           </div>
 
-          <table className="w-full border-separate border-spacing-y-1">
-            <thead>
-              <tr className="rounded-xl bg-[#d5d5d7] text-left">
-                <th className="w-14 rounded-l-xl px-3 py-3" />
-                {visibleColumns.map((column) => (
-                  <th key={column.key} className="px-3 py-3 text-sm font-semibold text-[#1d4d50]">
-                    {column.label}
-                  </th>
-                ))}
-                <th className="w-14 rounded-r-xl px-3 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {currentRows.length > 0 ? (
-                currentRows.map((row) => {
-                  const isSelected = selectedSet.has(row.id);
-
-                  return (
-                    <tr key={row.id} className="bg-[#eceeef]">
-                      <td className="rounded-l-xl px-3 py-3">
-                        <button
-                          type="button"
-                          aria-label={`Selecionar ${row.nome}`}
-                          onClick={() => onToggleSelect(row.id)}
-                          className={`h-6 w-6 rounded-full border-2 transition-colors ${
-                            isSelected
-                              ? "border-[#0f5050] bg-[#0f5050]"
-                              : "border-[#3f3f3f] bg-transparent hover:border-[#0f5050]"
-                          }`}
-                        />
-                      </td>
-                      {visibleColumns.map((column) => (
-                        <td key={column.key} className="px-3 py-3 text-sm text-[#1d4d50]">
-                          {column.getValue(row)}
-                        </td>
-                      ))}
-                      <td className="rounded-r-xl px-3 py-3 text-right">
-                        <button
-                          type="button"
-                          data-clientes-menu-trigger="true"
-                          aria-label={`Acoes de ${row.nome}`}
-                          onClick={(event) => toggleMenu(row.id, event)}
-                          className="rounded-md p-1 text-[#1d4d50] hover:bg-[#d9dddf]"
-                        >
-                          <MoreVertical className="h-5 w-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr className="bg-[#eceeef]">
-                  <td colSpan={totalTableColumns} className="rounded-xl px-4 py-10 text-center text-sm text-[#466568]">
-                    Nenhum cliente encontrado.
-                  </td>
+          <div className="max-h-[62vh] overflow-auto pr-1">
+            <table className="w-full border-separate border-spacing-y-1">
+              <thead>
+                <tr className="rounded-xl bg-[#d5d5d7] text-left">
+                  <th className="w-14 rounded-l-xl px-3 py-3" />
+                  {visibleColumns.map((column) => (
+                    <th key={column.key} className="px-3 py-3 text-sm font-semibold text-[#1d4d50]">
+                      {column.label}
+                    </th>
+                  ))}
+                  <th className="w-14 rounded-r-xl px-3 py-3" />
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {currentRows.length > 0 ? (
+                  currentRows.map((row) => {
+                    const isSelected = selectedSet.has(row.id);
+
+                    return (
+                      <tr key={row.id} className="bg-[#eceeef]">
+                        <td className="rounded-l-xl px-3 py-3">
+                          <button
+                            type="button"
+                            aria-label={`Selecionar ${row.nome}`}
+                            onClick={() => onToggleSelect(row.id)}
+                            className={`h-6 w-6 rounded-full border-2 transition-colors ${
+                              isSelected
+                                ? "border-[#0f5050] bg-[#0f5050]"
+                                : "border-[#3f3f3f] bg-transparent hover:border-[#0f5050]"
+                            }`}
+                          />
+                        </td>
+                        {visibleColumns.map((column) => (
+                          <td key={column.key} className="px-3 py-3 text-sm text-[#1d4d50]">
+                            {column.key === "nome" ? (
+                              <button
+                                type="button"
+                                onClick={() => openNomeModal(row.id)}
+                                className="max-w-full cursor-pointer break-words text-left font-semibold text-[#1d4d50] underline-offset-2 hover:underline"
+                              >
+                                {column.getValue(row)}
+                              </button>
+                            ) : (
+                              column.getValue(row)
+                            )}
+                          </td>
+                        ))}
+                        <td className="rounded-r-xl px-3 py-3 text-right">
+                          <button
+                            type="button"
+                            data-clientes-menu-trigger="true"
+                            aria-label={`Acoes de ${row.nome}`}
+                            onClick={(event) => toggleMenu(row.id, event)}
+                            className="rounded-md p-1 text-[#1d4d50] hover:bg-[#d9dddf]"
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr className="bg-[#eceeef]">
+                    <td colSpan={totalTableColumns} className="rounded-xl px-4 py-10 text-center text-sm text-[#466568]">
+                      Nenhum cliente encontrado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3">
@@ -1199,80 +1359,83 @@ export function ClientesControlTable({
         </div>
       </div>
 
-      {menuAnchor ? (
-        <div
-          ref={menuRef}
-          className="fixed z-50 w-[332px] max-w-[calc(100vw-24px)] rounded-2xl bg-[#f4f6f6] p-4 shadow-2xl"
-          style={{ top: menuAnchor.top, left: menuAnchor.left }}
-          role="dialog"
-          aria-modal="false"
-          aria-label="Menu de Opcoes"
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-2xl font-semibold text-[#1d4d50]">Menu de Opcoes</h3>
-            <button
-              type="button"
-              onClick={() => setMenuAnchor(null)}
-              aria-label="Fechar menu de opcoes"
-              className="rounded-md p-1 text-[#5e6567] hover:bg-[#e3e7e7]"
+      {menuAnchor && isBrowser
+        ? createPortal(
+            <div
+              ref={menuRef}
+              className="fixed z-[90] w-[332px] max-h-[calc(100vh-24px)] max-w-[calc(100vw-24px)] overflow-y-auto rounded-2xl bg-[#f4f6f6] p-4 shadow-2xl"
+              style={{ top: menuAnchor.top, left: menuAnchor.left }}
+              role="dialog"
+              aria-modal="false"
+              aria-label="Menu de Opcoes"
             >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-2xl font-semibold text-[#1d4d50]">Menu de Opcoes</h3>
+                <button
+                  type="button"
+                  onClick={() => setMenuAnchor(null)}
+                  aria-label="Fechar menu de opcoes"
+                  className="rounded-md p-1 text-[#5e6567] hover:bg-[#e3e7e7]"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
 
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={openEtiquetaModal}
-              className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
-            >
-              <Tag className="h-5 w-5 text-[#a8acac]" />
-              Alterar etiquetas
-            </button>
-            <button
-              type="button"
-              onClick={openRepresentanteModal}
-              className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
-            >
-              <UserRound className="h-5 w-5 text-[#a8acac]" />
-              Alterar representante
-            </button>
-            <button
-              type="button"
-              onClick={handleEnviarLink}
-              disabled={isSendingLink}
-              className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
-            >
-              <Link2 className="h-5 w-5 text-[#a8acac]" />
-              {isSendingLink ? "Enviando..." : "Enviar Link"}
-            </button>
-            <button
-              type="button"
-              onClick={openPropostaModal}
-              className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
-            >
-              <FileText className="h-5 w-5 text-[#a8acac]" />
-              Criar Proposta
-            </button>
-            <button
-              type="button"
-              onClick={openContratoModal}
-              className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
-            >
-              <FileText className="h-5 w-5 text-[#a8acac]" />
-              Cadastrar contrato
-            </button>
-            <button
-              type="button"
-              onClick={openVisualizarModal}
-              className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
-            >
-              <Eye className="h-5 w-5 text-[#a8acac]" />
-              Visualizar
-            </button>
-          </div>
-        </div>
-      ) : null}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={openEtiquetaModal}
+                  className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
+                >
+                  <Tag className="h-5 w-5 text-[#a8acac]" />
+                  Alterar etiquetas
+                </button>
+                <button
+                  type="button"
+                  onClick={openRepresentanteModal}
+                  className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
+                >
+                  <UserRound className="h-5 w-5 text-[#a8acac]" />
+                  Alterar representante
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEnviarLink}
+                  disabled={isSendingLink}
+                  className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
+                >
+                  <Link2 className="h-5 w-5 text-[#a8acac]" />
+                  {isSendingLink ? "Enviando..." : "Enviar Link"}
+                </button>
+                <button
+                  type="button"
+                  onClick={openPropostaModal}
+                  className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
+                >
+                  <FileText className="h-5 w-5 text-[#a8acac]" />
+                  Criar Proposta
+                </button>
+                <button
+                  type="button"
+                  onClick={openContratoModal}
+                  className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
+                >
+                  <FileText className="h-5 w-5 text-[#a8acac]" />
+                  Cadastrar contrato
+                </button>
+                <button
+                  type="button"
+                  onClick={openVisualizarModal}
+                  className="flex h-11 w-full items-center gap-3 rounded-xl bg-[#c8dfde] px-4 text-left text-sm text-[#4e5659] hover:bg-[#bcd8d6]"
+                >
+                  <Eye className="h-5 w-5 text-[#a8acac]" />
+                  Visualizar
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {isEtiquetaModalOpen ? (
         <div
@@ -1370,6 +1533,66 @@ export function ClientesControlTable({
                 className="h-11 w-full max-w-[270px] rounded-xl border-0 bg-[#0f5050] text-2xl font-semibold text-white hover:bg-[#0c4343]"
               >
                 {isSavingEtiqueta ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isNomeModalOpen ? (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4"
+          onClick={closeNomeModal}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-[650px] rounded-2xl bg-[#f4f6f6] p-4 shadow-2xl sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Alterar nome do cliente"
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-4xl font-semibold text-[#1d4d50]">Alterar nome do cliente</h3>
+              <button
+                type="button"
+                onClick={closeNomeModal}
+                aria-label="Fechar alterar nome do cliente"
+                className="rounded-md p-1 text-[#5e6567] hover:bg-[#e3e7e7]"
+              >
+                <X className="h-7 w-7" />
+              </button>
+            </div>
+
+            <div className="mb-12 rounded-xl bg-[#c8dfde] p-4">
+              <label htmlFor="cliente-nome-input" className="mb-2 block text-[30px] leading-none text-[#2f3538]">
+                Nome
+              </label>
+              <input
+                id="cliente-nome-input"
+                name="cliente-nome-input"
+                type="text"
+                value={nomeInputValue}
+                onChange={(event) => {
+                  setNomeInputValue(event.target.value);
+                  setNomeFeedback(null);
+                }}
+                placeholder="Digite o nome do cliente"
+                className="h-11 w-full rounded-xl border-0 bg-[#f4f6f6] px-4 text-2xl text-[#2a4f51] outline-none placeholder:text-[#537173]"
+              />
+              {nomeFeedback ? (
+                <p className="mt-2 text-sm text-[#7b2323]">{nomeFeedback}</p>
+              ) : null}
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={handleSaveNome}
+                disabled={isSavingNome}
+                className="h-11 w-full max-w-[270px] rounded-xl border-0 bg-[#0f5050] text-2xl font-semibold text-white hover:bg-[#0c4343]"
+              >
+                {isSavingNome ? "Salvando..." : "Salvar"}
               </Button>
             </div>
           </div>
