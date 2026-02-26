@@ -2338,16 +2338,39 @@ type SolicitacoesPortalRpcRow = {
   uf?: string | null;
   metragem?: string | number | null;
   sqm?: string | number | null;
+  email?: string | null;
+  e_mail?: string | null;
+  telefone?: string | null;
+  fone?: string | null;
+  whatsapp?: string | null;
+  list_empresa?: unknown;
+  empresa_1?: unknown;
+  empresa_2?: unknown;
+  empresa_3?: unknown;
+  empresa_4?: unknown;
+  empresa_5?: unknown;
+  empresa_conten?: unknown;
+  empresas_receberam?: unknown;
+  empresas_que_receberam?: unknown;
+  empresas?: unknown;
+  empresa?: unknown;
+  empresa_nome?: unknown;
+  empresa_nomes?: unknown;
+  lista_empresas?: unknown;
 };
 
 export type SolicitacoesPortalApiRow = {
   id: string;
   data: string;
   nome: string;
+  email: string;
   cep: string;
   cidade: string;
   estado: string;
+  telefone: string;
+  whatsapp: string;
   metragem: string;
+  empresasReceberam: string[];
 };
 
 export type SolicitacoesPortalApiFilters = {
@@ -2397,15 +2420,201 @@ function formatSolicitacoesMetragem(value: unknown) {
   return `${raw} m2`;
 }
 
+function firstSolicitacoesNonEmpty(row: SolicitacoesPortalRpcRow, keys: string[], fallback = "") {
+  for (const key of keys) {
+    const value = asString((row as Record<string, unknown>)[key]).trim();
+    if (value.length > 0) {
+      return value;
+    }
+  }
+  return fallback;
+}
+
+function parseSolicitacoesEmpresasValue(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => parseSolicitacoesEmpresasValue(item));
+  }
+
+  if (value && typeof value === "object") {
+    const objectValue = value as Record<string, unknown>;
+    const directName = firstSolicitacoesNonEmpty(
+      objectValue as unknown as SolicitacoesPortalRpcRow,
+      ["nome", "razao_social", "empresa", "empresa_nome", "name"],
+    );
+    if (directName) {
+      return [directName];
+    }
+
+    for (const key of ["empresas", "lista", "items", "rows", "data"]) {
+      if (key in objectValue) {
+        const nested = parseSolicitacoesEmpresasValue(objectValue[key]);
+        if (nested.length > 0) {
+          return nested;
+        }
+      }
+    }
+
+    return [];
+  }
+
+  const raw = asString(value).trim();
+  if (!raw) {
+    return [];
+  }
+
+  if ((raw.startsWith("[") && raw.endsWith("]")) || (raw.startsWith("{") && raw.endsWith("}"))) {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return parseSolicitacoesEmpresasValue(parsed);
+    } catch {
+      // fallback para parse textual simples
+    }
+  }
+
+  const chunks = raw
+    .split(/[,;|\n]/g)
+    .map((chunk) => chunk.trim())
+    .filter((chunk) => chunk.length > 0);
+
+  if (chunks.length > 1) {
+    return chunks;
+  }
+
+  return [raw];
+}
+
+function extractSolicitacoesEmpresas(row: SolicitacoesPortalRpcRow) {
+  const values: string[] = [];
+  const seen = new Set<string>();
+
+  const keys = [
+    "list_empresa",
+    "empresa_1",
+    "empresa_2",
+    "empresa_3",
+    "empresa_4",
+    "empresa_5",
+    "empresas_receberam",
+    "empresas_que_receberam",
+    "empresa_nomes",
+    "lista_empresas",
+    "empresas",
+    "empresa",
+    "empresa_nome",
+  ];
+
+  for (const key of keys) {
+    const parsed = parseSolicitacoesEmpresasValue((row as Record<string, unknown>)[key]);
+    for (const item of parsed) {
+      const normalized = normalizeLoose(item);
+      if (!normalized || seen.has(normalized)) {
+        continue;
+      }
+      seen.add(normalized);
+      values.push(item);
+    }
+  }
+
+  return values;
+}
+
+function isUuidLike(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function resolveSolicitacoesEmpresasById(rows: SolicitacoesPortalApiRow[]) {
+  const ids = Array.from(
+    new Set(
+      rows
+        .flatMap((row) => row.empresasReceberam)
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0 && isUuidLike(value)),
+    ),
+  );
+
+  if (!ids.length) {
+    return new Map<string, string>();
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const idToName = new Map<string, string>();
+  const chunkSize = 250;
+
+  for (let index = 0; index < ids.length; index += chunkSize) {
+    const chunk = ids.slice(index, index + chunkSize);
+    const { data, error } = await supabase.from("empresa").select("id,nome").in("id", chunk);
+    if (error || !data?.length) {
+      continue;
+    }
+
+    for (const row of data as Array<Record<string, unknown>>) {
+      const id = asString(row.id).trim();
+      const nome = asString(row.nome).trim();
+      if (!id || !nome) {
+        continue;
+      }
+      idToName.set(id, nome);
+    }
+  }
+
+  return idToName;
+}
+
+async function enrichSolicitacoesPortalRows(rows: SolicitacoesPortalApiRow[]) {
+  if (!rows.length) {
+    return rows;
+  }
+
+  const idToEmpresaName = await resolveSolicitacoesEmpresasById(rows);
+
+  return rows.map((row) => {
+    if (!row.empresasReceberam.length) {
+      return row;
+    }
+
+    const seen = new Set<string>();
+    const empresasReceberam = row.empresasReceberam
+      .map((item) => {
+        const trimmed = item.trim();
+        if (!trimmed) {
+          return "";
+        }
+        return idToEmpresaName.get(trimmed) ?? trimmed;
+      })
+      .filter((item) => {
+        const normalized = normalizeLoose(item);
+        if (!normalized || seen.has(normalized)) {
+          return false;
+        }
+        seen.add(normalized);
+        return true;
+      });
+
+    return {
+      ...row,
+      empresasReceberam,
+    } satisfies SolicitacoesPortalApiRow;
+  });
+}
+
+function hasDisplayValueForLogs(value: string | null | undefined) {
+  const trimmed = asString(value).trim();
+  return trimmed.length > 0 && trimmed !== "-";
+}
+
 function mapSolicitacoesPortalRows(rows: SolicitacoesPortalRpcRow[]): SolicitacoesPortalApiRow[] {
   return rows.map((row, index) => ({
     id: asString(row.id ?? row.pedido_uuid ?? row.uuid, String(index + 1)),
     data: formatSolicitacoesDate(row.data ?? row.data_criacao ?? row.created_at ?? row.criado_em),
     nome: asString(row.nome ?? row.pessoa_nome ?? row.nome_cliente ?? row.cliente, "").trim() || "nome",
+    email: firstSolicitacoesNonEmpty(row, ["email", "e_mail"], "-"),
     cep: asString(row.cep, "").trim() || "cep",
     cidade: asString(row.cidade, "").trim() || "cidade",
     estado: asString(row.estado ?? row.uf_estado ?? row.uf, "").trim() || "estado",
+    telefone: firstSolicitacoesNonEmpty(row, ["telefone", "fone"], "-"),
+    whatsapp: firstSolicitacoesNonEmpty(row, ["whatsapp", "telefone", "fone"], "-"),
     metragem: formatSolicitacoesMetragem(row.metragem ?? row.sqm),
+    empresasReceberam: extractSolicitacoesEmpresas(row),
   }));
 }
 
@@ -2416,6 +2625,12 @@ type SolicitacoesPortalSupabasePayload = {
 };
 
 const SOLICITACOES_PORTAL_SEARCH_MAX_ROWS = 5000;
+const SOLICITACOES_PORTAL_SELECT_ATTEMPTS = [
+  "id,nome,email,telefone,whatsapp,metragem,cep,cidade,uf_estado,criado_em,list_empresa,empresa_1,empresa_2,empresa_3,empresa_4,empresa_5,empresa_conten",
+  "id,nome,email,telefone,whatsapp,metragem,cep,cidade,uf_estado,criado_em,empresas_receberam,empresas_que_receberam,empresas,empresa,empresa_nome,empresa_nomes,lista_empresas",
+  "id,nome,email,telefone,whatsapp,metragem,cep,cidade,uf_estado,criado_em",
+  "id,nome,metragem,cep,cidade,uf_estado,criado_em",
+] as const;
 
 function sanitizeSolicitacoesSearch(value: string) {
   return value.replace(/[(),]/g, " ").trim();
@@ -2433,14 +2648,16 @@ function matchesSolicitacoesSearch(row: SolicitacoesPortalRpcRow, buscaRaw: stri
   const cidade = asString(row.cidade, "");
   const estado = asString(row.estado ?? row.uf_estado ?? row.uf, "");
   const metragem = asString(row.metragem ?? row.sqm, "");
+  const email = asString(row.email ?? row.e_mail, "");
+  const telefone = asString(row.telefone ?? row.fone ?? row.whatsapp, "");
 
-  const textCandidates = [nome, cep, cidade, estado, metragem];
+  const textCandidates = [nome, cep, cidade, estado, metragem, email, telefone];
   if (textCandidates.some((value) => normalizeLoose(value).includes(busca))) {
     return true;
   }
 
   if (buscaDigits.length > 0) {
-    const numericCandidates = [cep, metragem]
+    const numericCandidates = [cep, metragem, telefone]
       .map((value) => value.replace(/\D/g, ""))
       .filter((value) => value.length > 0);
     if (numericCandidates.some((value) => value.includes(buscaDigits))) {
@@ -2457,23 +2674,47 @@ async function fetchSolicitacoesPortalSupabaseRows(payload: SolicitacoesPortalSu
   const offset = Math.max(0, Math.trunc(payload.offset));
   const busca = sanitizeSolicitacoesSearch(payload.busca);
 
-  let query = supabase
-    .from("pedidos")
-    .select("id,nome,metragem,cep,cidade,uf_estado,criado_em")
-    .order("criado_em", { ascending: false });
+  let rows: SolicitacoesPortalRpcRow[] | null = null;
+  let selectUsed = "";
+  let lastError = "";
+  for (const selectColumns of SOLICITACOES_PORTAL_SELECT_ATTEMPTS) {
+    let query = supabase.from("pedidos").select(selectColumns).order("criado_em", { ascending: false });
 
-  if (busca.length > 0) {
-    query = query.range(0, SOLICITACOES_PORTAL_SEARCH_MAX_ROWS - 1);
-  } else {
-    query = query.range(offset, offset + limit - 1);
+    if (busca.length > 0) {
+      query = query.range(0, SOLICITACOES_PORTAL_SEARCH_MAX_ROWS - 1);
+    } else {
+      query = query.range(offset, offset + limit - 1);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      lastError = error.message;
+      continue;
+    }
+
+    rows = ((data as SolicitacoesPortalRpcRow[] | null) ?? []).filter((row) => Boolean(row));
+    selectUsed = selectColumns;
+    break;
   }
 
-  const { data, error } = await query;
-  if (error || !data?.length) {
+  if (!rows || !rows.length) {
+    console.info("[solicitacoes-portal] pedidos sem retorno", {
+      busca,
+      limit,
+      offset,
+      lastError,
+    });
     return [] as SolicitacoesPortalRpcRow[];
   }
 
-  const rows = data as SolicitacoesPortalRpcRow[];
+  console.info("[solicitacoes-portal] select aplicado", {
+    busca,
+    limit,
+    offset,
+    totalRows: rows.length,
+    selectUsed,
+  });
+
   if (busca.length === 0) {
     return rows;
   }
@@ -2497,7 +2738,7 @@ export async function getSolicitacoesPortalRows(filters: SolicitacoesPortalApiFi
       return [] as SolicitacoesPortalApiRow[];
     }
 
-    return mapSolicitacoesPortalRows(rows);
+    return enrichSolicitacoesPortalRows(mapSolicitacoesPortalRows(rows));
   } catch {
     return [] as SolicitacoesPortalApiRow[];
   }
@@ -2524,8 +2765,21 @@ export async function getSolicitacoesPortalPageSnapshot(
       }),
     ]);
 
+    const mappedRows = await enrichSolicitacoesPortalRows(mapSolicitacoesPortalRows(rows).slice(0, limit));
+    const withTelefone = mappedRows.filter((row) => hasDisplayValueForLogs(row.telefone)).length;
+    const withWhatsapp = mappedRows.filter((row) => hasDisplayValueForLogs(row.whatsapp)).length;
+    const withEmpresas = mappedRows.filter((row) => row.empresasReceberam.length > 0).length;
+
+    console.info("[solicitacoes-portal] diagnostico", {
+      rows: mappedRows.length,
+      withTelefone,
+      withWhatsapp,
+      withEmpresas,
+      hasNextPage: probe.length > 0,
+    });
+
     return {
-      rows: mapSolicitacoesPortalRows(rows).slice(0, limit),
+      rows: mappedRows,
       hasNextPage: probe.length > 0,
     };
   } catch {

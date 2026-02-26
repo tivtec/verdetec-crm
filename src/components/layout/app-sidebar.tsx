@@ -16,6 +16,7 @@ import {
   Megaphone,
   ReceiptText,
   ShieldCheck,
+  Truck,
   UserRound,
   UsersRound,
 } from "lucide-react";
@@ -43,6 +44,7 @@ const items = [
   { href: "/pedido", label: "Pedidos", icon: ClipboardList },
   { href: "/usuarios", label: "Usuarios", icon: UserRound },
   { href: "/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/expedicao", label: "Expedicao", icon: Truck },
   { href: "/solicitacao-portal", label: "Solicitacoes", icon: ShieldCheck },
   { href: "/mix-sementes", label: "Mix de sementes", icon: Leaf },
   { href: "/verde-score", label: "Verde Score", icon: Gauge },
@@ -58,6 +60,7 @@ const INLINE_LABEL_PATHS = new Set([
   "/pedido",
   "/usuarios",
   "/agenda",
+  "/expedicao",
   "/solicitacao-portal",
   "/mix-sementes",
   "/verde-score",

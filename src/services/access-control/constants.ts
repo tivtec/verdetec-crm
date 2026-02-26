@@ -8,6 +8,7 @@ export const CRM_SIDEBAR_PAGES = [
   { key: "pedido", path: "/pedido", label: "Pedidos", sortOrder: 50 },
   { key: "usuarios", path: "/usuarios", label: "Usuarios", sortOrder: 60 },
   { key: "agenda", path: "/agenda", label: "Agenda", sortOrder: 70 },
+  { key: "expedicao", path: "/expedicao", label: "Expedicao", sortOrder: 75 },
   { key: "solicitacao-portal", path: "/solicitacao-portal", label: "Solicitacoes", sortOrder: 80 },
   { key: "mix-sementes", path: "/mix-sementes", label: "Mix de sementes", sortOrder: 90 },
   { key: "verde-score", path: "/verde-score", label: "Verde Score", sortOrder: 100 },

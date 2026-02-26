@@ -68,6 +68,10 @@ export function GestaoAcessosShell({
   }, [feedback]);
 
   const pageLabel = useMemo(() => `Pagina ${currentPage}`, [currentPage]);
+  const tableMinWidth = useMemo(() => {
+    const columns = pages.length + 1;
+    return Math.max(980, columns * 160);
+  }, [pages.length]);
 
   const pushFilters = (nextPage: number, nextOrganizationId?: string) => {
     const params = new URLSearchParams();
@@ -221,8 +225,8 @@ export function GestaoAcessosShell({
         </div>
       </div>
 
-      <div className="no-scrollbar min-h-0 flex-1 overflow-auto rounded-xl border border-[#d8dde1] bg-[#eceef0]">
-        <table className="w-full table-fixed border-separate border-spacing-y-2 px-3 py-2">
+      <div className="min-h-0 max-h-[calc(100dvh-360px)] flex-1 overflow-auto rounded-xl border border-[#d8dde1] bg-[#eceef0]">
+        <table className="w-full border-separate border-spacing-y-2 px-3 py-2" style={{ minWidth: `${tableMinWidth}px` }}>
           <thead>
             <tr>
               <th className="sticky top-0 left-0 z-30 rounded-l-xl bg-[#c6dedd] px-3 py-3 text-left text-base font-semibold text-[#164b4f]">
