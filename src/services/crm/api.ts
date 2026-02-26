@@ -3629,12 +3629,13 @@ function normalizeVerticalDescricao(value: unknown) {
 }
 
 function isGestorTipoAcesso2(value: string) {
-  return normalizeLoose(value).includes("gestor");
+  const normalized = normalizeLoose(value).replace(/[^a-z0-9]+/g, "");
+  return normalized.includes("gestor");
 }
 
 function isSuperAdmTipoAcesso2(value: string) {
-  const normalized = normalizeLoose(value);
-  return normalized === "superadm" || normalized === "superadmin" || normalized === "admin";
+  const normalized = normalizeLoose(value).replace(/[^a-z0-9]+/g, "");
+  return normalized === "superadm";
 }
 
 function normalizeDashboardViewerTipo(value: string, verticalDescricao: string) {
@@ -3791,6 +3792,7 @@ export async function getDashboardViewerAccessScope(): Promise<DashboardViewerAc
     const baseUserSelect = `
       id,
       nome,
+      tipo_acesso,
       tipo_acesso_2,
       id_vertical,
       verticais:verticais!usuarios_id_vertical_fkey(descricao)
@@ -3826,14 +3828,16 @@ export async function getDashboardViewerAccessScope(): Promise<DashboardViewerAc
       ? verticalRelation[0]?.descricao
       : verticalRelation?.descricao;
     const rawTipoAcesso2 = asString(row.tipo_acesso_2, "");
-    const isSuperAdm = isSuperAdmTipoAcesso2(rawTipoAcesso2);
+    const rawTipoAcesso = asString(row.tipo_acesso, "");
+    const effectiveTipoAcesso = rawTipoAcesso2.trim().length > 0 ? rawTipoAcesso2 : rawTipoAcesso;
+    const isSuperAdm = isSuperAdmTipoAcesso2(rawTipoAcesso2) || isSuperAdmTipoAcesso2(rawTipoAcesso);
     const viewerVerticalDescricao = isSuperAdm ? "Gerencia" : normalizeVerticalDescricao(verticalDescricaoRaw);
     const viewerTipoAcesso2 = normalizeDashboardViewerTipo(
-      rawTipoAcesso2,
+      effectiveTipoAcesso,
       viewerVerticalDescricao,
     );
     const isGerencia = viewerVerticalDescricao === "Gerencia" || isSuperAdm;
-    const isGestor = !isSuperAdm && isGestorTipoAcesso2(rawTipoAcesso2);
+    const isGestor = !isSuperAdm && (isGestorTipoAcesso2(rawTipoAcesso2) || isGestorTipoAcesso2(rawTipoAcesso));
 
     let forcedTipoAcesso2 = "";
     if (!isGerencia) {
