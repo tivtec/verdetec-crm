@@ -31,6 +31,8 @@ type FunilColumnKey =
   | "n00"
   | "n10"
   | "n21"
+  | "n14"
+  | "n15"
   | "n05"
   | "n30"
   | "n40"
@@ -75,6 +77,8 @@ const funilColumns: FunilColumn[] = [
   { key: "l100", label: "L100", widthClass: "min-w-[84px]" },
   { key: "n00", label: "#00", widthClass: "min-w-[84px]" },
   { key: "n10", label: "#10", widthClass: "min-w-[84px]" },
+  { key: "n14", label: "#14", widthClass: "min-w-[84px]" },
+  { key: "n15", label: "#15", widthClass: "min-w-[84px]" },
   { key: "n21", label: "#21", widthClass: "min-w-[84px]" },
   { key: "n05", label: "#05", widthClass: "min-w-[84px]" },
   { key: "n30", label: "#30", widthClass: "min-w-[84px]" },
@@ -327,24 +331,29 @@ function isFunilNumericColumn(key: FunilColumnKey) {
   return key !== "nome";
 }
 
-function normalizeFunilColumnsSelection(value: string | string[] | undefined) {
-  const allowedKeys = new Set(funilColumns.map((column) => column.key));
+function normalizeFunilColumnsSelection(
+  value: string | string[] | undefined,
+  availableColumns: FunilColumn[] = funilColumns,
+) {
+  const allowedKeys = new Set(availableColumns.map((column) => column.key));
   const rawValues = getSearchValues(value).flatMap((entry) => entry.split(","));
   const selected = rawValues
     .map((entry) => entry.trim() as FunilColumnKey)
     .filter((entry) => allowedKeys.has(entry));
 
   if (selected.length === 0) {
-    return funilColumns.map((column) => column.key);
+    return availableColumns.map((column) => column.key);
   }
 
   const uniqueSelected = Array.from(new Set(selected));
-  return funilColumns.map((column) => column.key).filter((key) => uniqueSelected.includes(key));
+  return availableColumns.map((column) => column.key).filter((key) => uniqueSelected.includes(key));
 }
 
 const HASH_FUNIL_COLUMN_KEYS: FunilColumnKey[] = [
   "n00",
   "n10",
+  "n14",
+  "n15",
   "n21",
   "n05",
   "n30",
@@ -705,10 +714,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     getSearchValue(params.tipo_repre) ?? getSearchValue(params.carteira),
   );
   const percentageMode = normalizePercentageToggle(getSearchValue(params.porcentagem));
-  const selectedFunilColumnKeys = normalizeFunilColumnsSelection(params.colunas);
-  const visibleFunilColumns = funilColumns.filter((column) => selectedFunilColumnKeys.includes(column.key));
-  const percentageBaseKey = resolveFunilPercentageBaseKey(visibleFunilColumns);
   const dashboardAccessScope = await getDashboardViewerAccessScope();
+  const canViewInternalFunilTags = dashboardAccessScope.isGerencia || dashboardAccessScope.isGestor;
+  const allowedFunilColumns = canViewInternalFunilTags
+    ? funilColumns
+    : funilColumns.filter((column) => column.key !== "n14" && column.key !== "n15");
+  const selectedFunilColumnKeys = normalizeFunilColumnsSelection(params.colunas, allowedFunilColumns);
+  const visibleFunilColumns = allowedFunilColumns.filter((column) => selectedFunilColumnKeys.includes(column.key));
+  const percentageBaseKey = resolveFunilPercentageBaseKey(visibleFunilColumns);
   const visibleViews = getVisibleDashboardViews(dashboardAccessScope.viewerVerticalDescricao);
   const activeView = visibleViews.includes(requestedView) ? requestedView : visibleViews[0] ?? "dashboard";
   const canViewOrcamentosAllVertical = dashboardAccessScope.isGerencia;
@@ -834,7 +847,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             representantes={representantes}
             lockTipoSelection={!dashboardAccessScope.allowTipoSelection}
             lockUsuarioSelection={!dashboardAccessScope.allowUsuarioSelection}
-            columnOptions={funilColumns.map((column) => ({ key: column.key, label: column.label }))}
+            columnOptions={allowedFunilColumns.map((column) => ({ key: column.key, label: column.label }))}
             selectedColumnKeys={selectedFunilColumnKeys}
             percentageMode={percentageMode}
           />

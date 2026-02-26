@@ -3218,6 +3218,8 @@ export type DashboardFunilRow = {
   n00: number;
   n10: number;
   n21: number;
+  n14: number;
+  n15: number;
   n05: number;
   n30: number;
   n40: number;
@@ -3239,6 +3241,8 @@ export type DashboardFunilTotals = {
   n00: number;
   n10: number;
   n21: number;
+  n14: number;
+  n15: number;
   n05: number;
   n30: number;
   n40: number;
@@ -3318,6 +3322,8 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     n00: 17,
     n10: 11,
     n21: 0,
+    n14: 0,
+    n15: 0,
     n05: 3,
     n30: 2,
     n40: 0,
@@ -3340,6 +3346,8 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     n00: 17,
     n10: 13,
     n21: 0,
+    n14: 0,
+    n15: 0,
     n05: 2,
     n30: 2,
     n40: 0,
@@ -3362,6 +3370,8 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     n00: 16,
     n10: 7,
     n21: 0,
+    n14: 0,
+    n15: 0,
     n05: 0,
     n30: 1,
     n40: 0,
@@ -3384,6 +3394,8 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     n00: 17,
     n10: 11,
     n21: 0,
+    n14: 0,
+    n15: 0,
     n05: 1,
     n30: 1,
     n40: 0,
@@ -3406,6 +3418,8 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     n00: 15,
     n10: 5,
     n21: 1,
+    n14: 0,
+    n15: 0,
     n05: 0,
     n30: 0,
     n40: 0,
@@ -3428,6 +3442,8 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     n00: 16,
     n10: 6,
     n21: 0,
+    n14: 0,
+    n15: 0,
     n05: 1,
     n30: 3,
     n40: 1,
@@ -3450,6 +3466,8 @@ const mockDashboardFunilRows: DashboardFunilRow[] = [
     n00: 16,
     n10: 11,
     n21: 0,
+    n14: 0,
+    n15: 0,
     n05: 3,
     n30: 2,
     n40: 0,
@@ -3472,6 +3490,8 @@ const mockDashboardFunilTotals: DashboardFunilTotals = {
   n00: 116,
   n10: 64,
   n21: 0,
+  n14: 0,
+  n15: 0,
   n05: 3,
   n30: 11,
   n40: 1,
@@ -3493,6 +3513,8 @@ const emptyDashboardFunilTotals: DashboardFunilTotals = {
   n00: 0,
   n10: 0,
   n21: 0,
+  n14: 0,
+  n15: 0,
   n05: 0,
   n30: 0,
   n40: 0,
@@ -3880,6 +3902,8 @@ function buildDashboardRows(rows: DashboardWebhookRow[]): DashboardFunilRow[] {
       n00: readNumber(row, ["etiqueta_00", "qtde_etiqueta_00", "n00"], 0),
       n10: readNumber(row, ["etiqueta_10", "qtde_etiqueta_10", "n10"], 0),
       n21: readNumber(row, ["etiqueta_21", "qtde_etiqueta_21", "n21"], 0),
+      n14: readNumber(row, ["etiqueta_14", "qtde_etiqueta_14", "n14"], 0),
+      n15: readNumber(row, ["etiqueta_15", "qtde_etiqueta_15", "n15"], 0),
       n05: readNumber(row, ["etiqueta_05", "qtde_etiqueta_05", "n05"], 0),
       n30: readNumber(row, ["etiqueta_30", "qtde_etiqueta_30", "n30"], 0),
       n40: readNumber(row, ["etiqueta_40", "qtde_etiqueta_40", "n40"], 0),
@@ -4077,6 +4101,8 @@ function buildDashboardTotals(
   const summedN00 = sumBy(rows, "n00");
   const summedN10 = sumBy(rows, "n10");
   const summedN21 = sumBy(rows, "n21");
+  const summedN14 = sumBy(rows, "n14");
+  const summedN15 = sumBy(rows, "n15");
   const summedN05 = sumBy(rows, "n05");
   const summedN30 = sumBy(rows, "n30");
   const summedN40 = sumBy(rows, "n40");
@@ -4095,6 +4121,8 @@ function buildDashboardTotals(
     n00: usePayloadSourceTotals ? asNumber(source.total_etiqueta_00, summedN00) : summedN00,
     n10: usePayloadSourceTotals ? asNumber(source.total_etiqueta_10, summedN10) : summedN10,
     n21: usePayloadSourceTotals ? asNumber(source.total_etiqueta_21, summedN21) : summedN21,
+    n14: usePayloadSourceTotals ? asNumber(source.total_etiqueta_14, summedN14) : summedN14,
+    n15: usePayloadSourceTotals ? asNumber(source.total_etiqueta_15, summedN15) : summedN15,
     n05: usePayloadSourceTotals ? asNumber(source.total_etiqueta_05, summedN05) : summedN05,
     n30: usePayloadSourceTotals ? asNumber(source.total_etiqueta_30, summedN30) : summedN30,
     n40: usePayloadSourceTotals ? asNumber(source.total_etiqueta_40, summedN40) : summedN40,
@@ -4315,6 +4343,8 @@ type DashboardEtiquetaCounters = {
   n00: number;
   n10: number;
   n21: number;
+  n14: number;
+  n15: number;
   n05: number;
   n30: number;
   n40: number;
@@ -4331,6 +4361,8 @@ function emptyDashboardEtiquetaCounters(): DashboardEtiquetaCounters {
     n00: 0,
     n10: 0,
     n21: 0,
+    n14: 0,
+    n15: 0,
     n05: 0,
     n30: 0,
     n40: 0,
@@ -4362,6 +4394,10 @@ function resolveDashboardEtiquetaCounterKey(value: unknown): keyof Omit<Dashboar
       return "n10";
     case "#21":
       return "n21";
+    case "#14":
+      return "n14";
+    case "#15":
+      return "n15";
     case "#05":
       return "n05";
     case "#30":
@@ -4859,6 +4895,8 @@ async function loadDashboardRowsFromFnDashboarPrincipal(
         n00: readDashboardViewNumber(row, ["#00", "n00", "etiqueta_00"], 0),
         n10: readDashboardViewNumber(row, ["#10", "n10", "etiqueta_10"], 0),
         n21: readDashboardViewNumber(row, ["#21", "n21", "etiqueta_21"], 0),
+        n14: readDashboardViewNumber(row, ["#14", "n14", "etiqueta_14"], 0),
+        n15: readDashboardViewNumber(row, ["#15", "n15", "etiqueta_15"], 0),
         n05: readDashboardViewNumber(row, ["#05", "n05", "etiqueta_05"], 0),
         n30: readDashboardViewNumber(row, ["#30", "n30", "etiqueta_30"], 0),
         n40: readDashboardViewNumber(row, ["#40", "n40", "etiqueta_40"], 0),
@@ -4994,6 +5032,8 @@ export async function getDashboardFunilSnapshot(
             n00: etiqueta.n00,
             n10: etiqueta.n10,
             n21: etiqueta.n21,
+            n14: etiqueta.n14,
+            n15: etiqueta.n15,
             n05: etiqueta.n05,
             n30: etiqueta.n30,
             n40: etiqueta.n40,
@@ -5056,6 +5096,8 @@ export async function getDashboardFunilSnapshot(
           n00: etiqueta.n00,
           n10: etiqueta.n10,
           n21: etiqueta.n21,
+          n14: etiqueta.n14,
+          n15: etiqueta.n15,
           n05: etiqueta.n05,
           n30: etiqueta.n30,
           n40: etiqueta.n40,
