@@ -50,6 +50,7 @@ type FunilColumn = {
   key: FunilColumnKey;
   label: string;
   widthClass?: string;
+  tooltip?: string;
 };
 
 type OrcamentosColumnKey =
@@ -75,17 +76,37 @@ const funilColumns: FunilColumn[] = [
   { key: "lead", label: "Lead", widthClass: "min-w-[84px]" },
   { key: "plusL100", label: "+L100", widthClass: "min-w-[84px]" },
   { key: "l100", label: "L100", widthClass: "min-w-[84px]" },
-  { key: "n00", label: "#00", widthClass: "min-w-[84px]" },
-  { key: "n10", label: "#10", widthClass: "min-w-[84px]" },
-  { key: "n14", label: "#14", widthClass: "min-w-[84px]" },
-  { key: "n15", label: "#15", widthClass: "min-w-[84px]" },
-  { key: "n21", label: "#21", widthClass: "min-w-[84px]" },
-  { key: "n05", label: "#05", widthClass: "min-w-[84px]" },
-  { key: "n30", label: "#30", widthClass: "min-w-[84px]" },
-  { key: "n40", label: "#40", widthClass: "min-w-[84px]" },
-  { key: "n50", label: "#50", widthClass: "min-w-[84px]" },
-  { key: "n60", label: "#60", widthClass: "min-w-[84px]" },
-  { key: "n61", label: "#61", widthClass: "min-w-[84px]" },
+  { key: "n00", label: "#00", widthClass: "min-w-[84px]", tooltip: "Cliente fez contato" },
+  { key: "n10", label: "#10", widthClass: "min-w-[84px]", tooltip: "Cliente interagiu com Bot" },
+  {
+    key: "n14",
+    label: "#14",
+    widthClass: "min-w-[84px]",
+    tooltip: "Cliente recebeu link da reuniao enviado pelo representante",
+  },
+  {
+    key: "n15",
+    label: "#15",
+    widthClass: "min-w-[84px]",
+    tooltip: "Cliente recebeu o link da reuniao selecionando as opcoes oferecidas pelo San",
+  },
+  { key: "n21", label: "#21", widthClass: "min-w-[84px]", tooltip: "Cliente prospectado (outbound)" },
+  { key: "n05", label: "#05", widthClass: "min-w-[84px]", tooltip: "Cliente clicou no link da reuniao" },
+  { key: "n30", label: "#30", widthClass: "min-w-[84px]", tooltip: "Cliente recebeu uma proposta" },
+  { key: "n40", label: "#40", widthClass: "min-w-[84px]", tooltip: "Cliente enviou documentos para analise" },
+  { key: "n50", label: "#50", widthClass: "min-w-[84px]", tooltip: "Cliente comprou equipamento (Hidrossemeador)" },
+  {
+    key: "n60",
+    label: "#60",
+    widthClass: "min-w-[84px]",
+    tooltip: "Cliente enviou a primeira mensagem e depois nao interagiu mais",
+  },
+  {
+    key: "n61",
+    label: "#61",
+    widthClass: "min-w-[84px]",
+    tooltip: "Cliente buscando aplicacao, encaminhado para o CRV",
+  },
   { key: "n62", label: "#62", widthClass: "min-w-[84px]" },
   { key: "n66", label: "#66", widthClass: "min-w-[84px]" },
   { key: "tv", label: "TV", widthClass: "min-w-[84px]" },
@@ -531,7 +552,16 @@ async function DashboardListContent({
                     isFunilNumericColumn(column.key) ? "text-right" : "text-left"
                   } text-[0.92rem] font-semibold text-[#18484a]`}
                 >
-                  {column.label}
+                  {column.tooltip ? (
+                    <span className="group relative inline-flex items-center gap-1">
+                      <span>{column.label}</span>
+                      <span className="pointer-events-none absolute top-full left-1/2 z-20 mt-2 hidden w-max max-w-[36rem] -translate-x-1/2 whitespace-normal break-words rounded-lg bg-slate-900 px-3 py-2 text-left text-xs font-medium leading-relaxed text-white shadow-xl group-hover:block">
+                        {column.tooltip}
+                      </span>
+                    </span>
+                  ) : (
+                    column.label
+                  )}
                 </th>
               ))}
             </tr>
