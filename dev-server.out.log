@@ -343,3 +343,469 @@
  GET /clientes?telefone=1492 200 in 948ms (compile: 47ms, proxy.ts: 772ms, render: 130ms)
  GET /clientes?telefone=1492 200 in 486ms (compile: 37ms, proxy.ts: 302ms, render: 147ms)
  GET /clientes?telefone=1492 200 in 705ms (compile: 60ms, proxy.ts: 427ms, render: 218ms)
+ GET /mix-sementes 200 in 1380ms (compile: 596ms, proxy.ts: 660ms, render: 124ms)
+ GET /verde-score 200 in 520ms (compile: 330ms, proxy.ts: 142ms, render: 48ms)
+ GET /invoice 200 in 639ms (compile: 411ms, proxy.ts: 167ms, render: 61ms)
+ GET /mix-sementes 200 in 1790ms (compile: 10ms, proxy.ts: 1765ms, render: 15ms)
+ GET /verde-score 200 in 548ms (compile: 12ms, proxy.ts: 508ms, render: 28ms)
+ GET /verde-score 200 in 3.1s (compile: 29ms, proxy.ts: 3.0s, render: 89ms)
+ GET /mix-sementes 200 in 258ms (compile: 8ms, proxy.ts: 229ms, render: 21ms)
+ GET /mix-sementes 200 in 1573ms (compile: 21ms, proxy.ts: 1483ms, render: 69ms)
+ GET /mix-sementes 200 in 363ms (compile: 27ms, proxy.ts: 259ms, render: 77ms)
+ GET /verde-score 200 in 464ms (compile: 11ms, proxy.ts: 436ms, render: 17ms)
+ GET /invoice 200 in 449ms (compile: 8ms, proxy.ts: 417ms, render: 24ms)
+ GET /gestao-acessos 200 in 2.8s (compile: 1204ms, proxy.ts: 799ms, render: 776ms)
+ GET /clientes 200 in 3.3s (compile: 990ms, proxy.ts: 690ms, render: 1582ms)
+ GET /clientes?telefone=43996748700 200 in 1800ms (compile: 5ms, proxy.ts: 298ms, render: 1497ms)
+ GET /clientes 200 in 3.2s (compile: 12ms, proxy.ts: 1266ms, render: 1934ms)
+ GET /clientes?nome=clayton 200 in 11.2s (compile: 10ms, proxy.ts: 9.5s, render: 1706ms)
+ GET /clientes?nome=clayton 200 in 1629ms (compile: 5ms, proxy.ts: 227ms, render: 1396ms)
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] request.received 
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] request.parsed_payload { id_pessoa: 29569, id_agregacao: 50938, id_usuario: 86 }
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] resolve.id_pessoa { value: 29569 }
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] resolve.id_agregacao.from_payload { value: 50938 }
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] code.generated { cod: '3445225104' }
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '3445225104',
+    p_id_usuario: 86,
+    p_pessoa: 29569,
+    p_status: 'Pendente'
+  }
+}
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3986, result_cod_link: '3445225104' } ]
+}
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 50938, id_agregacao: 50938, cod: '3445225104' }
+}
+ GET /clientes?nome=clayton 200 in 519ms (compile: 40ms, proxy.ts: 224ms, render: 255ms)
+ GET /clientes?nome=clayton 200 in 337ms (compile: 5ms, proxy.ts: 245ms, render: 87ms)
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] webhook.notify.response {
+  status: 200,
+  ok: true,
+  body: {
+    contactId: 'aZ3tIT0C6Zp2uvGi',
+    prefix: null,
+    headerContent: null,
+    content: 'Olá Teste Eliseu! estou entrando agora para nossa reunião.\n' +
+      '\n' +
+      'Segue o link: https://apresentacao.verdetec.com/ap?cod=3445225104\n' +
+      '\n' +
+      '*Este link é válido por 1h.',
+    footer: null,
+    file: null,
+    thumbnail: null,
+    quotedStatusUpdate: null,
+    contacts: [],
+    messageType: 'Text',
+    sentByOrganizationMember: { id: 'aL64KCAeLIr5SiDW' },
+    isPrivate: false,
+    location: null,
+    question: null,
+    source: 'Member',
+    inReplyTo: null,
+    messageState: 'Processing',
+    eventAtUTC: '2026-02-25T14:17:03.690468Z',
+    chat: { id: 'aZ3tIT0C6Zp2uvGk' },
+    fromContact: null,
+    templateId: null,
+    buttons: [],
+    latestEdit: null,
+    botInstance: null,
+    forwardedFrom: null,
+    scheduledMessage: null,
+    bulkSendSession: null,
+    elements: null,
+    mentions: [],
+    ad: null,
+    fileId: null,
+    reactions: [],
+    deductedAiCredits: null,
+    carousel: [],
+    billable: null,
+    id: 'aZ8EX35QZ3B9f1GR',
+    createdAtUTC: '2026-02-25T14:17:03.690468Z'
+  }
+}
+[clientes/enviar-link][cf001e4a-3791-4868-b099-fffbc4ee5093] request.success { duration_ms: 2662 }
+ POST /api/clientes/enviar-link 200 in 3.9s (compile: 979ms, proxy.ts: 206ms, render: 2.7s)
+ GET /clientes?nome=clayton 200 in 1240ms (compile: 4ms, proxy.ts: 180ms, render: 1056ms)
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] request.received 
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] request.parsed_payload { id_pessoa: 29569, id_agregacao: 50938, id_usuario: 86 }
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] resolve.id_pessoa { value: 29569 }
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] resolve.id_agregacao.from_payload { value: 50938 }
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] code.generated { cod: '9397619523' }
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '9397619523',
+    p_id_usuario: 86,
+    p_pessoa: 29569,
+    p_status: 'Pendente'
+  }
+}
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3987, result_cod_link: '9397619523' } ]
+}
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 50938, id_agregacao: 50938, cod: '9397619523' }
+}
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] webhook.notify.response {
+  status: 200,
+  ok: true,
+  body: {
+    contactId: 'aZ3tIT0C6Zp2uvGi',
+    prefix: null,
+    headerContent: null,
+    content: 'Olá Teste Eliseu! estou entrando agora para nossa reunião.\n' +
+      '\n' +
+      'Segue o link: https://apresentacao.verdetec.com/ap?cod=9397619523\n' +
+      '\n' +
+      '*Este link é válido por 1h.',
+    footer: null,
+    file: null,
+    thumbnail: null,
+    quotedStatusUpdate: null,
+    contacts: [],
+    messageType: 'Text',
+    sentByOrganizationMember: { id: 'aL64KCAeLIr5SiDW' },
+    isPrivate: false,
+    location: null,
+    question: null,
+    source: 'Member',
+    inReplyTo: null,
+    messageState: 'Processing',
+    eventAtUTC: '2026-02-25T14:28:31.0310187Z',
+    chat: { id: 'aZ3tIT0C6Zp2uvGk' },
+    fromContact: null,
+    templateId: null,
+    buttons: [],
+    latestEdit: null,
+    botInstance: null,
+    forwardedFrom: null,
+    scheduledMessage: null,
+    bulkSendSession: null,
+    elements: null,
+    mentions: [],
+    ad: null,
+    fileId: null,
+    reactions: [],
+    deductedAiCredits: null,
+    carousel: [],
+    billable: null,
+    id: 'aZ8HD35QZ3B9ib-t',
+    createdAtUTC: '2026-02-25T14:28:31.0310186Z'
+  }
+}
+[clientes/enviar-link][78580d95-c9b5-4937-95df-9ec512e34ce4] request.success { duration_ms: 2406 }
+ POST /api/clientes/enviar-link 200 in 2.7s (compile: 5ms, proxy.ts: 261ms, render: 2.4s)
+ GET /clientes?nome=clayton 200 in 1517ms (compile: 9ms, proxy.ts: 139ms, render: 1369ms)
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] request.received 
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] request.parsed_payload { id_pessoa: 29569, id_agregacao: 50938, id_usuario: 86 }
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] resolve.id_pessoa { value: 29569 }
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] resolve.id_agregacao.from_payload { value: 50938 }
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] code.generated { cod: '4804615848' }
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '4804615848',
+    p_id_usuario: 86,
+    p_pessoa: 29569,
+    p_status: 'Pendente'
+  }
+}
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3988, result_cod_link: '4804615848' } ]
+}
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 50938, id_agregacao: 50938, cod: '4804615848' }
+}
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] webhook.notify.response {
+  status: 200,
+  ok: true,
+  body: {
+    contactId: 'aZ3tIT0C6Zp2uvGi',
+    prefix: null,
+    headerContent: null,
+    content: 'Olá, Clayton Du Grau! estou entrando agora para nossa reunião.\n' +
+      '\n' +
+      'Segue o link: https://apresentacao.verdetec.com/ap?cod=4804615848\n' +
+      '\n' +
+      '*Este link é válido por 1h.',
+    footer: null,
+    file: null,
+    thumbnail: null,
+    quotedStatusUpdate: null,
+    contacts: [],
+    messageType: 'Text',
+    sentByOrganizationMember: { id: 'aL64KCAeLIr5SiDW' },
+    isPrivate: false,
+    location: null,
+    question: null,
+    source: 'Member',
+    inReplyTo: null,
+    messageState: 'Processing',
+    eventAtUTC: '2026-02-25T14:32:12.7352243Z',
+    chat: { id: 'aZ3tIT0C6Zp2uvGk' },
+    fromContact: null,
+    templateId: null,
+    buttons: [],
+    latestEdit: null,
+    botInstance: null,
+    forwardedFrom: null,
+    scheduledMessage: null,
+    bulkSendSession: null,
+    elements: null,
+    mentions: [],
+    ad: null,
+    fileId: null,
+    reactions: [],
+    deductedAiCredits: null,
+    carousel: [],
+    billable: null,
+    id: 'aZ8H7CEFFw-s_nJm',
+    createdAtUTC: '2026-02-25T14:32:12.7352242Z'
+  }
+}
+[clientes/enviar-link][4f9f0c02-27aa-40f1-b6bc-f03f130cbb10] request.success { duration_ms: 2485 }
+ POST /api/clientes/enviar-link 200 in 3.0s (compile: 8ms, proxy.ts: 514ms, render: 2.5s)
+ GET /clientes?nome=clayton 200 in 2.1s (compile: 5ms, proxy.ts: 372ms, render: 1755ms)
+ GET /clientes 200 in 2.4s (compile: 6ms, proxy.ts: 392ms, render: 1956ms)
+ GET /clientes?telefone=1492 200 in 1371ms (compile: 4ms, proxy.ts: 294ms, render: 1073ms)
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] request.received 
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] request.parsed_formdata 
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] request.parsed_fields {
+  id_pessoa: 29569,
+  id_agregacao: 50938,
+  id_usuario: 86,
+  telefone_proposta: '91985691492',
+  telefone_cobranca: '91985691492',
+  email_nota_fiscal: 'clayton.so@verdetec.com',
+  email_responsavel: 'clayton.so@verdetec.com',
+  numero_identificacao: '987456321256',
+  arquivos_count: 1,
+  arquivos_names: [ 'copy_of_Cadernodelegislao_PNAE_2023.pdf' ]
+}
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] resolve.agregacao_data { value: { idPropostaValor: 4661, idPessoa: 29569, idUsuario: 105 } }
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] resolve.usuario_id { value: 86 }
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] upload.files.start {
+  count: 1,
+  files: [
+    {
+      name: 'copy_of_Cadernodelegislao_PNAE_2023.pdf',
+      size: 4553338,
+      type: 'application/pdf'
+    }
+  ]
+}
+ GET /clientes?telefone=1492 200 in 647ms (compile: 64ms, proxy.ts: 419ms, render: 164ms)
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] upload.file.success {
+  file: 'copy_of_Cadernodelegislao_PNAE_2023.pdf',
+  public_url: 'https://zosdxuntvhrzjutmvduu.supabase.co/storage/v1/object/public/contratos/contratos/1772030374500-e4a0245a-6956-4b8f-ac7f-39abbaad9128-copy_of_Cadernodelegislao_PNAE_2023.pdf'
+}
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] upload.files.completed {
+  count: 1,
+  urls: [
+    'https://zosdxuntvhrzjutmvduu.supabase.co/storage/v1/object/public/contratos/contratos/1772030374500-e4a0245a-6956-4b8f-ac7f-39abbaad9128-copy_of_Cadernodelegislao_PNAE_2023.pdf'
+  ]
+}
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] webhook.cadastrar_contrato.request {
+  endpoint: 'https://whvtec2.verdetec.dev.br/webhook/15af86ec-056e-4a6a-b564-f225134717a8',
+  payload: {
+    p_empresa_email: 'clayton.so@verdetec.com',
+    p_agregacao: 50938,
+    p_id_user: 86,
+    p_nota_email: 'clayton.so@verdetec.com',
+    p_fone_cobranca: '91985691492',
+    p_link_download: 'https://zosdxuntvhrzjutmvduu.supabase.co/storage/v1/object/public/contratos/contratos/1772030374500-e4a0245a-6956-4b8f-ac7f-39abbaad9128-copy_of_Cadernodelegislao_PNAE_2023.pdf',
+    p_id_pessoa: 29569,
+    p_id_proposta: 4661
+  }
+}
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] webhook.cadastrar_contrato.response {
+  status: 200,
+  ok: true,
+  body: { retorno: '784', fone: '91985691492' }
+}
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] webhook.cadastrar_contrato.parsed {
+  id_contrato: null,
+  full_result: { retorno: '784', fone: '91985691492' }
+}
+[clientes/cadastrar-contrato][e3ba79bd-1cdf-41e2-8d89-ba407522c33b] request.success { duration_ms: 5923, id_contrato: null }
+ POST /api/clientes/cadastrar-contrato 200 in 7.2s (compile: 699ms, proxy.ts: 520ms, render: 5.9s)
+ GET /clientes?telefone=1492 200 in 1678ms (compile: 6ms, proxy.ts: 154ms, render: 1519ms)
+ GET /clientes?telefone=1492 200 in 1799ms (compile: 4ms, proxy.ts: 223ms, render: 1572ms)
+ GET /clientes?telefone=1492 200 in 6.4s (compile: 6ms, proxy.ts: 5.0s, render: 1340ms)
+ GET /clientes?telefone=1492 200 in 1358ms (compile: 10ms, proxy.ts: 182ms, render: 1165ms)
+ GET /clientes?telefone=961992 200 in 2.0s (compile: 4ms, proxy.ts: 595ms, render: 1434ms)
+[clientes/visualizar][2a9c78c0-ab20-42ab-8731-777ffa1d43f5] request.received 
+[clientes/visualizar][2a9c78c0-ab20-42ab-8731-777ffa1d43f5] request.parsed_payload { id_pessoa: 25530 }
+[clientes/visualizar][2a9c78c0-ab20-42ab-8731-777ffa1d43f5] supabase.view.response { hasData: true, error: null }
+ POST /api/clientes/visualizar 200 in 1258ms (compile: 761ms, proxy.ts: 302ms, render: 195ms)
+ GET /clientes?usuario=83&telefone=961992 200 in 2.5s (compile: 32ms, proxy.ts: 329ms, render: 2.1s)
+ GET /clientes?telefone=91985691492 200 in 1940ms (compile: 8ms, proxy.ts: 674ms, render: 1258ms)
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] request.received 
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] request.parsed_payload { id_pessoa: 29569, id_agregacao: 50938, id_usuario: 86 }
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] resolve.id_pessoa { value: 29569 }
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] resolve.id_agregacao.from_payload { value: 50938 }
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] code.generated { cod: '1121409569' }
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '1121409569',
+    p_id_usuario: 86,
+    p_pessoa: 29569,
+    p_status: 'Pendente'
+  }
+}
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3990, result_cod_link: '1121409569' } ]
+}
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 50938, id_agregacao: 50938, cod: '1121409569' }
+}
+ GET /clientes?telefone=91985691492 200 in 572ms (compile: 54ms, proxy.ts: 262ms, render: 256ms)
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] webhook.notify.response {
+  status: 200,
+  ok: true,
+  body: {
+    contactId: 'aZ3tIT0C6Zp2uvGi',
+    prefix: null,
+    headerContent: null,
+    content: 'Olá, Clayton Du Grau! estou entrando agora para nossa reunião.\n' +
+      '\n' +
+      'Segue o link: https://apresentacao.verdetec.com/ap?cod=1121409569\n' +
+      '\n' +
+      '*Este link é válido por 1h.',
+    footer: null,
+    file: null,
+    thumbnail: null,
+    quotedStatusUpdate: null,
+    contacts: [],
+    messageType: 'Text',
+    sentByOrganizationMember: { id: 'aL64KCAeLIr5SiDW' },
+    isPrivate: false,
+    location: null,
+    question: null,
+    source: 'Member',
+    inReplyTo: null,
+    messageState: 'Processing',
+    eventAtUTC: '2026-02-25T16:13:50.0285624Z',
+    chat: { id: 'aZ3tIT0C6Zp2uvGk' },
+    fromContact: null,
+    templateId: null,
+    buttons: [],
+    latestEdit: null,
+    botInstance: null,
+    forwardedFrom: null,
+    scheduledMessage: null,
+    bulkSendSession: null,
+    elements: null,
+    mentions: [],
+    ad: null,
+    fileId: null,
+    reactions: [],
+    deductedAiCredits: null,
+    carousel: [],
+    billable: null,
+    id: 'aZ8fviEFFw-sSI3q',
+    createdAtUTC: '2026-02-25T16:13:50.0285623Z'
+  }
+}
+[clientes/enviar-link][e0aa9e02-99bc-4948-b53f-ea143fb4608b] request.success { duration_ms: 2529 }
+ POST /api/clientes/enviar-link 200 in 4.0s (compile: 1129ms, proxy.ts: 310ms, render: 2.5s)
+ GET /clientes?telefone=91985691492 200 in 1767ms (compile: 5ms, proxy.ts: 166ms, render: 1596ms)
+ GET /clientes?nome=eduarda 200 in 1038ms (compile: 6ms, proxy.ts: 265ms, render: 767ms)
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] request.received 
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] request.parsed_payload { id_pessoa: 29604, id_agregacao: 50944, id_usuario: 86 }
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] resolve.id_pessoa { value: 29604 }
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] resolve.id_agregacao.from_payload { value: 50944 }
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] code.generated { cod: '2384915807' }
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] rpc.insert_apresentacao.request {
+  endpoint: 'https://zosdxuntvhrzjutmvduu.supabase.co/rest/v1/rpc/insert_apresentacao',
+  payload: {
+    p_adicionado: true,
+    p_cod_link: '2384915807',
+    p_id_usuario: 86,
+    p_pessoa: 29604,
+    p_status: 'Pendente'
+  }
+}
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] rpc.insert_apresentacao.response {
+  status: 200,
+  ok: true,
+  body: [ { result_id: 3992, result_cod_link: '2384915807' } ]
+}
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] webhook.notify.request {
+  endpoint: 'https://webh.verdetec.dev.br/webhook/e1b18fae-f85f-4baf-9806-b1352ab235aa',
+  payload: { id_agre: 50944, id_agregacao: 50944, cod: '2384915807' }
+}
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] webhook.notify.response {
+  status: 200,
+  ok: true,
+  body: {
+    contactId: 'aZ7ppHw4zQzUESL5',
+    prefix: null,
+    headerContent: null,
+    content: 'Olá, Eduarda Gonçalves! estou entrando agora para nossa reunião.\n' +
+      '\n' +
+      'Segue o link: https://apresentacao.verdetec.com/ap?cod=2384915807\n' +
+      '\n' +
+      '*Este link é válido por 1h.',
+    footer: null,
+    file: null,
+    thumbnail: null,
+    quotedStatusUpdate: null,
+    contacts: [],
+    messageType: 'Text',
+    sentByOrganizationMember: { id: 'aL64KCAeLIr5SiDW' },
+    isPrivate: false,
+    location: null,
+    question: null,
+    source: 'Member',
+    inReplyTo: null,
+    messageState: 'Processing',
+    eventAtUTC: '2026-02-25T16:22:28.2616837Z',
+    chat: { id: 'aZ8hxOdt6TjrWm_y' },
+    fromContact: null,
+    templateId: null,
+    buttons: [],
+    latestEdit: null,
+    botInstance: null,
+    forwardedFrom: null,
+    scheduledMessage: null,
+    bulkSendSession: null,
+    elements: null,
+    mentions: [],
+    ad: null,
+    fileId: null,
+    reactions: [],
+    deductedAiCredits: null,
+    carousel: [],
+    billable: null,
+    id: 'aZ8hxOdt6TjrWm_3',
+    createdAtUTC: '2026-02-25T16:22:28.2616836Z'
+  }
+}
+[clientes/enviar-link][85ebdef2-d213-4900-9280-964224cd2579] request.success { duration_ms: 2347 }
+ POST /api/clientes/enviar-link 200 in 2.5s (compile: 4ms, proxy.ts: 183ms, render: 2.4s)
+ GET /clientes?nome=eduarda 200 in 1092ms (compile: 7ms, proxy.ts: 206ms, render: 879ms)
+ GET /verde-score 200 in 1370ms (compile: 126ms, proxy.ts: 1128ms, render: 115ms)
