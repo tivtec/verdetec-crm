@@ -5,14 +5,20 @@ import { usePathname, useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Search, X, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { AccessMatrixRow, AccessOrganizationOption, CrmPage } from "@/services/access-control/types";
+import type {
+  AccessMatrixRow,
+  AccessModuleOption,
+  AccessOrganizationOption,
+  CrmPage,
+} from "@/services/access-control/types";
 
 type GestaoAcessosShellProps = {
   initialRows: AccessMatrixRow[];
   pages: CrmPage[];
+  modules: AccessModuleOption[];
+  initialModuleId?: string;
   organizations: AccessOrganizationOption[];
   selectedOrganizationId: string;
-  canChangeOrganization: boolean;
   initialSearch: string;
   currentPage: number;
   hasNextPage: boolean;
@@ -22,14 +28,32 @@ type PendingToggle = {
   idUsuario: number;
   pageKey: string;
   allow: boolean;
+  label: string;
 };
+
+type TogglePageResponse = {
+  ok?: boolean;
+  error?: string;
+  access?: {
+    pageKey?: string;
+    allow?: boolean;
+  };
+};
+
+function resolveInitialModuleId(modules: AccessModuleOption[], requested?: string) {
+  if (requested && modules.some((item) => item.id === requested)) {
+    return requested;
+  }
+  return modules[0]?.id ?? "";
+}
 
 export function GestaoAcessosShell({
   initialRows,
   pages,
+  modules,
+  initialModuleId,
   organizations,
   selectedOrganizationId,
-  canChangeOrganization,
   initialSearch,
   currentPage,
   hasNextPage,
@@ -39,6 +63,7 @@ export function GestaoAcessosShell({
   const [search, setSearch] = useState(initialSearch);
   const [rows, setRows] = useState<AccessMatrixRow[]>(initialRows);
   const [organizationId, setOrganizationId] = useState(selectedOrganizationId);
+  const [moduleId, setModuleId] = useState(resolveInitialModuleId(modules, initialModuleId));
   const [submittingKey, setSubmittingKey] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingToggle, setPendingToggle] = useState<PendingToggle | null>(null);
@@ -56,6 +81,10 @@ export function GestaoAcessosShell({
   }, [selectedOrganizationId]);
 
   useEffect(() => {
+    setModuleId(resolveInitialModuleId(modules, initialModuleId));
+  }, [initialModuleId, modules]);
+
+  useEffect(() => {
     if (!feedback) {
       return;
     }
@@ -67,18 +96,35 @@ export function GestaoAcessosShell({
     return () => window.clearTimeout(timer);
   }, [feedback]);
 
+  const selectedModule = useMemo(
+    () => modules.find((item) => item.id === moduleId) ?? null,
+    [moduleId, modules],
+  );
+
+  const modulePages = useMemo(() => {
+    if (!selectedModule) {
+      return pages;
+    }
+    const pageKeys = new Set(selectedModule.pageKeys);
+    return pages.filter((page) => pageKeys.has(page.key));
+  }, [pages, selectedModule]);
+
   const pageLabel = useMemo(() => `Pagina ${currentPage}`, [currentPage]);
   const tableMinWidth = useMemo(() => {
-    const columns = pages.length + 1;
+    const columns = modulePages.length + 1;
     return Math.max(980, columns * 160);
-  }, [pages.length]);
+  }, [modulePages.length]);
 
-  const pushFilters = (nextPage: number, nextOrganizationId?: string) => {
+  const pushFilters = (nextPage: number, nextOrganizationId?: string, nextModuleId?: string) => {
     const params = new URLSearchParams();
     const trimmed = search.trim();
     const orgId = (nextOrganizationId ?? organizationId).trim();
+    const modId = (nextModuleId ?? moduleId).trim();
     if (orgId) {
       params.set("org_id", orgId);
+    }
+    if (modId) {
+      params.set("module_id", modId);
     }
     if (trimmed) {
       params.set("search", trimmed);
@@ -109,7 +155,7 @@ export function GestaoAcessosShell({
   };
 
   const executeToggle = async (payload: PendingToggle) => {
-    const key = `${payload.idUsuario}:${payload.pageKey}`;
+    const key = `${payload.idUsuario}:page:${payload.pageKey}`;
     setSubmittingKey(key);
     setFeedback(null);
 
@@ -127,16 +173,15 @@ export function GestaoAcessosShell({
         }),
       });
 
-      const result = (await response.json().catch(() => null)) as
-        | { ok?: boolean; error?: string }
-        | null;
-
+      const result = (await response.json().catch(() => null)) as TogglePageResponse | null;
       if (!response.ok || !result?.ok) {
-        setFeedback(result?.error ?? "Falha ao atualizar acesso.");
+        setFeedback(result?.error ?? "Falha ao atualizar acesso da pagina.");
         return;
       }
 
-      updateLocalRow(payload.idUsuario, payload.pageKey, payload.allow);
+      const patchKey = result.access?.pageKey ?? payload.pageKey;
+      const patchAllow = result.access?.allow ?? payload.allow;
+      updateLocalRow(payload.idUsuario, patchKey, patchAllow);
       setFeedback(payload.allow ? "Acesso liberado." : "Acesso bloqueado.");
     } catch {
       setFeedback("Erro de rede ao atualizar acesso.");
@@ -146,21 +191,12 @@ export function GestaoAcessosShell({
     }
   };
 
-  const requestToggle = (idUsuario: number, pageKey: string, allow: boolean) => {
-    if (!allow) {
-      setPendingToggle({
-        idUsuario,
-        pageKey,
-        allow,
-      });
+  const requestToggle = (payload: PendingToggle) => {
+    if (!payload.allow) {
+      setPendingToggle(payload);
       return;
     }
-
-    void executeToggle({
-      idUsuario,
-      pageKey,
-      allow,
-    });
+    void executeToggle(payload);
   };
 
   return (
@@ -175,22 +211,43 @@ export function GestaoAcessosShell({
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[260px]">
             <label htmlFor="acl-org" className="mb-1 block text-xs font-medium text-[#4a6169]">
-              Organização
+              Organizacao
             </label>
             <select
               id="acl-org"
               value={organizationId}
-              disabled={!canChangeOrganization || organizations.length <= 1}
               onChange={(event) => {
                 const nextOrgId = event.target.value;
                 setOrganizationId(nextOrgId);
                 pushFilters(1, nextOrgId);
               }}
-              className="h-11 w-full rounded-xl border border-[#d0d6db] bg-white px-3 text-sm text-[#254247] outline-none transition focus:border-[#66a9a1] focus:ring-2 focus:ring-[#66a9a14a] disabled:cursor-not-allowed disabled:bg-[#f2f4f5] disabled:text-[#7a868d]"
+              className="h-11 w-full rounded-xl border border-[#d0d6db] bg-white px-3 text-sm text-[#254247] outline-none transition focus:border-[#66a9a1] focus:ring-2 focus:ring-[#66a9a14a]"
             >
               {organizations.map((organization) => (
                 <option key={organization.id} value={organization.id}>
                   {organization.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="min-w-[260px]">
+            <label htmlFor="acl-module" className="mb-1 block text-xs font-medium text-[#4a6169]">
+              Modulo
+            </label>
+            <select
+              id="acl-module"
+              value={moduleId}
+              onChange={(event) => {
+                const nextModuleId = event.target.value;
+                setModuleId(nextModuleId);
+                pushFilters(1, undefined, nextModuleId);
+              }}
+              className="h-11 w-full rounded-xl border border-[#d0d6db] bg-white px-3 text-sm text-[#254247] outline-none transition focus:border-[#66a9a1] focus:ring-2 focus:ring-[#66a9a14a]"
+            >
+              {modules.map((moduleOption) => (
+                <option key={moduleOption.id} value={moduleOption.id}>
+                  {moduleOption.nome}
                 </option>
               ))}
             </select>
@@ -232,7 +289,7 @@ export function GestaoAcessosShell({
               <th className="sticky top-0 left-0 z-30 rounded-l-xl bg-[#c6dedd] px-3 py-3 text-left text-base font-semibold text-[#164b4f]">
                 Usuario
               </th>
-              {pages.map((page) => (
+              {modulePages.map((page) => (
                 <th
                   key={page.key}
                   className="sticky top-0 z-20 bg-[#c6dedd] px-3 py-3 text-center text-sm font-semibold text-[#164b4f]"
@@ -247,10 +304,19 @@ export function GestaoAcessosShell({
             {rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={Math.max(1, pages.length + 1)}
+                  colSpan={Math.max(1, modulePages.length + 1)}
                   className="rounded-xl bg-[#f0f2f3] px-3 py-8 text-center text-[#4e6971]"
                 >
                   Nenhum usuario ativo encontrado.
+                </td>
+              </tr>
+            ) : modulePages.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={Math.max(1, modulePages.length + 1)}
+                  className="rounded-xl bg-[#f0f2f3] px-3 py-8 text-center text-[#4e6971]"
+                >
+                  O modulo selecionado nao possui paginas configuradas.
                 </td>
               </tr>
             ) : (
@@ -261,16 +327,24 @@ export function GestaoAcessosShell({
                     <p className="text-xs text-[#6a7f85]">{row.email ?? "-"}</p>
                     <p className="text-xs text-[#6a7f85]">{row.tipoAcesso ?? "-"}</p>
                   </td>
-                  {pages.map((page) => {
+
+                  {modulePages.map((page) => {
                     const allowed = row.acessos[page.key] !== false;
-                    const toggleKey = `${row.idUsuario}:${page.key}`;
+                    const toggleKey = `${row.idUsuario}:page:${page.key}`;
                     const isSubmitting = submittingKey === toggleKey;
                     return (
-                      <td key={`${row.idUsuario}:${page.key}`} className="bg-[#f5f6f7] px-2 py-3 text-center">
+                      <td key={toggleKey} className="bg-[#f5f6f7] px-2 py-3 text-center">
                         <button
                           type="button"
                           disabled={isSubmitting}
-                          onClick={() => requestToggle(row.idUsuario, page.key, !allowed)}
+                          onClick={() =>
+                            requestToggle({
+                              idUsuario: row.idUsuario,
+                              pageKey: page.key,
+                              allow: !allowed,
+                              label: page.label,
+                            })
+                          }
                           className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent transition hover:border-[#9dc5c1] hover:bg-[#e6f2f0] disabled:cursor-not-allowed disabled:opacity-50"
                           title={allowed ? "Bloquear acesso" : "Liberar acesso"}
                           aria-label={allowed ? "Bloquear acesso" : "Liberar acesso"}
@@ -336,7 +410,9 @@ export function GestaoAcessosShell({
 
             <h3 className="text-2xl font-semibold text-[#2f3338]">Bloquear acesso</h3>
             <p className="mt-2 text-sm text-[#4f5f66]">
-              Confirma o bloqueio desta pagina para o usuario selecionado?
+              Confirma o bloqueio de{" "}
+              <span className="font-semibold text-[#2f3338]">{pendingToggle.label}</span>{" "}
+              para o usuario selecionado?
             </p>
 
             <div className="mt-6 grid grid-cols-2 gap-3">

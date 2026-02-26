@@ -1,8 +1,12 @@
 import { CRM_SIDEBAR_PAGES, GESTAO_ACESSOS_PAGE_KEY } from "@/services/access-control/constants";
 import type {
+  AccessModuleOption,
   AccessMatrixRow,
   AccessOrganizationOption,
   CrmPage,
+  SidebarModule,
+  SidebarNavigationSnapshot,
+  SidebarNavPage,
   UserPageAccess,
 } from "@/services/access-control/types";
 import { createAdminSupabaseClient } from "@/services/supabase/admin";
@@ -13,6 +17,7 @@ type LegacyUserContext = {
   organizacaoId: string;
   tipoAcesso: string;
   tipoAcesso2: string;
+  moduloAtivoId: string | null;
   ativo: boolean;
 };
 
@@ -35,6 +40,7 @@ type AccessControlResult<T> = AccessControlSuccess<T> | AccessControlError;
 
 export type AccessMatrixSnapshot = {
   pages: CrmPage[];
+  modules: AccessModuleOption[];
   organizations: AccessOrganizationOption[];
   selectedOrganizationId: string;
   canChangeOrganization: boolean;
@@ -43,6 +49,17 @@ export type AccessMatrixSnapshot = {
   hasNextPage: boolean;
   totalRows: number;
 };
+
+type InternalCrmPage = CrmPage & {
+  idModulo: string | null;
+};
+
+type AllowedPageAccess = {
+  pages: InternalCrmPage[];
+  allowByPageKey: Map<string, boolean>;
+};
+
+const DEFAULT_SIDEBAR_MODULE_ID = "__crm_default_module__";
 
 function asString(value: unknown, fallback = "") {
   if (typeof value === "string") {
@@ -123,25 +140,6 @@ export function isManagerRole(tipoAcesso: string | null | undefined) {
   );
 }
 
-function isGlobalAccessManager(tipoAcesso: string | null | undefined, tipoAcesso2: string | null | undefined) {
-  const normalizedTipoAcesso = normalizeRole(asString(tipoAcesso));
-  const normalizedTipoAcesso2 = normalizeRole(asString(tipoAcesso2));
-  const isGlobal = (value: string) =>
-    value === "superadm" || value === "superadmin" || value === "admin";
-
-  return isGlobal(normalizedTipoAcesso) || isGlobal(normalizedTipoAcesso2);
-}
-
-function isLocalAccessManager(tipoAcesso: string | null | undefined, tipoAcesso2: string | null | undefined) {
-  const normalizedTipoAcesso = normalizeRole(asString(tipoAcesso));
-  const normalizedTipoAcesso2 = normalizeRole(asString(tipoAcesso2));
-  return normalizedTipoAcesso === "gestor" || normalizedTipoAcesso2 === "gestor";
-}
-
-function hasManagerProfile(tipoAcesso: string | null | undefined, tipoAcesso2: string | null | undefined) {
-  return isGlobalAccessManager(tipoAcesso, tipoAcesso2) || isLocalAccessManager(tipoAcesso, tipoAcesso2);
-}
-
 function isAclObjectMissing(details: string) {
   const normalized = details.toLowerCase();
   return (
@@ -152,6 +150,11 @@ function isAclObjectMissing(details: string) {
     normalized.includes("42p01") ||
     normalized.includes("42883")
   );
+}
+
+function isAclColumnMissing(details: string) {
+  const normalized = details.toLowerCase();
+  return normalized.includes("42703") || normalized.includes("column");
 }
 
 async function resolveCurrentLegacyUserContext(): Promise<LegacyUserContext | null> {
@@ -168,7 +171,7 @@ async function resolveCurrentLegacyUserContext(): Promise<LegacyUserContext | nu
     const admin = createAdminSupabaseClient();
     const query = admin
       .from("usuarios")
-      .select("id,id_organizacao,tipo_acesso,tipo_acesso_2,usuario_ativo")
+      .select("id,id_organizacao,tipo_acesso,tipo_acesso_2,id_modulo_ativo,usuario_ativo")
       .eq("uuid_user", user.id)
       .order("id", { ascending: false })
       .limit(1);
@@ -176,12 +179,12 @@ async function resolveCurrentLegacyUserContext(): Promise<LegacyUserContext | nu
     let { data, error } = await query;
 
     if ((!data || data.length === 0) && user.email) {
-      const byEmail = await admin
-        .from("usuarios")
-        .select("id,id_organizacao,tipo_acesso,tipo_acesso_2,usuario_ativo")
-        .eq("email", user.email)
-        .order("id", { ascending: false })
-        .limit(1);
+        const byEmail = await admin
+          .from("usuarios")
+          .select("id,id_organizacao,tipo_acesso,tipo_acesso_2,id_modulo_ativo,usuario_ativo")
+          .eq("email", user.email)
+          .order("id", { ascending: false })
+          .limit(1);
 
       data = byEmail.data;
       error = byEmail.error;
@@ -204,6 +207,7 @@ async function resolveCurrentLegacyUserContext(): Promise<LegacyUserContext | nu
       organizacaoId,
       tipoAcesso: asString(row.tipo_acesso),
       tipoAcesso2: asString(row.tipo_acesso_2),
+      moduloAtivoId: asNullableString(row.id_modulo_ativo),
       ativo:
         typeof row.usuario_ativo === "boolean"
           ? row.usuario_ativo
@@ -305,28 +309,52 @@ function resolveSelectedOrganizationId(args: {
   return args.defaultOrganizationId;
 }
 
-function getFallbackPages(): CrmPage[] {
+function getFallbackPages(): InternalCrmPage[] {
   return CRM_SIDEBAR_PAGES.map((item) => ({
     key: item.key,
     path: item.path,
     label: item.label,
     sortOrder: item.sortOrder,
     isActive: true,
+    idModulo: null,
   }));
 }
 
-async function getCrmPages(): Promise<CrmPage[]> {
+function toPublicCrmPages(pages: InternalCrmPage[]): CrmPage[] {
+  return pages.map((page) => ({
+    key: page.key,
+    path: page.path,
+    label: page.label,
+    sortOrder: page.sortOrder,
+    isActive: page.isActive,
+  }));
+}
+
+async function getCrmPages(): Promise<InternalCrmPage[]> {
   try {
     const admin = createAdminSupabaseClient();
-    const { data, error } = await admin
+    const withModule = await admin
       .from("crm_pages")
-      .select("key,path,label,sort_order,is_active")
+      .select("key,path,label,sort_order,is_active,id_modulo")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("key", { ascending: true });
 
+    let data = withModule.data as Array<Record<string, unknown>> | null;
+    let error = withModule.error;
+    if (error && isAclColumnMissing(error.message)) {
+      const withoutModule = await admin
+        .from("crm_pages")
+        .select("key,path,label,sort_order,is_active")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("key", { ascending: true });
+      data = withoutModule.data as Array<Record<string, unknown>> | null;
+      error = withoutModule.error;
+    }
+
     if (error) {
-      if (isAclObjectMissing(error.message)) {
+      if (isAclObjectMissing(error.message) || isAclColumnMissing(error.message)) {
         return getFallbackPages();
       }
       return getFallbackPages();
@@ -342,9 +370,333 @@ async function getCrmPages(): Promise<CrmPage[]> {
       label: asString(row.label, asString(row.key)),
       sortOrder: asPositiveInt(row.sort_order) ?? index + 1,
       isActive: Boolean(row.is_active),
+      idModulo: asNullableString(row.id_modulo),
     }));
   } catch {
     return getFallbackPages();
+  }
+}
+
+async function getActiveModules(): Promise<SidebarModule[]> {
+  try {
+    const admin = createAdminSupabaseClient();
+    const { data, error } = await admin
+      .from("modulos")
+      .select("id,key,nome,sort_order,is_active")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("nome", { ascending: true });
+
+    if (error) {
+      return [];
+    }
+
+    return ((data as Array<Record<string, unknown>> | null) ?? [])
+      .map((row, index) => {
+        const id = asNullableString(row.id);
+        const key = asNullableString(row.key);
+        const nome = asNullableString(row.nome);
+        if (!id || !key || !nome) {
+          return null;
+        }
+
+        return {
+          id,
+          key,
+          nome,
+          sortOrder: asPositiveInt(row.sort_order) ?? index + 1,
+        } satisfies SidebarModule;
+      })
+      .filter((value): value is SidebarModule => Boolean(value));
+  } catch {
+    return [];
+  }
+}
+
+async function buildAllowedPageAccess(context: LegacyUserContext, pages: InternalCrmPage[]): Promise<AllowedPageAccess> {
+  const allowByPageKey = new Map<string, boolean>();
+  for (const page of pages) {
+    allowByPageKey.set(page.key, true);
+  }
+
+  try {
+    const admin = createAdminSupabaseClient();
+    const pageKeys = pages.map((item) => item.key);
+    const { data, error } = await admin
+      .from("crm_user_page_access")
+      .select("page_key,allow")
+      .eq("id_usuario", context.id)
+      .eq("id_organizacao", context.organizacaoId)
+      .in("page_key", pageKeys);
+
+    if (!error && data && data.length > 0) {
+      for (const row of data as Array<Record<string, unknown>>) {
+        const pageKey = asString(row.page_key);
+        const allow = Boolean(row.allow);
+        allowByPageKey.set(pageKey, allow);
+      }
+    }
+  } catch {
+    // fallback permissivo usando default
+  }
+
+  return { pages, allowByPageKey };
+}
+
+function buildStaticDefaultSidebarModule(): SidebarModule {
+  return {
+    id: DEFAULT_SIDEBAR_MODULE_ID,
+    key: "crm",
+    nome: "Verdetec CRM",
+    sortOrder: 10,
+  };
+}
+
+function getDefaultSidebarModule(modulesFromDb: SidebarModule[]): SidebarModule {
+  const crmModule = modulesFromDb.find((moduleOption) => normalizeRole(moduleOption.key) === "crm");
+  if (crmModule) {
+    return crmModule;
+  }
+  return buildStaticDefaultSidebarModule();
+}
+
+function sortModules(modules: SidebarModule[]) {
+  return [...modules].sort((a, b) => {
+    if (a.sortOrder !== b.sortOrder) {
+      return a.sortOrder - b.sortOrder;
+    }
+    return a.nome.localeCompare(b.nome, "pt-BR");
+  });
+}
+
+function resolveSelectedModuleId(modules: SidebarModule[], persistedModuleId: string | null) {
+  if (persistedModuleId && modules.some((item) => item.id === persistedModuleId)) {
+    return persistedModuleId;
+  }
+
+  if (modules.length > 0) {
+    return modules[0].id;
+  }
+
+  return DEFAULT_SIDEBAR_MODULE_ID;
+}
+
+function looksLikeUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function buildSidebarNavigationSnapshot(args: {
+  allowedPages: InternalCrmPage[];
+  modulesFromDb: SidebarModule[];
+  persistedModuleId: string | null;
+}): SidebarNavigationSnapshot {
+  const fallbackModule = getDefaultSidebarModule(args.modulesFromDb);
+  const moduleCandidates = args.modulesFromDb.length > 0 ? args.modulesFromDb : [fallbackModule];
+  const moduleById = new Map(moduleCandidates.map((item) => [item.id, item]));
+  const explicitPageCountByModuleId = new Map<string, number>();
+  for (const page of args.allowedPages) {
+    if (!page.idModulo || !moduleById.has(page.idModulo)) {
+      continue;
+    }
+    explicitPageCountByModuleId.set(
+      page.idModulo,
+      (explicitPageCountByModuleId.get(page.idModulo) ?? 0) + 1,
+    );
+  }
+
+  const dedupedModulesByName = new Map<string, SidebarModule>();
+  for (const moduleOption of moduleCandidates) {
+    const normalizedName = normalizeRole(moduleOption.nome || moduleOption.key || moduleOption.id);
+    const existing = dedupedModulesByName.get(normalizedName);
+    if (!existing) {
+      dedupedModulesByName.set(normalizedName, moduleOption);
+      continue;
+    }
+
+    const existingCount = explicitPageCountByModuleId.get(existing.id) ?? 0;
+    const currentCount = explicitPageCountByModuleId.get(moduleOption.id) ?? 0;
+    const shouldReplace =
+      currentCount > existingCount ||
+      (currentCount === existingCount && moduleOption.sortOrder < existing.sortOrder);
+
+    if (shouldReplace) {
+      dedupedModulesByName.set(normalizedName, moduleOption);
+    }
+  }
+
+  if (dedupedModulesByName.size === 0) {
+    dedupedModulesByName.set(normalizeRole(fallbackModule.nome), fallbackModule);
+  }
+
+  const canonicalModuleByNormalizedName = new Map<string, SidebarModule>(dedupedModulesByName);
+  const orderedModules = sortModules([...canonicalModuleByNormalizedName.values()]);
+  const selectedModuleId = resolveSelectedModuleId(orderedModules, args.persistedModuleId);
+  const selectedModule =
+    orderedModules.find((moduleOption) => moduleOption.id === selectedModuleId) ?? fallbackModule;
+  const hasStructuredModuleMapping = args.allowedPages.some(
+    (page) => page.idModulo && moduleById.has(page.idModulo),
+  );
+  const resolveCanonicalModuleIdForPage = (page: InternalCrmPage) => {
+    if (page.idModulo && moduleById.has(page.idModulo)) {
+      const pageModule = moduleById.get(page.idModulo)!;
+      const normalizedName = normalizeRole(pageModule.nome || pageModule.key || pageModule.id);
+      const canonical = canonicalModuleByNormalizedName.get(normalizedName);
+      return canonical?.id ?? pageModule.id;
+    }
+
+    if (!hasStructuredModuleMapping) {
+      const normalizedFallback = normalizeRole(fallbackModule.nome || fallbackModule.key || fallbackModule.id);
+      const canonicalFallback = canonicalModuleByNormalizedName.get(normalizedFallback);
+      return canonicalFallback?.id ?? fallbackModule.id;
+    }
+
+    return null;
+  };
+  const menuPages = args.allowedPages
+    .filter((page) => {
+      const pageModuleId = resolveCanonicalModuleIdForPage(page);
+      return pageModuleId === selectedModule.id;
+    })
+    .sort((a, b) => {
+      if (a.sortOrder !== b.sortOrder) {
+        return a.sortOrder - b.sortOrder;
+      }
+      return a.label.localeCompare(b.label, "pt-BR");
+    })
+    .map((page) => ({
+      key: page.key,
+      path: page.path,
+      label: page.label,
+      sortOrder: page.sortOrder,
+      idModulo: resolveCanonicalModuleIdForPage(page) ?? fallbackModule.id,
+    } satisfies SidebarNavPage));
+
+  return {
+    modules: orderedModules,
+    selectedModuleId: selectedModule.id,
+    selectedModuleName: selectedModule.nome,
+    menuPages,
+  };
+}
+
+function buildAccessModules(args: {
+  pages: InternalCrmPage[];
+  modulesFromDb: SidebarModule[];
+}): AccessModuleOption[] {
+  const fallbackModule = getDefaultSidebarModule(args.modulesFromDb);
+  const moduleById = new Map(args.modulesFromDb.map((item) => [item.id, item]));
+  const modulesById = new Map<string, AccessModuleOption>();
+
+  const ensureModule = (moduleId: string, moduleKey: string, moduleName: string, moduleSortOrder: number) => {
+    const existing = modulesById.get(moduleId);
+    if (existing) {
+      return existing;
+    }
+
+    const created: AccessModuleOption = {
+      id: moduleId,
+      key: moduleKey,
+      nome: moduleName,
+      sortOrder: moduleSortOrder,
+      pageKeys: [],
+    };
+    modulesById.set(moduleId, created);
+    return created;
+  };
+
+  for (const moduleOption of args.modulesFromDb) {
+    ensureModule(moduleOption.id, moduleOption.key, moduleOption.nome, moduleOption.sortOrder);
+  }
+
+  if (!modulesById.has(fallbackModule.id)) {
+    ensureModule(
+      fallbackModule.id,
+      fallbackModule.key,
+      fallbackModule.nome,
+      fallbackModule.sortOrder,
+    );
+  }
+
+  for (const page of args.pages) {
+    const moduleOption = page.idModulo ? moduleById.get(page.idModulo) : null;
+    const moduleId = moduleOption?.id ?? fallbackModule.id;
+    const moduleKey = moduleOption?.key ?? fallbackModule.key;
+    const moduleName = moduleOption?.nome ?? fallbackModule.nome;
+    const moduleSortOrder = moduleOption?.sortOrder ?? fallbackModule.sortOrder;
+    const moduleEntry = ensureModule(moduleId, moduleKey, moduleName, moduleSortOrder);
+    if (!moduleEntry.pageKeys.includes(page.key)) {
+      moduleEntry.pageKeys.push(page.key);
+    }
+  }
+
+  const dedupedByName = new Map<string, AccessModuleOption>();
+  for (const moduleOption of modulesById.values()) {
+    const normalizedName = normalizeRole(moduleOption.nome || moduleOption.key || moduleOption.id);
+    const existing = dedupedByName.get(normalizedName);
+    if (!existing) {
+      dedupedByName.set(normalizedName, {
+        ...moduleOption,
+        pageKeys: [...moduleOption.pageKeys],
+      });
+      continue;
+    }
+
+    const mergedPageKeys = new Set([...existing.pageKeys, ...moduleOption.pageKeys]);
+    const existingHasPages = existing.pageKeys.length > 0;
+    const currentHasPages = moduleOption.pageKeys.length > 0;
+    const shouldReplaceIdentity =
+      (currentHasPages && !existingHasPages) ||
+      (currentHasPages === existingHasPages && moduleOption.sortOrder < existing.sortOrder);
+
+    if (shouldReplaceIdentity) {
+      dedupedByName.set(normalizedName, {
+        ...moduleOption,
+        pageKeys: [...mergedPageKeys],
+      });
+      continue;
+    }
+
+    dedupedByName.set(normalizedName, {
+      ...existing,
+      pageKeys: [...mergedPageKeys],
+    });
+  }
+
+  return [...dedupedByName.values()]
+    .map((moduleOption) => ({
+      ...moduleOption,
+      pageKeys: [...moduleOption.pageKeys].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    }))
+    .sort((a, b) => {
+      if (a.sortOrder !== b.sortOrder) {
+        return a.sortOrder - b.sortOrder;
+      }
+      return a.nome.localeCompare(b.nome, "pt-BR");
+    });
+}
+
+export async function getCurrentSidebarNavigationSnapshot(): Promise<SidebarNavigationSnapshot | null> {
+  try {
+    const context = await resolveCurrentLegacyUserContext();
+    if (!context || !context.ativo) {
+      return null;
+    }
+
+    const pages = await getCrmPages();
+    if (!pages.length) {
+      return null;
+    }
+
+    const allowed = await buildAllowedPageAccess(context, pages);
+    const allowedPages = allowed.pages.filter((page) => allowed.allowByPageKey.get(page.key) !== false);
+    const modulesFromDb = await getActiveModules();
+    return buildSidebarNavigationSnapshot({
+      allowedPages,
+      modulesFromDb,
+      persistedModuleId: context.moduloAtivoId,
+    });
+  } catch {
+    return null;
   }
 }
 
@@ -360,48 +712,106 @@ export async function getCurrentAllowedSidebarPaths(): Promise<string[] | null> 
       return null;
     }
 
-    const defaultAccess = new Map<string, boolean>();
-    for (const page of pages) {
-      if (!hasManagerProfile(context.tipoAcesso, context.tipoAcesso2) && page.key === GESTAO_ACESSOS_PAGE_KEY) {
-        defaultAccess.set(page.key, false);
-      } else {
-        defaultAccess.set(page.key, true);
-      }
-    }
-
-    try {
-      const admin = createAdminSupabaseClient();
-      const pageKeys = pages.map((item) => item.key);
-      const { data, error } = await admin
-        .from("crm_user_page_access")
-        .select("page_key,allow")
-        .eq("id_usuario", context.id)
-        .eq("id_organizacao", context.organizacaoId)
-        .in("page_key", pageKeys);
-
-      if (!error && data && data.length > 0) {
-        for (const row of data as Array<Record<string, unknown>>) {
-          const pageKey = asString(row.page_key);
-          const allow = Boolean(row.allow);
-          if (
-            pageKey === GESTAO_ACESSOS_PAGE_KEY &&
-            !hasManagerProfile(context.tipoAcesso, context.tipoAcesso2)
-          ) {
-            defaultAccess.set(pageKey, false);
-            continue;
-          }
-          defaultAccess.set(pageKey, allow);
-        }
-      }
-    } catch {
-      // fallback para permissao default caso tabela ainda nao exista
-    }
-
-    return pages
-      .filter((page) => defaultAccess.get(page.key) !== false)
+    const allowed = await buildAllowedPageAccess(context, pages);
+    return allowed.pages
+      .filter((page) => allowed.allowByPageKey.get(page.key) !== false)
       .map((page) => page.path);
   } catch {
     return null;
+  }
+}
+
+export async function setCurrentActiveModule(moduleId: string): Promise<
+  AccessControlResult<{ selectedModuleId: string; redirectPath: string }>
+> {
+  const normalizedModuleId = asString(moduleId).trim();
+  if (!normalizedModuleId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "module_id obrigatorio.",
+    };
+  }
+
+  const context = await resolveCurrentLegacyUserContext();
+  if (!context) {
+    return {
+      ok: false,
+      status: 401,
+      error: "Nao autenticado.",
+    };
+  }
+
+  if (!context.ativo) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Usuario inativo.",
+    };
+  }
+
+  try {
+    const pages = await getCrmPages();
+    const allowed = await buildAllowedPageAccess(context, pages);
+    const allowedPages = allowed.pages.filter((page) => allowed.allowByPageKey.get(page.key) !== false);
+    const modulesFromDb = await getActiveModules();
+    const currentSnapshot = buildSidebarNavigationSnapshot({
+      allowedPages,
+      modulesFromDb,
+      persistedModuleId: context.moduloAtivoId,
+    });
+
+    const selectedModule = currentSnapshot.modules.find(
+      (moduleOption) => moduleOption.id === normalizedModuleId,
+    );
+    if (!selectedModule) {
+      return {
+        ok: false,
+        status: 403,
+        error: "Modulo fora do escopo permitido.",
+      };
+    }
+
+    if (looksLikeUuid(normalizedModuleId)) {
+      const admin = createAdminSupabaseClient();
+      const { error } = await admin
+        .from("usuarios")
+        .update({
+          id_modulo_ativo: normalizedModuleId,
+        })
+        .eq("id", context.id);
+
+      if (error && !isAclColumnMissing(error.message)) {
+        return {
+          ok: false,
+          status: 502,
+          error: `Falha ao salvar modulo ativo: ${error.message}`,
+        };
+      }
+    }
+    const selectedSnapshot = buildSidebarNavigationSnapshot({
+      allowedPages,
+      modulesFromDb,
+      persistedModuleId: normalizedModuleId,
+    });
+    const firstPath = selectedSnapshot.menuPages[0]?.path ?? "/dashboard";
+
+    return {
+      ok: true,
+      value: {
+        selectedModuleId: selectedModule.id,
+        redirectPath: firstPath,
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 500,
+      error:
+        error instanceof Error
+          ? `Erro interno ao salvar modulo ativo: ${error.message}`
+          : "Erro interno ao salvar modulo ativo.",
+    };
   }
 }
 
@@ -448,11 +858,16 @@ async function requireManagerContext(): Promise<AccessControlResult<ManagerConte
     };
   }
 
-  if (!hasManagerProfile(context.tipoAcesso, context.tipoAcesso2)) {
+  const pages = await getCrmPages();
+  const allowed = await buildAllowedPageAccess(context, pages);
+  const canAccessGestaoAcessos = allowed.pages.some(
+    (page) => page.key === GESTAO_ACESSOS_PAGE_KEY && allowed.allowByPageKey.get(page.key) !== false,
+  );
+  if (!canAccessGestaoAcessos) {
     return {
       ok: false,
       status: 403,
-      error: "Acesso restrito a Gestor/SuperAdm.",
+      error: "Acesso restrito a pagina de Gestao de acessos.",
     };
   }
 
@@ -460,7 +875,7 @@ async function requireManagerContext(): Promise<AccessControlResult<ManagerConte
     ok: true,
     value: {
       ...context,
-      canChangeOrganization: isGlobalAccessManager(context.tipoAcesso, context.tipoAcesso2),
+      canChangeOrganization: true,
     },
   };
 }
@@ -471,10 +886,6 @@ function buildUserDisplayRole(row: Record<string, unknown>) {
     return tipo;
   }
   return asNullableString(row.tipo_acesso_2);
-}
-
-function isRowManager(row: Record<string, unknown>) {
-  return hasManagerProfile(asNullableString(row.tipo_acesso), asNullableString(row.tipo_acesso_2));
 }
 
 function escapeSearchTerm(search: string) {
@@ -498,6 +909,10 @@ export async function getAccessMatrixSnapshot(args: {
   const search = asString(args.search).trim();
 
   const pages = await getCrmPages();
+  const modules = buildAccessModules({
+    pages,
+    modulesFromDb: await getActiveModules(),
+  });
   const pageKeys = pages.map((page) => page.key);
   const organizations = await getPermittedOrganizations(
     manager.value,
@@ -580,13 +995,6 @@ export async function getAccessMatrixSnapshot(args: {
         for (const page of pages) {
           const mapKey = `${idUsuario}:${page.key}`;
           const override = accessByUserPage.get(mapKey);
-          const isTargetManager = isRowManager(row);
-
-          if (page.key === GESTAO_ACESSOS_PAGE_KEY && !isTargetManager) {
-            acessos[page.key] = false;
-            continue;
-          }
-
           acessos[page.key] = override ?? true;
         }
 
@@ -606,7 +1014,8 @@ export async function getAccessMatrixSnapshot(args: {
     return {
       ok: true,
       value: {
-        pages,
+        pages: toPublicCrmPages(pages),
+        modules,
         organizations,
         selectedOrganizationId,
         canChangeOrganization: manager.value.canChangeOrganization,
@@ -732,15 +1141,6 @@ export async function toggleUserPageAccess(args: {
       };
     }
 
-    const targetUser = targetUserRow as Record<string, unknown>;
-    if (pageKey === GESTAO_ACESSOS_PAGE_KEY && !isRowManager(targetUser) && args.allow) {
-      return {
-        ok: false,
-        status: 400,
-        error: "Somente Gestor/SuperAdm pode receber acesso a Gestao de acessos.",
-      };
-    }
-
     const { data, error } = await admin
       .from("crm_user_page_access")
       .upsert(
@@ -794,6 +1194,160 @@ export async function toggleUserPageAccess(args: {
         error instanceof Error
           ? `Erro interno ao atualizar override de acesso: ${error.message}`
           : "Erro interno ao atualizar override de acesso.",
+    };
+  }
+}
+
+export async function toggleUserModuleAccess(args: {
+  idUsuario: number;
+  moduleId: string;
+  allow: boolean;
+  organizationId: string;
+}): Promise<
+  AccessControlResult<{
+    idUsuario: number;
+    idOrganizacao: string;
+    moduleId: string;
+    allow: boolean;
+    acessos: Record<string, boolean>;
+  }>
+> {
+  const manager = await requireManagerContext();
+  if (!manager.ok) {
+    return manager;
+  }
+
+  const idUsuario = Math.trunc(args.idUsuario);
+  const moduleId = asString(args.moduleId).trim();
+  const organizationId = asString(args.organizationId).trim();
+
+  if (idUsuario <= 0) {
+    return {
+      ok: false,
+      status: 400,
+      error: "id_usuario invalido.",
+    };
+  }
+
+  if (!moduleId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "module_id obrigatorio.",
+    };
+  }
+
+  if (!organizationId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "org_id obrigatorio.",
+    };
+  }
+
+  try {
+    const admin = createAdminSupabaseClient();
+    const organizations = await getPermittedOrganizations(
+      manager.value,
+      manager.value.canChangeOrganization,
+    );
+    const isOrganizationAllowed = organizations.some((option) => option.id === organizationId);
+    if (!isOrganizationAllowed) {
+      return {
+        ok: false,
+        status: 403,
+        error: "Organizacao fora do escopo permitido.",
+      };
+    }
+
+    const pages = await getCrmPages();
+    const modules = buildAccessModules({
+      pages,
+      modulesFromDb: await getActiveModules(),
+    });
+    const targetModule = modules.find((item) => item.id === moduleId);
+    if (!targetModule || targetModule.pageKeys.length === 0) {
+      return {
+        ok: false,
+        status: 404,
+        error: "Modulo nao encontrado para ACL.",
+      };
+    }
+
+    const { data: targetUserRow, error: targetUserError } = await admin
+      .from("usuarios")
+      .select("id,id_organizacao,tipo_acesso,tipo_acesso_2")
+      .eq("id", idUsuario)
+      .eq("id_organizacao", organizationId)
+      .limit(1)
+      .maybeSingle();
+
+    if (targetUserError) {
+      return {
+        ok: false,
+        status: 502,
+        error: `Falha ao validar usuario alvo: ${targetUserError.message}`,
+      };
+    }
+
+    if (!targetUserRow) {
+      return {
+        ok: false,
+        status: 404,
+        error: "Usuario alvo nao encontrado na organizacao selecionada.",
+      };
+    }
+
+    const nowIso = new Date().toISOString();
+    const upsertRows = targetModule.pageKeys.map((pageKey) => {
+      return {
+        id_usuario: idUsuario,
+        id_organizacao: organizationId,
+        page_key: pageKey,
+        allow: args.allow,
+        created_by: manager.value.id,
+        updated_by: manager.value.id,
+        updated_at: nowIso,
+      };
+    });
+
+    const { error: upsertError } = await admin
+      .from("crm_user_page_access")
+      .upsert(upsertRows, {
+        onConflict: "id_usuario,page_key",
+      });
+
+    if (upsertError) {
+      return {
+        ok: false,
+        status: 502,
+        error: `Falha ao salvar override de modulo: ${upsertError.message}`,
+      };
+    }
+
+    const acessos: Record<string, boolean> = {};
+    for (const item of upsertRows) {
+      acessos[item.page_key] = item.allow;
+    }
+
+    return {
+      ok: true,
+      value: {
+        idUsuario,
+        idOrganizacao: organizationId,
+        moduleId,
+        allow: args.allow,
+        acessos,
+      },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 500,
+      error:
+        error instanceof Error
+          ? `Erro interno ao atualizar override de modulo: ${error.message}`
+          : "Erro interno ao atualizar override de modulo.",
     };
   }
 }

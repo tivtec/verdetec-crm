@@ -6,9 +6,39 @@ export type CrmPage = {
   isActive: boolean;
 };
 
+export type SidebarModule = {
+  id: string;
+  key: string;
+  nome: string;
+  sortOrder: number;
+};
+
+export type SidebarNavPage = {
+  key: string;
+  path: string;
+  label: string;
+  sortOrder: number;
+  idModulo: string;
+};
+
+export type SidebarNavigationSnapshot = {
+  modules: SidebarModule[];
+  selectedModuleId: string;
+  selectedModuleName: string;
+  menuPages: SidebarNavPage[];
+};
+
 export type AccessOrganizationOption = {
   id: string;
   nome: string;
+};
+
+export type AccessModuleOption = {
+  id: string;
+  key: string;
+  nome: string;
+  sortOrder: number;
+  pageKeys: string[];
 };
 
 export type UserPageAccess = {

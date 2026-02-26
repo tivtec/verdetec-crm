@@ -3292,6 +3292,28 @@ export type DashboardViewerAccessScope = {
   isGestor: boolean;
 };
 
+export type DashboardEvolucaoLeadComparativoRow = {
+  periodo: "atual" | "anterior";
+  qtd10: number;
+  qtd61: number;
+  qtd50: number;
+  performance: number;
+  performancePercent: number;
+};
+
+export type DashboardEvolucaoLeadsSnapshot = {
+  dataInicioInput: string;
+  dataFimInput: string;
+  periodoAtual: DashboardEvolucaoLeadComparativoRow;
+  periodoAnterior: DashboardEvolucaoLeadComparativoRow;
+  rows: DashboardEvolucaoLeadComparativoRow[];
+};
+
+export type DashboardEvolucaoLeadsFilters = {
+  dataInicioInput?: string;
+  dataFimInput?: string;
+};
+
 type DashboardWebhookPayload = {
   p_data_inicio: string;
   p_data_fim: string;
@@ -4920,6 +4942,102 @@ async function loadDashboardRowsFromFnDashboarPrincipal(
       } satisfies DashboardFunilRow;
     })
     .filter((row) => row.nome.length > 0);
+}
+
+function buildEmptyDashboardEvolucaoLeadRow(
+  periodo: DashboardEvolucaoLeadComparativoRow["periodo"],
+): DashboardEvolucaoLeadComparativoRow {
+  return {
+    periodo,
+    qtd10: 0,
+    qtd61: 0,
+    qtd50: 0,
+    performance: 0,
+    performancePercent: 0,
+  };
+}
+
+function normalizeDashboardComparativoPeriodo(
+  value: unknown,
+): DashboardEvolucaoLeadComparativoRow["periodo"] {
+  const normalized = normalizeLoose(asString(value)).trim();
+  if (normalized === "anterior") {
+    return "anterior";
+  }
+
+  return "atual";
+}
+
+export async function getDashboardEvolucaoLeadsSnapshot(
+  filters: DashboardEvolucaoLeadsFilters = {},
+): Promise<DashboardEvolucaoLeadsSnapshot> {
+  const defaultDateRange = getDefaultDateRangeInput();
+  let dataInicioInput = normalizeInputDate(filters.dataInicioInput, defaultDateRange.dataInicio);
+  let dataFimInput = normalizeInputDate(filters.dataFimInput, defaultDateRange.dataFim);
+
+  if (dataInicioInput > dataFimInput) {
+    [dataInicioInput, dataFimInput] = [dataFimInput, dataInicioInput];
+  }
+
+  const fallbackAnterior = buildEmptyDashboardEvolucaoLeadRow("anterior");
+  const fallbackAtual = buildEmptyDashboardEvolucaoLeadRow("atual");
+  const fallbackSnapshot: DashboardEvolucaoLeadsSnapshot = {
+    dataInicioInput,
+    dataFimInput,
+    periodoAtual: fallbackAtual,
+    periodoAnterior: fallbackAnterior,
+    rows: [fallbackAnterior, fallbackAtual],
+  };
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase.rpc("grafico_l100_comparativo", {
+      p_data_inicio: dataInicioInput,
+      p_data_fim: dataFimInput,
+    });
+
+    if (error || !Array.isArray(data)) {
+      return fallbackSnapshot;
+    }
+
+    let periodoAtual = fallbackAtual;
+    let periodoAnterior = fallbackAnterior;
+
+    for (const row of data as Array<Record<string, unknown>>) {
+      const periodo = normalizeDashboardComparativoPeriodo(row.periodo);
+      const qtd10 = Math.max(0, Math.trunc(asNumber(row.qtd_10, 0)));
+      const qtd61 = Math.max(0, Math.trunc(asNumber(row.qtd_61, 0)));
+      const qtd50 = Math.max(0, Math.trunc(asNumber(row.qtd_50, 0)));
+      const performanceRaw = asNumber(row.performance, 0);
+      const performance = Number.isFinite(performanceRaw) ? performanceRaw : 0;
+      const performancePercent = Number((performance * 100).toFixed(2));
+
+      const mappedRow: DashboardEvolucaoLeadComparativoRow = {
+        periodo,
+        qtd10,
+        qtd61,
+        qtd50,
+        performance,
+        performancePercent,
+      };
+
+      if (periodo === "anterior") {
+        periodoAnterior = mappedRow;
+      } else {
+        periodoAtual = mappedRow;
+      }
+    }
+
+    return {
+      dataInicioInput,
+      dataFimInput,
+      periodoAtual,
+      periodoAnterior,
+      rows: [periodoAnterior, periodoAtual],
+    };
+  } catch {
+    return fallbackSnapshot;
+  }
 }
 
 export async function getDashboardFunilSnapshot(

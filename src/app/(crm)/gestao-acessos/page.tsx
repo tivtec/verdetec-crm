@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { GestaoAcessosShell } from "@/components/acessos/gestao-acessos-shell";
 import { PageContainer } from "@/components/layout/page-container";
 import { getAccessMatrixSnapshot } from "@/services/access-control/server";
-import type { AccessMatrixRow, AccessOrganizationOption, CrmPage } from "@/services/access-control/types";
+import type {
+  AccessMatrixRow,
+  AccessModuleOption,
+  AccessOrganizationOption,
+  CrmPage,
+} from "@/services/access-control/types";
 
 type GestaoAcessosPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -29,6 +34,7 @@ export default async function GestaoAcessosPage({ searchParams }: GestaoAcessosP
   const search = (getSearchValue(params.search) ?? "").trim();
   const page = parsePositiveInt(getSearchValue(params.page), 1);
   const organizationId = (getSearchValue(params.org_id) ?? "").trim();
+  const moduleId = (getSearchValue(params.module_id) ?? "").trim();
 
   const snapshotResult = await getAccessMatrixSnapshot({
     search,
@@ -56,12 +62,13 @@ export default async function GestaoAcessosPage({ searchParams }: GestaoAcessosP
       <div className="min-h-0 flex-1 rounded-2xl bg-[#e4e6e8] p-4">
         <div className="h-full overflow-hidden">
           <GestaoAcessosShell
-            key={`gestao-acessos:${search}:${page}:${snapshot.selectedOrganizationId}`}
+            key={`gestao-acessos:${search}:${page}:${snapshot.selectedOrganizationId}:${moduleId}`}
             initialRows={snapshot.rows as AccessMatrixRow[]}
             pages={snapshot.pages as CrmPage[]}
+            modules={snapshot.modules as AccessModuleOption[]}
+            initialModuleId={moduleId}
             organizations={snapshot.organizations as AccessOrganizationOption[]}
             selectedOrganizationId={snapshot.selectedOrganizationId}
-            canChangeOrganization={snapshot.canChangeOrganization}
             initialSearch={search}
             currentPage={snapshot.currentPage}
             hasNextPage={snapshot.hasNextPage}

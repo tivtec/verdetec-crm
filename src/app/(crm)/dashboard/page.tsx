@@ -8,11 +8,13 @@ import { DashboardRetratoTable } from "@/components/dashboard/retrato-table";
 import { PageContainer } from "@/components/layout/page-container";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
+  getDashboardEvolucaoLeadsSnapshot,
   getDashboardFunilSnapshot,
   getDashboardOrcamentosSnapshot,
   getDashboardRepresentantesByTipo,
   getDashboardRetratoSnapshot,
   getDashboardViewerAccessScope,
+  type DashboardEvolucaoLeadComparativoRow,
   type DashboardFunilRow,
   type DashboardFunilTotals,
   type DashboardOrcamentosRow,
@@ -21,7 +23,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type DashboardView = "dashboard" | "retrato" | "orcamentos";
+type DashboardView = "dashboard" | "retrato" | "evolucao-leads" | "orcamentos";
 
 type FunilColumnKey =
   | "nome"
@@ -210,6 +212,10 @@ function normalizeUsuarioSelection(value: string | undefined) {
 function normalizeViewSelection(value: string | undefined): DashboardView {
   if (value === "retrato") {
     return "retrato";
+  }
+
+  if (value === "evolucao-leads") {
+    return "evolucao-leads";
   }
 
   if (value === "orcamentos") {
@@ -471,7 +477,7 @@ function getVisibleDashboardViews(verticalDescricao: string): DashboardView[] {
   const scope = normalizeDashboardVerticalScope(verticalDescricao);
 
   if (scope === "gerencia" || scope === "prime") {
-    return ["dashboard", "retrato", "orcamentos"];
+    return ["dashboard", "retrato", "evolucao-leads", "orcamentos"];
   }
 
   if (scope === "crv") {
@@ -479,10 +485,73 @@ function getVisibleDashboardViews(verticalDescricao: string): DashboardView[] {
   }
 
   if (scope === "time-negocios") {
-    return ["dashboard", "retrato"];
+    return ["dashboard", "retrato", "evolucao-leads"];
   }
 
-  return ["dashboard", "retrato", "orcamentos"];
+  return ["dashboard", "retrato", "evolucao-leads", "orcamentos"];
+}
+
+const EVOLUCAO_CHART_HEIGHT = 480;
+const EVOLUCAO_BASELINE_MAX = 200;
+const EVOLUCAO_THRESHOLDS = [
+  { label: "Critico (150)", value: 150, borderClass: "border-red-500/50", textClass: "text-red-500" },
+  {
+    label: "Atencao (100)",
+    value: 100,
+    borderClass: "border-amber-500/50",
+    textClass: "text-amber-500",
+  },
+  {
+    label: "Meta (70)",
+    value: 70,
+    borderClass: "border-emerald-500/50",
+    textClass: "text-emerald-500",
+  },
+] as const;
+
+function formatDateLabel(inputDate: string) {
+  const parsed = new Date(`${inputDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return inputDate;
+  }
+
+  return `${String(parsed.getDate()).padStart(2, "0")}/${String(parsed.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function shiftInputDate(inputDate: string, days: number) {
+  const parsed = new Date(`${inputDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return inputDate;
+  }
+
+  parsed.setDate(parsed.getDate() + days);
+  return parsed.toISOString().slice(0, 10);
+}
+
+function formatComparativoPeriodLabel(dataInicioInput: string, dataFimInput: string) {
+  return `${formatDateLabel(dataInicioInput)} - ${formatDateLabel(dataFimInput)}`;
+}
+
+function formatEvolutionPerformancePercent(value: number) {
+  return `${value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}%`;
+}
+
+function resolveEvolutionChartMax(rows: DashboardEvolucaoLeadComparativoRow[]) {
+  const highestValue = rows.reduce((maxValue, row) => Math.max(maxValue, row.performancePercent), 0);
+  const rawMax = Math.max(EVOLUCAO_BASELINE_MAX, highestValue, ...EVOLUCAO_THRESHOLDS.map((item) => item.value));
+  return Math.max(EVOLUCAO_BASELINE_MAX, Math.ceil(rawMax / 50) * 50);
+}
+
+function chartValueToY(value: number, chartMax: number) {
+  if (chartMax <= 0) {
+    return EVOLUCAO_CHART_HEIGHT;
+  }
+
+  const clamped = Math.min(Math.max(value, 0), chartMax);
+  return Number((EVOLUCAO_CHART_HEIGHT - (clamped / chartMax) * EVOLUCAO_CHART_HEIGHT).toFixed(2));
 }
 
 type DashboardListLoadingProps = {
@@ -497,6 +566,22 @@ function DashboardListLoading({ label }: DashboardListLoadingProps) {
       </div>
     </div>
   );
+}
+
+function getDashboardLoadingLabel(activeView: DashboardView) {
+  if (activeView === "orcamentos") {
+    return "Carregando orcamentos...";
+  }
+
+  if (activeView === "evolucao-leads") {
+    return "Carregando evolucao de leads...";
+  }
+
+  if (activeView === "retrato") {
+    return "Carregando retrato...";
+  }
+
+  return "Carregando funil...";
 }
 
 type DashboardListContentProps = {
@@ -663,6 +748,121 @@ async function DashboardListContent({
     });
 
     return <DashboardRetratoTable rows={retratoSnapshot.rows} totals={retratoSnapshot.totals} />;
+  }
+
+  if (activeView === "evolucao-leads") {
+    const evolucaoSnapshot = await getDashboardEvolucaoLeadsSnapshot({
+      dataInicioInput,
+      dataFimInput,
+    });
+    const periodoAnteriorInicio = shiftInputDate(evolucaoSnapshot.dataInicioInput, -30);
+    const periodoAnteriorFim = shiftInputDate(evolucaoSnapshot.dataFimInput, -30);
+    const periodoAtualLabel = formatComparativoPeriodLabel(
+      evolucaoSnapshot.dataInicioInput,
+      evolucaoSnapshot.dataFimInput,
+    );
+    const periodoAnteriorLabel = formatComparativoPeriodLabel(periodoAnteriorInicio, periodoAnteriorFim);
+    const chartRows = [evolucaoSnapshot.periodoAnterior, evolucaoSnapshot.periodoAtual];
+    const chartMax = resolveEvolutionChartMax(chartRows);
+    const tickValues = [4, 3, 2, 1, 0].map((step) => Math.round((chartMax * step) / 4));
+    const yAnterior = chartValueToY(evolucaoSnapshot.periodoAnterior.performancePercent, chartMax);
+    const yAtual = chartValueToY(evolucaoSnapshot.periodoAtual.performancePercent, chartMax);
+    const chartLinePath = `M 0,${yAnterior} L 1000,${yAtual}`;
+    const chartAreaPath = `M 0,${yAnterior} L 1000,${yAtual} V ${EVOLUCAO_CHART_HEIGHT} H 0 Z`;
+
+    return (
+      <div className="rounded-[30px] border border-white/20 bg-white/60 p-6 shadow-lg backdrop-blur-md sm:p-8">
+        <div className="mb-10 flex items-center justify-between">
+          <h3 className="text-xl font-bold text-[#16423c]">Evolucao de Leads</h3>
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full bg-[#16423c]" />
+            <span className="text-xs font-medium text-slate-500">Performance (%)</span>
+          </div>
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="rounded-2xl border border-white/30 bg-white/55 p-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Periodo Anterior</p>
+            <p className="mt-1 text-sm font-medium text-slate-700">{periodoAnteriorLabel}</p>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-600">
+              <span>#10: {evolucaoSnapshot.periodoAnterior.qtd10}</span>
+              <span>#61: {evolucaoSnapshot.periodoAnterior.qtd61}</span>
+              <span>#50: {evolucaoSnapshot.periodoAnterior.qtd50}</span>
+            </div>
+            <p className="mt-3 text-sm font-semibold text-[#16423c]">
+              {formatEvolutionPerformancePercent(evolucaoSnapshot.periodoAnterior.performancePercent)}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/30 bg-white/55 p-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Periodo Atual</p>
+            <p className="mt-1 text-sm font-medium text-slate-700">{periodoAtualLabel}</p>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-600">
+              <span>#10: {evolucaoSnapshot.periodoAtual.qtd10}</span>
+              <span>#61: {evolucaoSnapshot.periodoAtual.qtd61}</span>
+              <span>#50: {evolucaoSnapshot.periodoAtual.qtd50}</span>
+            </div>
+            <p className="mt-3 text-sm font-semibold text-[#16423c]">
+              {formatEvolutionPerformancePercent(evolucaoSnapshot.periodoAtual.performancePercent)}
+            </p>
+          </div>
+        </div>
+
+        <div className="relative h-[480px] w-full px-4">
+          <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
+            {tickValues.map((value, index) => (
+              <div key={value} className="relative w-full border-t border-slate-200/70">
+                <span className="absolute top-0 right-[calc(100%+10px)] -translate-y-1/2 text-xs text-slate-400">
+                  {index === tickValues.length - 1 ? 0 : value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {EVOLUCAO_THRESHOLDS.map((threshold) => (
+            <div
+              key={threshold.label}
+              className={`pointer-events-none absolute inset-x-0 border-t-2 border-dashed ${threshold.borderClass}`}
+              style={{ bottom: `${Math.max(0, Math.min(100, (threshold.value / chartMax) * 100))}%` }}
+            >
+              <span
+                className={`absolute top-[-24px] right-0 bg-white/90 px-2 text-[10px] font-bold tracking-widest uppercase ${threshold.textClass}`}
+              >
+                {threshold.label}
+              </span>
+            </div>
+          ))}
+
+          <svg className="absolute inset-0 h-full w-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 1000 480">
+            <path
+              d={chartLinePath}
+              fill="none"
+              stroke="#16423C"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="4"
+            />
+            <path
+              d={chartAreaPath}
+              fill="url(#evolucao-gradient)"
+              opacity="0.1"
+            />
+            <defs>
+              <linearGradient id="evolucao-gradient" x1="0%" x2="0%" y1="0%" y2="100%">
+                <stop offset="0%" style={{ stopColor: "#16423C", stopOpacity: 1 }} />
+                <stop offset="100%" style={{ stopColor: "#16423C", stopOpacity: 0 }} />
+              </linearGradient>
+            </defs>
+            <circle cx="0" cy={yAnterior} r="5" fill="#16423C" />
+            <circle cx="1000" cy={yAtual} r="5" fill="#16423C" />
+          </svg>
+        </div>
+
+        <div className="mt-6 flex justify-between px-4">
+          <div className="text-xs font-medium text-slate-400">Anterior ({periodoAnteriorLabel})</div>
+          <div className="text-xs font-medium text-slate-400">Atual ({periodoAtualLabel})</div>
+        </div>
+      </div>
+    );
   }
 
   const orcamentosSnapshot = await getDashboardOrcamentosSnapshot({
@@ -842,6 +1042,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               Retrato
             </Link>
           ) : null}
+          {visibleViews.includes("evolucao-leads") ? (
+            <Link
+              href={`/dashboard?view=evolucao-leads&data_inicio=${dataInicioInput}&data_fim=${dataFimInput}`}
+              className={`rounded-xl px-6 py-3 text-sm font-semibold text-white ${
+                activeView === "evolucao-leads" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
+              }`}
+            >
+              Evolucao de Leads
+            </Link>
+          ) : null}
           {visibleViews.includes("orcamentos") ? (
             <Link
               href="/dashboard?view=orcamentos"
@@ -858,12 +1068,19 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <h2 className="text-5xl font-semibold leading-tight text-slate-800 sm:text-[46px]">
             {activeView === "retrato"
               ? "Retrato"
+              : activeView === "evolucao-leads"
+                ? "Dashboard de Evolucao de Leads"
               : activeView === "orcamentos"
                 ? "Or\u00e7amentos"
                 : "Funil comercial"}
           </h2>
           {activeView === "dashboard" ? (
             <p className="mt-2 text-xl text-slate-600">Informacoes do Funil de vendas</p>
+          ) : null}
+          {activeView === "evolucao-leads" ? (
+            <p className="mt-2 text-xl text-slate-600">
+              Acompanhe o crescimento e performance da sua base de leads.
+            </p>
           ) : null}
         </div>
 
@@ -892,6 +1109,63 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 lockTipoSelection={!dashboardAccessScope.allowTipoSelection}
                 lockUsuarioSelection={!dashboardAccessScope.allowUsuarioSelection}
               />
+            ) : activeView === "evolucao-leads" ? (
+              <form
+                action="/dashboard"
+                method="get"
+                className="flex flex-wrap items-end gap-4 rounded-2xl border border-white/20 bg-white/65 p-4 shadow-lg backdrop-blur-md"
+              >
+                <input type="hidden" name="view" value="evolucao-leads" />
+
+                <div className="min-w-[200px] flex-1">
+                  <label className="mb-1.5 ml-1 block text-xs font-bold uppercase text-slate-400">Inicio</label>
+                  <input
+                    type="date"
+                    name="data_inicio"
+                    defaultValue={dataInicioInput}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 outline-none transition focus:border-[#0f5050] focus:ring-2 focus:ring-[#0f50503a]"
+                  />
+                </div>
+
+                <div className="min-w-[200px] flex-1">
+                  <label className="mb-1.5 ml-1 block text-xs font-bold uppercase text-slate-400">Fim</label>
+                  <input
+                    type="date"
+                    name="data_fim"
+                    defaultValue={dataFimInput}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-700 outline-none transition focus:border-[#0f5050] focus:ring-2 focus:ring-[#0f50503a]"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="h-11 rounded-xl bg-[#0f5050] px-8 text-sm font-semibold text-white transition hover:bg-[#0c4343]"
+                >
+                  Buscar
+                </button>
+
+                <Link
+                  href={`/dashboard?view=evolucao-leads&data_inicio=${defaultRange.dataInicio}&data_fim=${defaultRange.dataFim}`}
+                  className="inline-flex h-11 items-center rounded-xl bg-slate-200 px-8 text-sm font-semibold text-slate-600 transition hover:bg-slate-300"
+                >
+                  Limpar
+                </Link>
+
+                <div className="ml-auto flex rounded-xl bg-slate-100 p-1">
+                  <button
+                    type="button"
+                    className="rounded-lg px-4 py-1.5 text-sm font-medium text-slate-500"
+                  >
+                    Barras
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg bg-[#0f5050] px-4 py-1.5 text-sm font-medium text-white shadow-sm"
+                  >
+                    Linhas
+                  </button>
+                </div>
+              </form>
             ) : (
               <OrcamentosFiltersForm
                 key={`${selectedTipoRepre}:${dataInicioInput}:${dataFimInput}:${canViewOrcamentosAllVertical}:orcamentos`}
@@ -907,15 +1181,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <Suspense
           key={`${activeView}:${dataInicioInput}:${dataFimInput}:${selectedTipoAcesso}:${selectedUsuario}:${selectedTipoRepre}:${percentageMode}:${selectedFunilColumnKeys.join(",")}`}
           fallback={
-            <DashboardListLoading
-              label={
-                activeView === "orcamentos"
-                  ? "Carregando orçamentos..."
-                  : activeView === "retrato"
-                    ? "Carregando retrato..."
-                    : "Carregando funil..."
-              }
-            />
+            <DashboardListLoading label={getDashboardLoadingLabel(activeView)} />
           }
         >
           <DashboardListContent
@@ -936,3 +1202,4 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       </PageContainer>
   );
 }
+

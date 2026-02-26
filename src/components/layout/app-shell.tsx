@@ -1,5 +1,5 @@
 import { AppShellClient } from "@/components/layout/app-shell-client";
-import { getCurrentAllowedSidebarPaths } from "@/services/access-control/server";
+import { getCurrentSidebarNavigationSnapshot } from "@/services/access-control/server";
 import { getSidebarProfile } from "@/services/layout/sidebar";
 
 type AppShellProps = {
@@ -7,10 +7,10 @@ type AppShellProps = {
 };
 
 export async function AppShell({ children }: AppShellProps) {
-  const [profile, allowedPaths] = await Promise.all([
+  const [profile, navigation] = await Promise.all([
     getSidebarProfile(),
-    getCurrentAllowedSidebarPaths(),
+    getCurrentSidebarNavigationSnapshot(),
   ]);
 
-  return <AppShellClient profile={profile} allowedPaths={allowedPaths}>{children}</AppShellClient>;
+  return <AppShellClient profile={profile} navigation={navigation}>{children}</AppShellClient>;
 }
