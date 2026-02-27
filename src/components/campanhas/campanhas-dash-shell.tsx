@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronsUpDown, Pencil, Trash2, X } from "lucide-react";
 
+import { CampanhasCadastroShell } from "@/components/campanhas/campanhas-cadastro-shell";
+
 type CampanhaTabKey = "dash" | "analytics" | "cadastrar" | "tintim" | "filtros" | "jornada";
 
 type CampanhaRow = {
@@ -806,6 +808,8 @@ export function CampanhasDashShell({
               </button>
             </div>
           </div>
+        ) : activeTab === "cadastrar" ? (
+          <CampanhasCadastroShell />
         ) : activeTab === "analytics" ? (
           <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[#d2d6da] bg-white">
             <iframe
