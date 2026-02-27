@@ -14,6 +14,8 @@ type GestaoAcessosPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+type AccessManagementTab = "pages" | "modules";
+
 function getSearchValue(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
     return value[0];
@@ -29,8 +31,16 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
   return Math.max(1, Math.trunc(parsed));
 }
 
+function normalizeAccessTab(value: string | undefined): AccessManagementTab {
+  if (value === "modules") {
+    return "modules";
+  }
+  return "pages";
+}
+
 export default async function GestaoAcessosPage({ searchParams }: GestaoAcessosPageProps) {
   const params = await searchParams;
+  const tab = normalizeAccessTab(getSearchValue(params.tab));
   const search = (getSearchValue(params.search) ?? "").trim();
   const page = parsePositiveInt(getSearchValue(params.page), 1);
   const organizationId = (getSearchValue(params.org_id) ?? "").trim();
@@ -56,17 +66,18 @@ export default async function GestaoAcessosPage({ searchParams }: GestaoAcessosP
   return (
     <PageContainer className="flex h-full min-h-0 flex-col gap-5 bg-[#eceef0]">
       <header>
-        <h1 className="text-5xl font-semibold text-[#30343a]">Gestao de Acessos</h1>
+        <h1 className="text-5xl font-semibold text-[#30343a]">Gestão de Acessos</h1>
       </header>
 
       <div className="min-h-0 flex-1 rounded-2xl bg-[#e4e6e8] p-4">
         <div className="h-full overflow-hidden">
           <GestaoAcessosShell
-            key={`gestao-acessos:${search}:${page}:${snapshot.selectedOrganizationId}:${moduleId}`}
+            key={`gestao-acessos:${tab}:${search}:${page}:${snapshot.selectedOrganizationId}:${moduleId}`}
             initialRows={snapshot.rows as AccessMatrixRow[]}
             pages={snapshot.pages as CrmPage[]}
             modules={snapshot.modules as AccessModuleOption[]}
             initialModuleId={moduleId}
+            initialTab={tab}
             organizations={snapshot.organizations as AccessOrganizationOption[]}
             selectedOrganizationId={snapshot.selectedOrganizationId}
             initialSearch={search}

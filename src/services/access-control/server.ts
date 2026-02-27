@@ -140,6 +140,10 @@ export function isManagerRole(tipoAcesso: string | null | undefined) {
   );
 }
 
+function isManagerContext(context: LegacyUserContext) {
+  return isManagerRole(context.tipoAcesso) || isManagerRole(context.tipoAcesso2);
+}
+
 function isAclObjectMissing(details: string) {
   const normalized = details.toLowerCase();
   return (
@@ -414,9 +418,10 @@ async function getActiveModules(): Promise<SidebarModule[]> {
 }
 
 async function buildAllowedPageAccess(context: LegacyUserContext, pages: InternalCrmPage[]): Promise<AllowedPageAccess> {
+  const defaultAllow = isManagerContext(context);
   const allowByPageKey = new Map<string, boolean>();
   for (const page of pages) {
-    allowByPageKey.set(page.key, true);
+    allowByPageKey.set(page.key, defaultAllow);
   }
 
   try {
@@ -529,10 +534,7 @@ function buildSidebarNavigationSnapshot(args: {
   }
 
   const canonicalModuleByNormalizedName = new Map<string, SidebarModule>(dedupedModulesByName);
-  const orderedModules = sortModules([...canonicalModuleByNormalizedName.values()]);
-  const selectedModuleId = resolveSelectedModuleId(orderedModules, args.persistedModuleId);
-  const selectedModule =
-    orderedModules.find((moduleOption) => moduleOption.id === selectedModuleId) ?? fallbackModule;
+  const canonicalModules = [...canonicalModuleByNormalizedName.values()];
   const hasStructuredModuleMapping = args.allowedPages.some(
     (page) => page.idModulo && moduleById.has(page.idModulo),
   );
@@ -552,6 +554,28 @@ function buildSidebarNavigationSnapshot(args: {
 
     return null;
   };
+
+  const allowedModuleIds = new Set<string>();
+  for (const page of args.allowedPages) {
+    const moduleId = resolveCanonicalModuleIdForPage(page);
+    if (moduleId) {
+      allowedModuleIds.add(moduleId);
+    }
+  }
+
+  let orderedModules = sortModules(
+    canonicalModules.filter((moduleOption) => allowedModuleIds.has(moduleOption.id)),
+  );
+
+  if (orderedModules.length === 0) {
+    orderedModules = sortModules([fallbackModule]);
+    allowedModuleIds.add(fallbackModule.id);
+  }
+
+  const selectedModuleId = resolveSelectedModuleId(orderedModules, args.persistedModuleId);
+  const selectedModule =
+    orderedModules.find((moduleOption) => moduleOption.id === selectedModuleId) ?? orderedModules[0];
+
   const menuPages = args.allowedPages
     .filter((page) => {
       const pageModuleId = resolveCanonicalModuleIdForPage(page);
@@ -888,6 +912,12 @@ function buildUserDisplayRole(row: Record<string, unknown>) {
   return asNullableString(row.tipo_acesso_2);
 }
 
+function isManagerUserRow(row: Record<string, unknown>) {
+  const tipoAcesso = asNullableString(row.tipo_acesso);
+  const tipoAcesso2 = asNullableString(row.tipo_acesso_2);
+  return isManagerRole(tipoAcesso) || isManagerRole(tipoAcesso2);
+}
+
 function escapeSearchTerm(search: string) {
   return search.replace(/,/g, " ").trim();
 }
@@ -990,12 +1020,13 @@ export async function getAccessMatrixSnapshot(args: {
         }
 
         const role = buildUserDisplayRole(row);
+        const defaultAllow = isManagerUserRow(row);
         const acessos: Record<string, boolean> = {};
 
         for (const page of pages) {
           const mapKey = `${idUsuario}:${page.key}`;
           const override = accessByUserPage.get(mapKey);
-          acessos[page.key] = override ?? true;
+          acessos[page.key] = override ?? defaultAllow;
         }
 
         return {
