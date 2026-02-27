@@ -807,3 +807,105 @@ Dashboard Evolucao RPC error {
  GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 486ms (compile: 40ms, proxy.ts: 333ms, render: 113ms)
  GET /dashboard?view=evolucao-leads&data_inicio=2026-01-01&data_fim=2026-02-10 200 in 2.0s (compile: 7ms, proxy.ts: 367ms, render: 1661ms)
  GET /dashboard?view=evolucao-leads&data_inicio=2026-01-01&data_fim=2026-02-10 200 in 625ms (compile: 37ms, proxy.ts: 464ms, render: 124ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-01&data_fim=2026-02-10 200 in 676ms (compile: 159ms, proxy.ts: 334ms, render: 183ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-01&data_fim=2026-02-10 200 in 2.9s (compile: 33ms, proxy.ts: 2.7s, render: 163ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-01&data_fim=2026-02-10 200 in 548ms (compile: 5ms, proxy.ts: 463ms, render: 80ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-01&data_fim=2026-02-10 200 in 3.9s (compile: 43ms, proxy.ts: 3.7s, render: 130ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-01&data_fim=2026-02-10 200 in 6.3s (compile: 33ms, proxy.ts: 6.1s, render: 126ms)
+ GET /clientes 200 in 1562ms (compile: 4ms, proxy.ts: 242ms, render: 1316ms)
+ GET /clientes 200 in 4.7s (compile: 2.8s, proxy.ts: 303ms, render: 1637ms)
+ GET /clientes 200 in 1451ms (compile: 4ms, proxy.ts: 330ms, render: 1116ms)
+ GET /dashboard 200 in 10.4s (compile: 31ms, proxy.ts: 550ms, render: 9.8s)
+ GET /clientes?usuario=89 200 in 1348ms (compile: 4ms, proxy.ts: 463ms, render: 882ms)
+ GET /clientes 200 in 1076ms (compile: 6ms, proxy.ts: 320ms, render: 751ms)
+ GET /clientes?usuario=98 200 in 996ms (compile: 9ms, proxy.ts: 287ms, render: 700ms)
+ GET /clientes?usuario=98&etiqueta=40 200 in 2.4s (compile: 4ms, proxy.ts: 359ms, render: 1991ms)
+ GET /clientes?etiqueta=40 200 in 2.0s (compile: 6ms, proxy.ts: 291ms, render: 1725ms)
+ GET /clientes?telefone=91985691492&etiqueta=40 200 in 3.1s (compile: 4ms, proxy.ts: 340ms, render: 2.8s)
+ GET /clientes?telefone=91985691492 200 in 2.4s (compile: 7ms, proxy.ts: 153ms, render: 2.3s)
+ GET /clientes 200 in 1241ms (compile: 5ms, proxy.ts: 358ms, render: 877ms)
+⨯ ReferenceError: hasEtiquetaFilter is not defined
+    at getClientesControleRowsFromAgregacao (src\services\crm\api.ts:1452:57)
+    at async getClientesControleRows (src\services\crm\api.ts:1816:29)
+    at async ClientesPage (src\app\(crm)\clientes\page.tsx:246:21)
+  1450 |       : Math.max(20000, hasLimit ? targetLength * 80 : 50000);
+  1451 |   let scannedRows = 0;
+> 1452 |   const canStopEarly = pessoaIdsFilter.length === 0 && !hasEtiquetaFilter;
+       |                                                         ^
+  1453 |
+  1454 |   const readAgregacaoPage = async ({
+  1455 |     pessoaChunk, {
+  digest: '3788195858'
+}
+ GET /clientes 200 in 532ms (compile: 114ms, proxy.ts: 241ms, render: 177ms)
+⨯ ./src/services/crm/api.ts
+Module parse failed: Identifier 'hasEtiquetaFilter1' has already been declared (418:10)
+|     const etiquetaFilterCode = extractEtiquetaCode(etiquetaFilterRaw);
+|     const hasEtiquetaFilter1 = etiquetaFilterCode.length > 0 || etiquetaFilterNormalized.length > 0;
+>     const hasEtiquetaFilter1 = etiquetaFilterCode.length > 0 || etiquetaFilterNormalized.length > 0;
+|     const filteredRows = rows.filter((row)=>{
+|         if (selectedUsuario > 0) {
+
+Import trace for requested module:
+./src/services/crm/api.ts
+./src/app/(crm)/usuarios/page.tsx
+ GET /clientes 500 in 365ms (compile: 10ms, proxy.ts: 299ms, render: 56ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⨯ ReferenceError: hasEtiquetaFilter is not defined
+    at getClientesControleRowsFromAgregacao (src\services\crm\api.ts:1452:57)
+    at async getClientesControleRows (src\services\crm\api.ts:1816:29)
+    at async ClientesPage (src\app\(crm)\clientes\page.tsx:246:21)
+  1450 |       : Math.max(20000, hasLimit ? targetLength * 80 : 50000);
+  1451 |   let scannedRows = 0;
+> 1452 |   const canStopEarly = pessoaIdsFilter.length === 0 && !hasEtiquetaFilter;
+       |                                                         ^
+  1453 |
+  1454 |   const readAgregacaoPage = async ({
+  1455 |     pessoaChunk, {
+  digest: '1036010650'
+}
+ GET /clientes 200 in 2.6s (compile: 31ms, proxy.ts: 930ms, render: 1660ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /clientes 200 in 1750ms (compile: 42ms, proxy.ts: 588ms, render: 1120ms)
+ GET /clientes?nome=Clayton 200 in 1534ms (compile: 4ms, proxy.ts: 520ms, render: 1009ms)
+ GET /clientes?telefone=91985691492 200 in 1406ms (compile: 3ms, proxy.ts: 301ms, render: 1102ms)
+ GET /clientes 200 in 1332ms (compile: 3ms, proxy.ts: 228ms, render: 1100ms)
+ GET /clientes?etiqueta=21 200 in 8.3s (compile: 11ms, proxy.ts: 184ms, render: 8.1s)
+ GET /clientes?etiqueta=21 200 in 14.2s (compile: 4ms, proxy.ts: 288ms, render: 14.0s)
+ GET /clientes?etiqueta=40 200 in 21.5s (compile: 3ms, proxy.ts: 584ms, render: 20.9s)
+ GET /clientes?etiqueta=40 200 in 29.0s (compile: 4ms, proxy.ts: 184ms, render: 28.9s)
+ GET /clientes 200 in 1480ms (compile: 33ms, proxy.ts: 398ms, render: 1049ms)
+ GET /clientes?etiqueta=40 200 in 45s (compile: 45ms, proxy.ts: 375ms, render: 44s)
+ GET /clientes 200 in 1661ms (compile: 14ms, proxy.ts: 863ms, render: 783ms)
+ GET /clientes?etiqueta=40 200 in 32.3s (compile: 4ms, proxy.ts: 286ms, render: 32.0s)
+ GET /clientes?etiqueta=40 200 in 1982ms (compile: 54ms, proxy.ts: 560ms, render: 1368ms)
+ GET /clientes?etiqueta=30 200 in 30.7s (compile: 4ms, proxy.ts: 299ms, render: 30.4s)
+ GET /clientes?etiqueta=30 200 in 32.4s (compile: 5ms, proxy.ts: 266ms, render: 32.1s)
+ GET /clientes?etiqueta=30 200 in 35.0s (compile: 5ms, proxy.ts: 227ms, render: 34.8s)
+ GET /clientes?etiqueta=30 200 in 34.7s (compile: 17ms, proxy.ts: 188ms, render: 34.5s)
+ GET /clientes 200 in 834ms (compile: 3ms, proxy.ts: 163ms, render: 668ms)
+ GET /clientes?etiqueta=21 200 in 31.6s (compile: 5ms, proxy.ts: 332ms, render: 31.3s)
+ GET /clientes?etiqueta=00 200 in 30.7s (compile: 5ms, proxy.ts: 176ms, render: 30.5s)
+ GET /clientes?etiqueta=21 200 in 33.0s (compile: 4ms, proxy.ts: 334ms, render: 32.6s)
+ GET /clientes?etiqueta=21 200 in 33.3s (compile: 4ms, proxy.ts: 136ms, render: 33.2s)
+ GET /clientes?etiqueta=21 200 in 34.0s (compile: 13ms, proxy.ts: 136ms, render: 33.8s)
+ GET /clientes?etiqueta=40 200 in 28.0s (compile: 6ms, proxy.ts: 372ms, render: 27.6s)
+ GET /clientes?etiqueta=40 200 in 28.5s (compile: 5ms, proxy.ts: 271ms, render: 28.2s)
+ GET /clientes?etiqueta=40 200 in 3.7s (compile: 83ms, proxy.ts: 346ms, render: 3.3s)
+ GET /clientes?etiqueta=00 200 in 44s (compile: 6ms, proxy.ts: 256ms, render: 44s)
+ GET /clientes?etiqueta=00 200 in 48s (compile: 14ms, proxy.ts: 222ms, render: 48s)
+ GET /clientes?etiqueta=10 200 in 10.2s (compile: 117ms, proxy.ts: 423ms, render: 9.7s)
+ GET /clientes?etiqueta=10 200 in 34.6s (compile: 17ms, proxy.ts: 406ms, render: 34.2s)
+ GET /clientes?etiqueta=10 200 in 46s (compile: 6ms, proxy.ts: 181ms, render: 45s)
+ GET /clientes?etiqueta=00 200 in 47s (compile: 4ms, proxy.ts: 148ms, render: 47s)
+ GET /clientes?etiqueta=10 200 in 34.1s (compile: 24ms, proxy.ts: 317ms, render: 33.8s)
+ GET /clientes?etiqueta=40 200 in 46s (compile: 88ms, proxy.ts: 259ms, render: 46s)
+ GET /clientes?etiqueta=00 200 in 28.0s (compile: 9ms, proxy.ts: 282ms, render: 27.7s)
+ GET /clientes?etiqueta=10 200 in 8.5s (compile: 4ms, proxy.ts: 447ms, render: 8.0s)
+ GET /clientes?etiqueta=00 200 in 16.5s (compile: 8ms, proxy.ts: 235ms, render: 16.2s)
+ GET /clientes?etiqueta= 200 in 1191ms (compile: 26ms, proxy.ts: 312ms, render: 853ms)
+ GET /clientes?etiqueta=10 200 in 18.5s (compile: 8ms, proxy.ts: 444ms, render: 18.1s)
+ GET /dashboard 200 in 8.1s (compile: 34ms, proxy.ts: 1452ms, render: 6.7s)
+ GET /dashboard?colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n14&colunas=n15&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler&tipo_acesso_2=Time+Neg%C3%B3cios&usuario=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 13.7s (compile: 55ms, proxy.ts: 588ms, render: 13.1s)

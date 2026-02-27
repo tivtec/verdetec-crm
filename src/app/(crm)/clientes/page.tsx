@@ -239,64 +239,22 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
   };
 
   const requiresAllowedFilterPagination = !dashboardAccessScope.isGerencia && selectedUsuario.trim().length === 0;
+  const allowedUsuarioIdsForQuery = requiresAllowedFilterPagination ? Array.from(allowedRepresentanteIds) : undefined;
   let webhookRows: ClienteControleRow[] = [];
   let webhookHasNextPage = false;
 
-  if (requiresAllowedFilterPagination) {
-    const targetLength = offset + PAGE_SIZE + 1;
-    const chunkSize = 250;
-    const maxIterations = 40;
-    const collectedRows: ClienteControleRow[] = [];
-    let cursorOffset = 0;
-    let iteration = 0;
+  const pagedRows = await getClientesControleRows({
+    usuarioId: selectedUsuario,
+    allowedUsuarioIds: allowedUsuarioIdsForQuery,
+    telefone,
+    etiqueta,
+    nome,
+    limit: PAGE_SIZE + 1,
+    offset,
+  });
 
-    while (collectedRows.length < targetLength && iteration < maxIterations) {
-      const chunkRows = await getClientesControleRows({
-        usuarioId: selectedUsuario,
-        telefone,
-        etiqueta,
-        nome,
-        limit: chunkSize,
-        offset: cursorOffset,
-      });
-
-      if (!chunkRows.length) {
-        break;
-      }
-
-      const scopedChunkRows = chunkRows.filter((row) => {
-        const rowUsuarioId = typeof row.usuarioId === "number" ? row.usuarioId : Number.NaN;
-        return Number.isFinite(rowUsuarioId) && allowedRepresentanteIds.has(rowUsuarioId);
-      });
-
-      if (scopedChunkRows.length > 0) {
-        collectedRows.push(...scopedChunkRows);
-      }
-
-      if (chunkRows.length < chunkSize) {
-        break;
-      }
-
-      cursorOffset += chunkSize;
-      iteration += 1;
-    }
-
-    const pagedRows = collectedRows.slice(offset, offset + PAGE_SIZE + 1);
-    webhookHasNextPage = pagedRows.length > PAGE_SIZE;
-    webhookRows = webhookHasNextPage ? pagedRows.slice(0, PAGE_SIZE) : pagedRows;
-  } else {
-    const pagedRows = await getClientesControleRows({
-      usuarioId: selectedUsuario,
-      telefone,
-      etiqueta,
-      nome,
-      limit: PAGE_SIZE + 1,
-      offset,
-    });
-
-    webhookHasNextPage = pagedRows.length > PAGE_SIZE;
-    webhookRows = webhookHasNextPage ? pagedRows.slice(0, PAGE_SIZE) : pagedRows;
-  }
+  webhookHasNextPage = pagedRows.length > PAGE_SIZE;
+  webhookRows = webhookHasNextPage ? pagedRows.slice(0, PAGE_SIZE) : pagedRows;
 
   const hasFilters =
     selectedUsuario.trim().length > 0 ||
