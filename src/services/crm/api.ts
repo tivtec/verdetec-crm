@@ -1,6 +1,7 @@
 import { cache } from "react";
 
 import type { AgendaEvent, Cliente, Empresa, Pedido } from "@/schemas/domain";
+import { createAdminSupabaseClient } from "@/services/supabase/admin";
 import { createServerSupabaseClient } from "@/services/supabase/server";
 import { formatDateTime } from "@/utils/format";
 
@@ -3292,20 +3293,15 @@ export type DashboardViewerAccessScope = {
   isGestor: boolean;
 };
 
-export type DashboardEvolucaoLeadComparativoRow = {
-  periodo: "atual" | "anterior";
-  qtd10: number;
-  qtd61: number;
-  qtd50: number;
+export type DashboardEvolucaoLeadPoint = {
+  dia: string;
   performance: number;
 };
 
 export type DashboardEvolucaoLeadsSnapshot = {
   dataInicioInput: string;
   dataFimInput: string;
-  periodoAtual: DashboardEvolucaoLeadComparativoRow;
-  periodoAnterior: DashboardEvolucaoLeadComparativoRow;
-  rows: DashboardEvolucaoLeadComparativoRow[];
+  points: DashboardEvolucaoLeadPoint[];
 };
 
 export type DashboardEvolucaoLeadsFilters = {
@@ -3554,6 +3550,12 @@ function todayInputDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function yesterdayInputDate() {
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() - 1);
+  return endDate.toISOString().slice(0, 10);
+}
+
 function getDefaultDateRangeInput() {
   const endDate = new Date();
   const startDate = new Date(endDate);
@@ -3620,9 +3622,13 @@ function normalizeTipoAcesso2(value?: string) {
   return raw;
 }
 
-function getTipoCandidates(tipoAcesso2: string) {
+function getTipoCandidates(tipoAcesso2: string): string[] {
   if (tipoAcesso2 === "Time Neg\u00f3cios") {
     return ["Time Neg\u00f3cios", "Time de Neg\u00f3cios", "Time de Negocios", "Time Negocios"];
+  }
+
+  if (tipoAcesso2 === "CRV") {
+    return ["CRV", ...getTipoCandidates("Time Neg\u00f3cios")];
   }
 
   return [tipoAcesso2];
@@ -4943,27 +4949,79 @@ async function loadDashboardRowsFromFnDashboarPrincipal(
     .filter((row) => row.nome.length > 0);
 }
 
-function buildEmptyDashboardEvolucaoLeadRow(
-  periodo: DashboardEvolucaoLeadComparativoRow["periodo"],
-): DashboardEvolucaoLeadComparativoRow {
-  return {
-    periodo,
-    qtd10: 0,
-    qtd61: 0,
-    qtd50: 0,
-    performance: 0,
-  };
-}
+type DashboardPerformanceRpcRow = {
+  dia: unknown;
+  performance: unknown;
+};
 
-function normalizeDashboardComparativoPeriodo(
-  value: unknown,
-): DashboardEvolucaoLeadComparativoRow["periodo"] {
-  const normalized = normalizeLoose(asString(value)).trim();
-  if (normalized === "anterior") {
-    return "anterior";
+async function loadDashboardPerformanceRows(
+  supabase: DashboardSupabaseClient,
+  dataInicioInput: string,
+  dataFimInput: string,
+) {
+  const payloadAttempts: Array<{
+    rpc: string;
+    payload: Record<string, string>;
+  }> = [
+    {
+      rpc: "dashboard_performance",
+      payload: { p_data_inicio: dataInicioInput, p_data_fim: dataFimInput },
+    },
+    {
+      rpc: "performance",
+      payload: { p_data_inicio: dataInicioInput, p_data_fim: dataFimInput },
+    },
+    {
+      rpc: "performance",
+      payload: { data_inicio: dataInicioInput, data_fim: dataFimInput },
+    },
+    {
+      rpc: "performance",
+      payload: { data_ini: dataInicioInput, data_fim: dataFimInput },
+    },
+    {
+      rpc: "performance",
+      payload: { inicio: dataInicioInput, fim: dataFimInput },
+    },
+    {
+      rpc: "performance",
+      payload: { start_date: dataInicioInput, end_date: dataFimInput },
+    },
+    {
+      rpc: "performance",
+      payload: { from_date: dataInicioInput, to_date: dataFimInput },
+    },
+    {
+      rpc: "performance",
+      payload: { arg1: dataInicioInput, arg2: dataFimInput },
+    },
+  ];
+  const errors: string[] = [];
+
+  for (const attempt of payloadAttempts) {
+    const { data, error } = await supabase.rpc(attempt.rpc, attempt.payload);
+    if (!error && Array.isArray(data)) {
+      return data as DashboardPerformanceRpcRow[];
+    }
+    if (error) {
+      errors.push(`${attempt.rpc}: ${error.message}`);
+    }
   }
 
-  return "atual";
+  if (errors.length > 0 && process.env.NODE_ENV !== "production") {
+    const hasWrapperMissingError = errors.some((msg) =>
+      msg.includes("Could not find the function public.dashboard_performance"),
+    );
+    const diagnostic = hasWrapperMissingError
+      ? "Funcao RPC dashboard_performance nao encontrada. Aplique a migration 202602270001_dashboard_performance_rpc_wrapper.sql."
+      : errors[errors.length - 1];
+
+    console.warn(
+      `[Dashboard Evolucao RPC] ${dataInicioInput}..${dataFimInput} -> ${diagnostic}`,
+    );
+  }
+
+  return [] as DashboardPerformanceRpcRow[];
 }
 
 export async function getDashboardEvolucaoLeadsSnapshot(
@@ -4977,59 +5035,43 @@ export async function getDashboardEvolucaoLeadsSnapshot(
     [dataInicioInput, dataFimInput] = [dataFimInput, dataInicioInput];
   }
 
-  const fallbackAnterior = buildEmptyDashboardEvolucaoLeadRow("anterior");
-  const fallbackAtual = buildEmptyDashboardEvolucaoLeadRow("atual");
+  const fallbackPoints: DashboardEvolucaoLeadPoint[] =
+    dataInicioInput === dataFimInput
+      ? [{ dia: dataInicioInput, performance: 0 }]
+      : [
+          { dia: dataInicioInput, performance: 0 },
+          { dia: dataFimInput, performance: 0 },
+        ];
   const fallbackSnapshot: DashboardEvolucaoLeadsSnapshot = {
     dataInicioInput,
     dataFimInput,
-    periodoAtual: fallbackAtual,
-    periodoAnterior: fallbackAnterior,
-    rows: [fallbackAnterior, fallbackAtual],
+    points: fallbackPoints,
   };
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase.rpc("grafico_l100_comparativo", {
-      p_data_inicio: dataInicioInput,
-      p_data_fim: dataFimInput,
-    });
-
-    if (error || !Array.isArray(data)) {
+    const supabase = createAdminSupabaseClient();
+    const data = await loadDashboardPerformanceRows(supabase, dataInicioInput, dataFimInput);
+    if (!Array.isArray(data) || !data.length) {
       return fallbackSnapshot;
     }
 
-    let periodoAtual = fallbackAtual;
-    let periodoAnterior = fallbackAnterior;
-
-    for (const row of data as Array<Record<string, unknown>>) {
-      const periodo = normalizeDashboardComparativoPeriodo(row.periodo);
-      const qtd10 = Math.max(0, Math.trunc(asNumber(row.qtd_10, 0)));
-      const qtd61 = Math.max(0, Math.trunc(asNumber(row.qtd_61, 0)));
-      const qtd50 = Math.max(0, Math.trunc(asNumber(row.qtd_50, 0)));
+    const pointByDia = new Map<string, DashboardEvolucaoLeadPoint>();
+    for (const row of data) {
+      const dia = normalizeInputDate(asString(row.dia), dataInicioInput);
       const performanceRaw = asNumber(row.performance, 0);
       const performance = Number.isFinite(performanceRaw) ? performanceRaw : 0;
-
-      const mappedRow: DashboardEvolucaoLeadComparativoRow = {
-        periodo,
-        qtd10,
-        qtd61,
-        qtd50,
+      pointByDia.set(dia, {
+        dia,
         performance,
-      };
-
-      if (periodo === "anterior") {
-        periodoAnterior = mappedRow;
-      } else {
-        periodoAtual = mappedRow;
-      }
+      });
     }
+
+    const points = Array.from(pointByDia.values()).sort((a, b) => a.dia.localeCompare(b.dia));
 
     return {
       dataInicioInput,
       dataFimInput,
-      periodoAtual,
-      periodoAnterior,
-      rows: [periodoAnterior, periodoAtual],
+      points: points.length ? points : fallbackPoints,
     };
   } catch {
     return fallbackSnapshot;
@@ -5660,6 +5702,19 @@ export type DashboardOrcamentosFilters = {
   usuarioId?: number;
 };
 
+type DashboardOrcamentosCrvResumoRow = {
+  cod_rep: unknown;
+  total_feitos: unknown;
+  total_aprovados: unknown;
+  total_reprovados: unknown;
+};
+
+type DashboardOrcamentosCrvSerieRow = {
+  cod_rep: unknown;
+  data: unknown;
+  abertos: unknown;
+};
+
 type DashboardOrcamentosWebhookPayload = {
   data_inicio: string;
   data_fim: string;
@@ -5703,42 +5758,30 @@ function normalizeTipoRepre(value?: string) {
   return "";
 }
 
+type DashboardOrcamentosRepresentativeScope = {
+  isTodos: boolean;
+  rpcRepIds: number[] | null;
+  repIds: number[];
+  representanteNomeById: Map<number, string>;
+  codRepByUsuarioId: Map<number, number>;
+  codRepByNormalizedName: Map<string, number>;
+};
+
+function normalizeOrcamentosTipo(value: unknown) {
+  return asString(value, "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .trim();
+}
+
 function getTipoRepreCandidates(tipoRepre: string) {
   if (tipoRepre === "CRV" || tipoRepre === "Prime") {
     return [tipoRepre];
   }
 
   return ["CRV", "Prime"];
-}
-
-async function getDashboardOrcamentosAllowedUserIds(tipoRepre: string) {
-  try {
-    const allowedTipos = getTipoRepreCandidates(tipoRepre);
-
-    const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
-      .from("usuarios")
-      .select("id")
-      .eq("usuario_ativo", true)
-      .in("tipo_acesso_2", allowedTipos)
-      .limit(5000);
-
-    if (error || !data?.length) {
-      return new Set<number>();
-    }
-
-    const ids = (data as Array<Record<string, unknown>>)
-      .map((row) => asNumber(row.id, 0))
-      .filter((id) => id > 0);
-
-    return new Set<number>(ids);
-  } catch {
-    return null;
-  }
-}
-
-function hasUsableDashboardOrcamentosRows(rows: DashboardOrcamentosWebhookRow[]) {
-  return rows.some((row) => Object.keys(row).length > 0 && asString(row.nome).length > 0);
 }
 
 function parseDashboardOrcamentosNumber(value: unknown) {
@@ -5791,6 +5834,52 @@ function getDashboardOrcamentosNumber(
   return fallback;
 }
 
+function getDashboardOrcamentosNumberByFuzzyKey(
+  row: DashboardOrcamentosWebhookRow,
+  tokenCandidates: string[],
+  fallback = 0,
+) {
+  for (const [rawKey, rawValue] of Object.entries(row)) {
+    const normalizedKey = normalizeLoose(rawKey).replace(/[^a-z0-9]+/g, "");
+    if (!normalizedKey) {
+      continue;
+    }
+
+    const match = tokenCandidates.some((token) => normalizedKey.includes(token));
+    if (!match) {
+      continue;
+    }
+
+    const parsed = parseDashboardOrcamentosNumber(rawValue);
+    if (parsed !== null) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+function mergePreferExistingWhenIncomingZero(currentValue: number, incomingValue: number) {
+  const current = Number.isFinite(currentValue) ? currentValue : 0;
+  const incoming = Number.isFinite(incomingValue) ? incomingValue : 0;
+
+  if (Math.abs(incoming) <= Number.EPSILON && Math.abs(current) > Number.EPSILON) {
+    return current;
+  }
+
+  return incoming;
+}
+
+function calculateOrcamentosGanhosFeitosPercent(orcAprovado: number, orcFeitos: number) {
+  const feitos = asNumber(orcFeitos, 0);
+  if (feitos <= 0) {
+    return 0;
+  }
+
+  const aprovados = asNumber(orcAprovado, 0);
+  return (aprovados / feitos) * 100;
+}
+
 async function fetchDashboardOrcamentosWebhookRows(payload: DashboardOrcamentosWebhookPayload) {
   const response = await fetch(DASHBOARD_ORCAMENTOS_ENDPOINT, {
     method: "POST",
@@ -5822,67 +5911,95 @@ async function fetchDashboardOrcamentosWebhookRows(payload: DashboardOrcamentosW
   return [] as DashboardOrcamentosWebhookRow[];
 }
 
-function buildDashboardOrcamentosRows(payloadRows: DashboardOrcamentosWebhookRow[]): DashboardOrcamentosRow[] {
-  return payloadRows
-    .filter((row) => asString(row.nome || row.nome_usuario || row.usuario_nome).length > 0)
-    .map((row) => ({
-      idUsuario: asNumber(row.id_usuario ?? row.usuario_id ?? row.id_user ?? row.id, 0),
-      nome: asString(row.nome ?? row.nome_usuario ?? row.usuario_nome, "Sem nome"),
-      carteira: getDashboardOrcamentosNumber(
-        row,
-        [
-          "carteira",
-          "qtde_carteira",
-          "qtd_carteira",
-          "total_carteira",
-          "carteira_total",
-          "quantidade_carteira",
-          "leads_carteira",
-        ],
-        0,
-      ),
-      atend: getDashboardOrcamentosNumber(
-        row,
-        [
-          "porcentagem_atendidos",
-          "porcentagem_atendido",
-          "percentual_atendidos",
-          "percentual_atendido",
-          "perc_atendidos",
-          "perc_atendido",
-          "atend",
-          "atendidos",
-          "taxa_atendimento",
-          "taxa_atendidos",
-        ],
-        0,
-      ),
-      orcAbertos: getDashboardOrcamentosNumber(row, ["orc_abertos", "orcamentos_abertos", "abertos"], 0),
-      n10: getDashboardOrcamentosNumber(row, ["#10", "etiqueta_10", "n10", "qtde_10"], 0),
-      orcFeitos: getDashboardOrcamentosNumber(row, ["orc_feitos", "orcamentos_feitos", "feitos"], 0),
-      orcAprovado: getDashboardOrcamentosNumber(row, ["orc_ganhos", "orc_aprovados", "aprovados"], 0),
-      orcRep: getDashboardOrcamentosNumber(row, ["orc_reprovado", "orc_reprovados", "reprovados"], 0),
-      perfGanhosFeitos: getDashboardOrcamentosNumber(
-        row,
-        ["perf_ganhos_feitos", "percentual_ganhos_feitos", "taxa_ganhos_feitos"],
-        0,
-      ),
-      umbler: getDashboardOrcamentosNumber(row, ["umbler", "qtd_umbler", "mensagens_umbler"], 0),
-    }));
-}
+async function getDashboardOrcamentosRepresentativeScope(
+  tipoRepre: string,
+): Promise<DashboardOrcamentosRepresentativeScope> {
+  const isTodos = tipoRepre !== "CRV" && tipoRepre !== "Prime";
+  const targetTipo = normalizeOrcamentosTipo(tipoRepre);
 
-function dedupeDashboardOrcamentosRows(rows: DashboardOrcamentosRow[]) {
-  const uniqueRows = new Map<string, DashboardOrcamentosRow>();
+  try {
+    const admin = createAdminSupabaseClient();
+    const { data, error } = await admin
+      .from("usuarios")
+      .select("id,nome,cod_rep_insumo,tipo_acesso_2,tipo_acesso")
+      .eq("usuario_ativo", true)
+      .limit(5000);
 
-  for (const row of rows) {
-    const uniqueKey = row.idUsuario > 0 ? `id:${row.idUsuario}` : `nome:${row.nome.toLowerCase()}`;
-
-    if (!uniqueRows.has(uniqueKey)) {
-      uniqueRows.set(uniqueKey, row);
+    if (error || !data?.length) {
+      return {
+        isTodos,
+        rpcRepIds: isTodos ? null : [],
+        repIds: [],
+        representanteNomeById: new Map<number, string>(),
+        codRepByUsuarioId: new Map<number, number>(),
+        codRepByNormalizedName: new Map<string, number>(),
+      };
     }
-  }
 
-  return Array.from(uniqueRows.values());
+    const uniqueIds = new Set<number>();
+    const representanteNomeById = new Map<number, string>();
+    const codRepByUsuarioId = new Map<number, number>();
+    const codRepByNormalizedName = new Map<string, number>();
+
+    for (const row of data as Array<Record<string, unknown>>) {
+      const usuarioId = Math.max(0, Math.trunc(asNumber(row.id, 0)));
+      const codRepInsumo = Math.max(0, Math.trunc(asNumber(row.cod_rep_insumo, 0)));
+      const nome = asString(row.nome, "").trim();
+      const tipoNorm = normalizeOrcamentosTipo(row.tipo_acesso_2 ?? row.tipo_acesso);
+      if (codRepInsumo <= 0) {
+        continue;
+      }
+
+      const isPrime = tipoNorm.includes("prime");
+      const isCrv = tipoNorm.includes("crv");
+      if (!isPrime && !isCrv) {
+        continue;
+      }
+
+      if (!isTodos) {
+        if (targetTipo === "prime" && !isPrime) {
+          continue;
+        }
+        if (targetTipo === "crv" && !isCrv) {
+          continue;
+        }
+      }
+
+      uniqueIds.add(codRepInsumo);
+      if (usuarioId > 0) {
+        codRepByUsuarioId.set(usuarioId, codRepInsumo);
+      }
+      if (nome.length > 0) {
+        if (!representanteNomeById.has(codRepInsumo)) {
+          representanteNomeById.set(codRepInsumo, nome);
+        }
+
+        const normalizedName = normalizeDashboardComparableName(nome);
+        if (normalizedName.length > 0 && !codRepByNormalizedName.has(normalizedName)) {
+          codRepByNormalizedName.set(normalizedName, codRepInsumo);
+        }
+      }
+    }
+
+    const repIds = Array.from(uniqueIds.values());
+    return {
+      isTodos,
+      rpcRepIds: isTodos ? null : repIds,
+      repIds,
+      representanteNomeById,
+      codRepByUsuarioId,
+      codRepByNormalizedName,
+    };
+  } catch {
+    return {
+      isTodos,
+      rpcRepIds: isTodos ? null : [],
+      repIds: [],
+      representanteNomeById: new Map<number, string>(),
+      codRepByUsuarioId: new Map<number, number>(),
+      codRepByNormalizedName: new Map<string, number>(),
+    };
+  }
 }
 
 function buildDashboardOrcamentosTotals(rows: DashboardOrcamentosRow[]) {
@@ -5907,7 +6024,7 @@ function buildDashboardOrcamentosTotals(rows: DashboardOrcamentosRow[]) {
 
   return {
     ...totals,
-    perfGanhosFeitos: totals.perfGanhosFeitos / rows.length,
+    perfGanhosFeitos: calculateOrcamentosGanhosFeitosPercent(totals.orcAprovado, totals.orcFeitos),
   } satisfies DashboardOrcamentosTotals;
 }
 
@@ -5915,53 +6032,295 @@ export async function getDashboardOrcamentosSnapshot(
   filters: DashboardOrcamentosFilters = {},
 ): Promise<DashboardOrcamentosSnapshot> {
   const defaultDateRange = getDefaultDateRangeInput();
-  const dataInicioInput = normalizeInputDate(filters.dataInicioInput, defaultDateRange.dataInicio);
-  const dataFimInput = normalizeInputDate(filters.dataFimInput, defaultDateRange.dataFim);
+  const maxSelectableDate = yesterdayInputDate();
+  let dataInicioInput = normalizeInputDate(filters.dataInicioInput, defaultDateRange.dataInicio);
+  let dataFimInput = normalizeInputDate(filters.dataFimInput, defaultDateRange.dataFim);
+
+  if (dataInicioInput > maxSelectableDate) {
+    dataInicioInput = maxSelectableDate;
+  }
+
+  if (dataFimInput > maxSelectableDate) {
+    dataFimInput = maxSelectableDate;
+  }
+
+  if (dataInicioInput > dataFimInput) {
+    [dataInicioInput, dataFimInput] = [dataFimInput, dataInicioInput];
+  }
+
   const tipoRepre = normalizeTipoRepre(filters.tipoRepre);
-  const selectedUsuarioId = Math.max(0, Math.trunc(asNumber(filters.usuarioId, 0)));
-  const strictUsuario = selectedUsuarioId > 0;
-  const payloadBase = {
-    data_inicio: toWebhookDate(dataInicioInput),
-    data_fim: toWebhookDate(dataFimInput),
-  };
+  const representativeScope = await getDashboardOrcamentosRepresentativeScope(tipoRepre);
+  const repIds = representativeScope.repIds;
+  const repIdSet = new Set<number>(repIds);
+  const representanteNomeById = representativeScope.representanteNomeById;
+  const codRepByUsuarioId = representativeScope.codRepByUsuarioId;
+  const codRepByNormalizedName = representativeScope.codRepByNormalizedName;
 
-  const payloads: DashboardOrcamentosWebhookPayload[] = getTipoRepreCandidates(tipoRepre).map((tipo) => ({
-    ...payloadBase,
-    tipo_repre: tipo,
-  }));
-
-  const payloadRowsList = await Promise.all(payloads.map((payload) => fetchDashboardOrcamentosWebhookRows(payload)));
-  const payloadRows = payloadRowsList.flat();
-
-  if (!hasUsableDashboardOrcamentosRows(payloadRows)) {
+  if (!representativeScope.isTodos && !repIds.length) {
     return {
       rows: [],
       totals: emptyDashboardOrcamentosTotals,
     };
   }
 
-  let rows = dedupeDashboardOrcamentosRows(buildDashboardOrcamentosRows(payloadRows));
-  const allowedUserIds = await getDashboardOrcamentosAllowedUserIds(tipoRepre);
+  try {
+    const admin = createAdminSupabaseClient();
+    const resumoResult = await admin.rpc("crv_feitos_aprovados_reprovados", {
+      data_ini: dataInicioInput,
+      data_fim: dataFimInput,
+      rep_ids: representativeScope.rpcRepIds,
+    });
 
-  if (allowedUserIds) {
-    rows = rows.filter((row) => row.idUsuario > 0 && allowedUserIds.has(row.idUsuario));
-  }
+    if (resumoResult.error) {
+      return {
+        rows: [],
+        totals: emptyDashboardOrcamentosTotals,
+      };
+    }
 
-  if (strictUsuario) {
-    rows = rows.filter((row) => row.idUsuario === selectedUsuarioId);
-  }
+    const resumoRows = (resumoResult.data ?? []) as DashboardOrcamentosCrvResumoRow[];
+    const rowByCodRep = new Map<
+      number,
+      {
+        codRep: number;
+        carteira: number;
+        atend: number;
+        orcFeitos: number;
+        orcAprovado: number;
+        orcRep: number;
+        orcAbertos: number;
+        n10: number;
+        umbler: number;
+      }
+    >();
+    const resumoCodRepSet = new Set<number>();
 
-  if (!rows.length) {
+    for (const rawRow of resumoRows) {
+      const codRep = Math.max(0, Math.trunc(asNumber(rawRow.cod_rep, 0)));
+      if (codRep <= 0) {
+        continue;
+      }
+
+      if (!repIdSet.has(codRep)) {
+        continue;
+      }
+
+      const representativeName = representanteNomeById.get(codRep);
+      if (!representativeName) {
+        continue;
+      }
+
+      resumoCodRepSet.add(codRep);
+      rowByCodRep.set(codRep, {
+        codRep,
+        carteira: 0,
+        atend: 0,
+        orcFeitos: asNumber(rawRow.total_feitos, 0),
+        orcAprovado: asNumber(rawRow.total_aprovados, 0),
+        orcRep: asNumber(rawRow.total_reprovados, 0),
+        orcAbertos: 0,
+        n10: 0,
+        umbler: 0,
+      });
+    }
+
+    const allowedCodRepSet = representativeScope.isTodos ? resumoCodRepSet : repIdSet;
+    const allowedCodRepList = Array.from(allowedCodRepSet.values());
+    let serieRows: DashboardOrcamentosCrvSerieRow[] = [];
+
+    if (allowedCodRepList.length > 0) {
+      const serieResult = await admin
+        .from("v_crv_orcamentos_rconnect_series")
+        .select("cod_rep,data,abertos")
+        .gte("data", dataInicioInput)
+        .lte("data", dataFimInput)
+        .in("cod_rep", allowedCodRepList)
+        .order("cod_rep", { ascending: true })
+        .order("data", { ascending: false });
+
+      if (!serieResult.error && Array.isArray(serieResult.data)) {
+        serieRows = serieResult.data as DashboardOrcamentosCrvSerieRow[];
+      }
+    }
+
+    for (const rawRow of serieRows) {
+      const codRep = Math.max(0, Math.trunc(asNumber(rawRow.cod_rep, 0)));
+      if (codRep <= 0) {
+        continue;
+      }
+
+      if (!allowedCodRepSet.has(codRep)) {
+        continue;
+      }
+
+      const representativeName = representanteNomeById.get(codRep);
+      if (!representativeName) {
+        continue;
+      }
+
+      const current = rowByCodRep.get(codRep);
+      if (current) {
+        // Consulta vem ordenada por data desc por cod_rep; usa o valor mais recente.
+        if (current.orcAbertos === 0) {
+          current.orcAbertos = asNumber(rawRow.abertos, 0);
+        }
+        continue;
+      }
+
+      rowByCodRep.set(codRep, {
+        codRep,
+        carteira: 0,
+        atend: 0,
+        orcFeitos: 0,
+        orcAprovado: 0,
+        orcRep: 0,
+        orcAbertos: asNumber(rawRow.abertos, 0),
+        n10: 0,
+        umbler: 0,
+      });
+    }
+
+    const legacyPayloadBase = {
+      data_inicio: toWebhookDate(dataInicioInput),
+      data_fim: toWebhookDate(dataFimInput),
+    };
+    const legacyPayloads: DashboardOrcamentosWebhookPayload[] = getTipoRepreCandidates(tipoRepre).map((tipo) => ({
+      ...legacyPayloadBase,
+      tipo_repre: tipo,
+    }));
+
+    const legacyRowsList = await Promise.all(
+      legacyPayloads.map((payload) => fetchDashboardOrcamentosWebhookRows(payload)),
+    );
+    const legacyRows = legacyRowsList.flat();
+
+    for (const legacyRow of legacyRows) {
+      const rowId = Math.max(
+        0,
+        Math.trunc(asNumber(legacyRow.id_usuario ?? legacyRow.usuario_id ?? legacyRow.id_user ?? legacyRow.id, 0)),
+      );
+      const rowCodRep = Math.max(
+        0,
+        Math.trunc(asNumber(legacyRow.cod_rep ?? legacyRow.codRep ?? legacyRow.cod_representante, 0)),
+      );
+      const normalizedNome = normalizeDashboardComparableName(
+        asString(legacyRow.nome ?? legacyRow.nome_usuario ?? legacyRow.usuario_nome, ""),
+      );
+
+      const candidateCodRep =
+        rowCodRep > 0 && repIdSet.has(rowCodRep)
+          ? rowCodRep
+          : rowId > 0
+            ? repIdSet.has(rowId)
+              ? rowId
+              : (codRepByUsuarioId.get(rowId) ?? 0)
+            : (codRepByNormalizedName.get(normalizedNome) ?? 0);
+
+      if (candidateCodRep <= 0 || !repIdSet.has(candidateCodRep)) {
+        continue;
+      }
+
+      const current = rowByCodRep.get(candidateCodRep);
+      if (!current) {
+        continue;
+      }
+
+      const carteiraValue = getDashboardOrcamentosNumber(
+        legacyRow,
+        [
+          "Carteira",
+          "carteira",
+          "CARTEIRA",
+          "Carteira Total",
+          "carteira_total",
+          "carteira",
+          "qtde_carteira",
+          "qtd_carteira",
+          "total_carteira",
+          "carteira_total",
+          "quantidade_carteira",
+          "leads_carteira",
+          "leadsCarteira",
+        ],
+        current.carteira,
+      );
+      const carteiraMerged = getDashboardOrcamentosNumberByFuzzyKey(
+        legacyRow,
+        ["carteira"],
+        carteiraValue,
+      );
+      current.carteira = mergePreferExistingWhenIncomingZero(current.carteira, carteiraMerged);
+
+      const atendValue = getDashboardOrcamentosNumber(
+        legacyRow,
+        [
+          "Atend.",
+          "Atend",
+          "atend.",
+          "ATEND.",
+          "Atendidos",
+          "atendidos",
+          "Taxa Atendimento",
+          "taxa atendimento",
+          "porcentagem_atendidos",
+          "porcentagem_atendido",
+          "percentual_atendidos",
+          "percentual_atendido",
+          "perc_atendidos",
+          "perc_atendido",
+          "atend",
+          "atendidos",
+          "taxa_atendimento",
+          "taxa_atendidos",
+        ],
+        current.atend,
+      );
+      const atendMerged = getDashboardOrcamentosNumberByFuzzyKey(
+        legacyRow,
+        ["atend", "atendid", "taxaatendimento", "percentualatendimento", "porcentagematendimento"],
+        atendValue,
+      );
+      current.atend = mergePreferExistingWhenIncomingZero(current.atend, atendMerged);
+
+      const n10Value = getDashboardOrcamentosNumber(legacyRow, ["#10", "etiqueta_10", "n10", "qtde_10"], current.n10);
+      current.n10 = mergePreferExistingWhenIncomingZero(current.n10, n10Value);
+
+      const umblerValue = getDashboardOrcamentosNumber(
+        legacyRow,
+        ["umbler", "qtd_umbler", "mensagens_umbler"],
+        current.umbler,
+      );
+      current.umbler = mergePreferExistingWhenIncomingZero(current.umbler, umblerValue);
+    }
+
+    let rows = Array.from(rowByCodRep.values()).map((row) => ({
+      idUsuario: row.codRep,
+      nome: representanteNomeById.get(row.codRep) ?? "",
+      carteira: row.carteira,
+      atend: row.atend,
+      orcAbertos: row.orcAbertos,
+      n10: row.n10,
+      orcFeitos: row.orcFeitos,
+      orcAprovado: row.orcAprovado,
+      orcRep: row.orcRep,
+      perfGanhosFeitos: calculateOrcamentosGanhosFeitosPercent(row.orcAprovado, row.orcFeitos),
+      umbler: row.umbler,
+    }));
+
+    rows = rows.filter((row) => row.nome.trim().length > 0);
+
+    rows.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+    return {
+      rows,
+      totals: buildDashboardOrcamentosTotals(rows),
+    };
+  } catch {
     return {
       rows: [],
       totals: emptyDashboardOrcamentosTotals,
     };
   }
-
-  return {
-    rows,
-    totals: buildDashboardOrcamentosTotals(rows),
-  };
 }
 
 export type TintimLinkRow = {

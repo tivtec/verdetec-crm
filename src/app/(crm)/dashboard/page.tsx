@@ -15,7 +15,7 @@ import {
   getDashboardRepresentantesByTipo,
   getDashboardRetratoSnapshot,
   getDashboardViewerAccessScope,
-  type DashboardEvolucaoLeadComparativoRow,
+  type DashboardEvolucaoLeadPoint,
   type DashboardFunilRow,
   type DashboardFunilTotals,
   type DashboardOrcamentosRow,
@@ -140,6 +140,12 @@ function getDefaultDateRangeInput() {
     dataInicio: startDate.toISOString().slice(0, 10),
     dataFim: endDate.toISOString().slice(0, 10),
   };
+}
+
+function getYesterdayInputDate() {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().slice(0, 10);
 }
 
 function getSearchValue(value: string | string[] | undefined) {
@@ -594,12 +600,8 @@ function shiftInputDate(inputDate: string, days: number) {
   return parsed.toISOString().slice(0, 10);
 }
 
-function formatComparativoPeriodLabel(dataInicioInput: string, dataFimInput: string) {
-  return `${formatDateLabel(dataInicioInput)} - ${formatDateLabel(dataFimInput)}`;
-}
-
-function resolveEvolutionChartMax(rows: DashboardEvolucaoLeadComparativoRow[]) {
-  const highestValue = rows.reduce((maxValue, row) => Math.max(maxValue, row.performance), 0);
+function resolveEvolutionChartMax(points: DashboardEvolucaoLeadPoint[]) {
+  const highestValue = points.reduce((maxValue, point) => Math.max(maxValue, point.performance), 0);
   const rawMax = Math.max(EVOLUCAO_BASELINE_MAX, highestValue, ...EVOLUCAO_THRESHOLDS.map((item) => item.value));
   return Math.max(EVOLUCAO_BASELINE_MAX, Math.ceil(rawMax / 50) * 50);
 }
@@ -848,23 +850,37 @@ async function DashboardListContent({
       dataInicioInput,
       dataFimInput,
     });
-    const periodoAnteriorInicio = shiftInputDate(evolucaoSnapshot.dataInicioInput, -30);
-    const periodoAnteriorFim = shiftInputDate(evolucaoSnapshot.dataFimInput, -30);
-    const periodoAtualLabel = formatComparativoPeriodLabel(
-      evolucaoSnapshot.dataInicioInput,
-      evolucaoSnapshot.dataFimInput,
-    );
-    const periodoAnteriorLabel = formatComparativoPeriodLabel(periodoAnteriorInicio, periodoAnteriorFim);
-    const chartRows = [evolucaoSnapshot.periodoAnterior, evolucaoSnapshot.periodoAtual];
-    const chartMax = resolveEvolutionChartMax(chartRows);
+    const chartPoints =
+      evolucaoSnapshot.points.length > 0
+        ? evolucaoSnapshot.points
+        : [{ dia: evolucaoSnapshot.dataInicioInput, performance: 0 }];
+    const chartMax = resolveEvolutionChartMax(chartPoints);
     const tickValues = [4, 3, 2, 1, 0].map((step) => Math.round((chartMax * step) / 4));
-    const yAnterior = chartValueToY(evolucaoSnapshot.periodoAnterior.performance, chartMax);
-    const yAtual = chartValueToY(evolucaoSnapshot.periodoAtual.performance, chartMax);
     const chartInsetX = 56;
     const chartStartX = chartInsetX;
     const chartEndX = 1000 - chartInsetX;
-    const chartLinePath = `M ${chartStartX},${yAnterior} L ${chartEndX},${yAtual}`;
-    const chartAreaPath = `M ${chartStartX},${yAnterior} L ${chartEndX},${yAtual} V ${EVOLUCAO_CHART_HEIGHT} H ${chartStartX} Z`;
+    const chartStepX = chartPoints.length > 1 ? (chartEndX - chartStartX) / (chartPoints.length - 1) : 0;
+    const plottedPoints = chartPoints.map((point, index) => ({
+      ...point,
+      x: Number((chartStartX + chartStepX * index).toFixed(2)),
+      y: chartValueToY(point.performance, chartMax),
+    }));
+    const chartLinePath = plottedPoints
+      .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x},${point.y}`)
+      .join(" ");
+    const firstPoint = plottedPoints[0] ?? {
+      dia: evolucaoSnapshot.dataInicioInput,
+      performance: 0,
+      x: chartStartX,
+      y: chartValueToY(0, chartMax),
+    };
+    const chartAreaPath = `${chartLinePath} V ${EVOLUCAO_CHART_HEIGHT} H ${firstPoint.x} Z`;
+    const startLabel = formatDateLabel(
+      plottedPoints[0]?.dia ?? evolucaoSnapshot.dataInicioInput,
+    );
+    const endLabel = formatDateLabel(
+      plottedPoints[plottedPoints.length - 1]?.dia ?? evolucaoSnapshot.dataFimInput,
+    );
 
     return (
       <div className="rounded-[30px] border border-white/20 bg-white/60 p-6 shadow-lg backdrop-blur-md sm:p-8">
@@ -917,14 +933,36 @@ async function DashboardListContent({
                 <stop offset="100%" style={{ stopColor: "#667a78", stopOpacity: 0.02 }} />
               </linearGradient>
             </defs>
-            <circle cx={chartStartX} cy={yAnterior} r="5" fill="#174f46" />
-            <circle cx={chartEndX} cy={yAtual} r="5" fill="#174f46" />
+            {plottedPoints.map((point) => (
+              <g key={`${point.dia}-${point.x}`} className="group">
+                <line
+                  x1={point.x}
+                  x2={point.x}
+                  y1={0}
+                  y2={EVOLUCAO_CHART_HEIGHT}
+                  stroke="#174f46"
+                  strokeDasharray="4 4"
+                  strokeOpacity="0.45"
+                  strokeWidth="1.5"
+                  className="opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                  pointerEvents="none"
+                />
+                <circle cx={point.x} cy={point.y} r="4" fill="#174f46" />
+              </g>
+            ))}
           </svg>
         </div>
 
-        <div className="relative mt-6 h-6">
-          <span className="absolute top-0 left-0 text-xs font-medium text-[#95a4b8]">{periodoAnteriorLabel}</span>
-          <span className="absolute top-0 right-0 text-xs font-medium text-[#95a4b8]">{periodoAtualLabel}</span>
+        <div className="relative mt-6 h-6 px-6">
+          {plottedPoints.map((point) => (
+            <span
+              key={`x-label-${point.dia}-${point.x}`}
+              className="absolute top-0 -translate-x-1/2 text-xs font-medium text-[#95a4b8] whitespace-nowrap"
+              style={{ left: `${(point.x / 1000) * 100}%` }}
+            >
+              {formatDateLabel(point.dia)}
+            </span>
+          ))}
         </div>
       </div>
     );
@@ -1000,10 +1038,13 @@ async function DashboardListContent({
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const params = await searchParams;
   const requestedView = normalizeViewSelection(getSearchValue(params.view));
-  const fullscreenRequested = normalizeFullscreenSelection(getSearchValue(params.fullscreen));
   const defaultRange = getDefaultDateRangeInput();
-  const dataInicioInput = normalizeInputDate(getSearchValue(params.data_inicio), defaultRange.dataInicio);
-  const dataFimInput = normalizeInputDate(getSearchValue(params.data_fim), defaultRange.dataFim);
+  const defaultFimInput = requestedView === "orcamentos" ? getYesterdayInputDate() : defaultRange.dataFim;
+  const defaultInicioInput =
+    requestedView === "orcamentos" ? shiftInputDate(defaultFimInput, -30) : defaultRange.dataInicio;
+  const dataInicioInput = normalizeInputDate(getSearchValue(params.data_inicio), defaultInicioInput);
+  const dataFimInput = normalizeInputDate(getSearchValue(params.data_fim), defaultFimInput);
+  const fullscreenRequested = normalizeFullscreenSelection(getSearchValue(params.fullscreen));
   const requestedTipoAcesso = normalizeTipoAcessoSelection(getSearchValue(params.tipo_acesso_2));
   const requestedUsuario = normalizeUsuarioSelection(getSearchValue(params.usuario));
   const requestedTipoRepre = normalizeCarteiraSelection(

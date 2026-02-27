@@ -682,3 +682,128 @@ TypeError: fetch failed
  GET /campanhas?tab=cadastrar&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 2.6s (compile: 1267ms, proxy.ts: 1222ms, render: 141ms)
  GET /api/campanhas/cadastro/list?q=&page=1&page_size=10&ativo=todos 200 in 3.1s (compile: 1472ms, proxy.ts: 1025ms, render: 647ms)
  GET /api/campanhas/cadastro/list?q=&page=1&page_size=10&ativo=todos 200 in 3.1s (compile: 1474ms, proxy.ts: 1024ms, render: 648ms)
+ GET /dashboard 200 in 11.3s (compile: 95ms, proxy.ts: 994ms, render: 10.2s)
+ GET /dashboard?view=orcamentos 200 in 4.9s (compile: 10ms, proxy.ts: 343ms, render: 4.5s)
+⨯ ReferenceError: fetchDashboardOrcamentosWebhookRows is not defined
+    at eval (src\services\crm\api.ts:5786:71)
+    at Array.map (<anonymous>)
+    at getDashboardOrcamentosSnapshot (src\services\crm\api.ts:5786:54)
+    at DashboardListContent (src\app\(crm)\dashboard\page.tsx:933:66)
+  5784 |   }));
+  5785 |
+> 5786 |   const payloadRowsList = await Promise.all(payloads.map((payload) => fetchDashboardOrcamentosWebhookRows(payload)));
+       |                                                                       ^
+  5787 |   const payloadRows = payloadRowsList.flat();
+  5788 |
+  5789 |   if (!hasUsableDashboardOrcamentosRows(payloadRows)) { {
+  digest: '1757057947'
+}
+ GET /dashboard?view=orcamentos 200 in 2.2s (compile: 404ms, proxy.ts: 1267ms, render: 506ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /dashboard?view=orcamentos 200 in 1948ms (compile: 83ms, proxy.ts: 866ms, render: 1000ms)
+ GET /dashboard?view=orcamentos 200 in 794ms (compile: 38ms, proxy.ts: 650ms, render: 106ms)
+ GET /dashboard?view=orcamentos 200 in 2.1s (compile: 38ms, proxy.ts: 1969ms, render: 140ms)
+ GET /dashboard?view=orcamentos 200 in 1600ms (compile: 8ms, proxy.ts: 735ms, render: 856ms)
+ GET /dashboard?view=orcamentos 200 in 1343ms (compile: 5ms, proxy.ts: 157ms, render: 1181ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 4.9s (compile: 4ms, proxy.ts: 4.2s, render: 664ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 4.5s (compile: 18ms, proxy.ts: 4.3s, render: 189ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 20.7s (compile: 6ms, proxy.ts: 2.4s, render: 18.3s)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 5.6s (compile: 55ms, proxy.ts: 5.2s, render: 307ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1009ms (compile: 42ms, proxy.ts: 815ms, render: 152ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1172ms (compile: 46ms, proxy.ts: 690ms, render: 435ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1043ms (compile: 4ms, proxy.ts: 329ms, render: 710ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 863ms (compile: 5ms, proxy.ts: 279ms, render: 579ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1029ms (compile: 7ms, proxy.ts: 353ms, render: 669ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 764ms (compile: 7ms, proxy.ts: 164ms, render: 593ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 876ms (compile: 6ms, proxy.ts: 267ms, render: 603ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1080ms (compile: 5ms, proxy.ts: 334ms, render: 741ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 939ms (compile: 5ms, proxy.ts: 302ms, render: 632ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 764ms (compile: 6ms, proxy.ts: 160ms, render: 598ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 845ms (compile: 6ms, proxy.ts: 207ms, render: 631ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 777ms (compile: 5ms, proxy.ts: 315ms, render: 456ms)
+ GET /dashboard?view=orcamentos 200 in 850ms (compile: 4ms, proxy.ts: 309ms, render: 536ms)
+ GET /dashboard?view=orcamentos 200 in 1289ms (compile: 46ms, proxy.ts: 1029ms, render: 214ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 944ms (compile: 6ms, proxy.ts: 268ms, render: 670ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 608ms (compile: 5ms, proxy.ts: 143ms, render: 460ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1589ms (compile: 8ms, proxy.ts: 816ms, render: 765ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 3.6s (compile: 42ms, proxy.ts: 3.4s, render: 168ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1267ms (compile: 9ms, proxy.ts: 375ms, render: 882ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 725ms (compile: 7ms, proxy.ts: 215ms, render: 503ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 996ms (compile: 69ms, proxy.ts: 534ms, render: 393ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1113ms (compile: 6ms, proxy.ts: 326ms, render: 781ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 945ms (compile: 6ms, proxy.ts: 158ms, render: 781ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1618ms (compile: 36ms, proxy.ts: 1254ms, render: 327ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1592ms (compile: 6ms, proxy.ts: 733ms, render: 852ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1393ms (compile: 8ms, proxy.ts: 279ms, render: 1106ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 698ms (compile: 7ms, proxy.ts: 153ms, render: 538ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 962ms (compile: 3ms, proxy.ts: 287ms, render: 671ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 831ms (compile: 6ms, proxy.ts: 136ms, render: 689ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 734ms (compile: 40ms, proxy.ts: 393ms, render: 300ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 497ms (compile: 33ms, proxy.ts: 298ms, render: 166ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1627ms (compile: 44ms, proxy.ts: 1034ms, render: 550ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1566ms (compile: 8ms, proxy.ts: 538ms, render: 1019ms)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 890ms (compile: 5ms, proxy.ts: 174ms, render: 711ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 2.3s (compile: 10ms, proxy.ts: 1107ms, render: 1151ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 882ms (compile: 62ms, proxy.ts: 692ms, render: 128ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 6.5s (compile: 5ms, proxy.ts: 437ms, render: 6.0s)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1773ms (compile: 36ms, proxy.ts: 1618ms, render: 120ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 710ms (compile: 38ms, proxy.ts: 508ms, render: 164ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 5.9s (compile: 11ms, proxy.ts: 502ms, render: 5.4s)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 4.9s (compile: 7ms, proxy.ts: 431ms, render: 4.5s)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1466ms (compile: 41ms, proxy.ts: 1316ms, render: 109ms)
+ GET /dashboard?view=orcamentos&tipo_repre=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 11.5s (compile: 6ms, proxy.ts: 477ms, render: 11.0s)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 5.6s (compile: 11ms, proxy.ts: 733ms, render: 4.9s)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 4.7s (compile: 7ms, proxy.ts: 348ms, render: 4.4s)
+ GET /dashboard?view=orcamentos&tipo_repre=Prime&data_inicio=2026-01-28&data_fim=2026-02-26 200 in 4.3s (compile: 9ms, proxy.ts: 326ms, render: 4.0s)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-26 200 in 744ms (compile: 5ms, proxy.ts: 327ms, render: 412ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-26 200 in 4.3s (compile: 7ms, proxy.ts: 326ms, render: 4.0s)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-02-26&data_fim=2026-02-26 200 in 5.0s (compile: 6ms, proxy.ts: 1107ms, render: 3.9s)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-26&data_fim=2026-02-26 200 in 899ms (compile: 7ms, proxy.ts: 359ms, render: 533ms)
+ GET /dashboard?view=orcamentos 200 in 5.5s (compile: 7ms, proxy.ts: 543ms, render: 4.9s)
+ GET /dashboard?view=orcamentos 200 in 858ms (compile: 176ms, proxy.ts: 488ms, render: 194ms)
+ GET /dashboard?view=orcamentos 200 in 493ms (compile: 44ms, proxy.ts: 306ms, render: 143ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 4.9s (compile: 5ms, proxy.ts: 527ms, render: 4.3s)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 892ms (compile: 70ms, proxy.ts: 289ms, render: 533ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 707ms (compile: 42ms, proxy.ts: 502ms, render: 163ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 451ms (compile: 48ms, proxy.ts: 265ms, render: 138ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 669ms (compile: 46ms, proxy.ts: 437ms, render: 186ms)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 4.7s (compile: 3ms, proxy.ts: 286ms, render: 4.4s)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 5.0s (compile: 5ms, proxy.ts: 469ms, render: 4.5s)
+ GET /dashboard?view=orcamentos&tipo_repre=CRV&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 964ms (compile: 53ms, proxy.ts: 735ms, render: 176ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 909ms (compile: 4ms, proxy.ts: 346ms, render: 559ms)
+⨯ TypeError: Cannot read properties of undefined (reading 'performance')
+    at eval (src\app\(crm)\dashboard\page.tsx:608:78)
+    at Array.reduce (<anonymous>)
+    at resolveEvolutionChartMax (src\app\(crm)\dashboard\page.tsx:608:29)
+    at DashboardListContent (src\app\(crm)\dashboard\page.tsx:865:22)
+  606 |
+  607 | function resolveEvolutionChartMax(rows: DashboardEvolucaoLeadComparativoRow[]) {
+> 608 |   const highestValue = rows.reduce((maxValue, row) => Math.max(maxValue, row.performance), 0);
+      |                                                                              ^
+  609 |   const rawMax = Math.max(EVOLUCAO_BASELINE_MAX, highestValue, ...EVOLUCAO_THRESHOLDS.map((item) => item.value));
+  610 |   return Math.max(EVOLUCAO_BASELINE_MAX, Math.ceil(rawMax / 50) * 50);
+  611 | } {
+  digest: '2195442089'
+}
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1833ms (compile: 37ms, proxy.ts: 1114ms, render: 681ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1939ms (compile: 37ms, proxy.ts: 327ms, render: 1575ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 2.2s (compile: 18ms, proxy.ts: 806ms, render: 1350ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 1521ms (compile: 10ms, proxy.ts: 665ms, render: 846ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 1092ms (compile: 9ms, proxy.ts: 154ms, render: 928ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 1100ms (compile: 7ms, proxy.ts: 471ms, render: 622ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 810ms (compile: 4ms, proxy.ts: 264ms, render: 541ms)
+Dashboard Evolucao RPC error {
+  dataInicioInput: '2026-02-01',
+  dataFimInput: '2026-02-10',
+  error: 'performance: Could not find the function public.performance(arg1, arg2) in the schema cache'
+}
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 1622ms (compile: 74ms, proxy.ts: 407ms, render: 1141ms)
+[Dashboard Evolucao RPC] 2026-02-01..2026-02-10 -> Funcao RPC dashboard_performance nao encontrada. Aplique a migration 202602270001_dashboard_performance_rpc_wrapper.sql.
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 2.3s (compile: 54ms, proxy.ts: 455ms, render: 1815ms)
+[Dashboard Evolucao RPC] 2026-02-01..2026-02-10 -> Funcao RPC dashboard_performance nao encontrada. Aplique a migration 202602270001_dashboard_performance_rpc_wrapper.sql.
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 2.2s (compile: 6ms, proxy.ts: 667ms, render: 1530ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 1350ms (compile: 6ms, proxy.ts: 578ms, render: 766ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-02-01&data_fim=2026-02-10 200 in 486ms (compile: 40ms, proxy.ts: 333ms, render: 113ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-01&data_fim=2026-02-10 200 in 2.0s (compile: 7ms, proxy.ts: 367ms, render: 1661ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-01&data_fim=2026-02-10 200 in 625ms (compile: 37ms, proxy.ts: 464ms, render: 124ms)

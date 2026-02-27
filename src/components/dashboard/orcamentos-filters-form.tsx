@@ -15,6 +15,23 @@ const carteiraOptions = [
   { label: "CRV", value: "CRV" },
   { label: "Prime", value: "Prime" },
 ];
+const ORCAMENTOS_RANGE_DAYS = 30;
+
+function getYesterdayInputDate() {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function shiftInputDate(inputDate: string, days: number) {
+  const parsed = new Date(`${inputDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return inputDate;
+  }
+
+  parsed.setDate(parsed.getDate() + days);
+  return parsed.toISOString().slice(0, 10);
+}
 
 export function OrcamentosFiltersForm({
   selectedTipoRepre,
@@ -22,9 +39,22 @@ export function OrcamentosFiltersForm({
   dataFimInput,
   lockTipoRepreSelection = false,
 }: OrcamentosFiltersFormProps) {
+  const maxSelectableDate = getYesterdayInputDate();
+  const normalizeToMaxDate = (value: string) => {
+    if (!value) {
+      return maxSelectableDate;
+    }
+
+    return value > maxSelectableDate ? maxSelectableDate : value;
+  };
+  const resolveRangeStart = (fimInput: string) => shiftInputDate(fimInput, -ORCAMENTOS_RANGE_DAYS);
+  const resolveRangeEnd = (inicioInput: string) => shiftInputDate(inicioInput, ORCAMENTOS_RANGE_DAYS);
+  const initialDataFim = normalizeToMaxDate(dataFimInput);
+  const initialDataInicio = resolveRangeStart(initialDataFim);
+
   const [tipoRepre, setTipoRepre] = useState(selectedTipoRepre);
-  const [dataInicio, setDataInicio] = useState(dataInicioInput);
-  const [dataFim, setDataFim] = useState(dataFimInput);
+  const [dataInicio, setDataInicio] = useState(initialDataInicio);
+  const [dataFim, setDataFim] = useState(initialDataFim);
 
   const handleTipoRepreChange = (value: string, form: HTMLFormElement | null) => {
     if (lockTipoRepreSelection) {
@@ -63,7 +93,12 @@ export function OrcamentosFiltersForm({
           type="date"
           name="data_inicio"
           value={dataInicio}
-          onChange={(event) => setDataInicio(event.target.value)}
+          max={resolveRangeStart(maxSelectableDate)}
+          onChange={(event) => {
+            const nextFim = normalizeToMaxDate(resolveRangeEnd(event.target.value));
+            setDataFim(nextFim);
+            setDataInicio(resolveRangeStart(nextFim));
+          }}
           className="text-sm text-slate-700 outline-none"
         />
       </div>
@@ -74,7 +109,12 @@ export function OrcamentosFiltersForm({
           type="date"
           name="data_fim"
           value={dataFim}
-          onChange={(event) => setDataFim(event.target.value)}
+          max={maxSelectableDate}
+          onChange={(event) => {
+            const nextFim = normalizeToMaxDate(event.target.value);
+            setDataFim(nextFim);
+            setDataInicio(resolveRangeStart(nextFim));
+          }}
           className="text-sm text-slate-700 outline-none"
         />
       </div>
