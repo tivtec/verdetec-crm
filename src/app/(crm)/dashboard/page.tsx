@@ -122,11 +122,11 @@ const orcamentosColumns: OrcamentosColumn[] = [
   { key: "nome", label: "Nome", widthClass: "w-[18%]" },
   { key: "carteira", label: "Carteira", widthClass: "w-[9%]" },
   { key: "atend", label: "Atend.", widthClass: "w-[9%]" },
-  { key: "orcAbertos", label: "Or\u00e7. Abertos", widthClass: "w-[9%]" },
+  { key: "orcAbertos", label: "Orç. Abertos", widthClass: "w-[9%]" },
   { key: "n10", label: "#10", widthClass: "w-[9%]" },
-  { key: "orcFeitos", label: "Or\u00e7. Feitos", widthClass: "w-[9%]" },
-  { key: "orcAprovado", label: "Or\u00e7. Aprovado", widthClass: "w-[9%]" },
-  { key: "orcRep", label: "Or\u00e7. Rep", widthClass: "w-[9%]" },
+  { key: "orcFeitos", label: "Orç. Feitos", widthClass: "w-[9%]" },
+  { key: "orcAprovado", label: "Orç. Aprovado", widthClass: "w-[9%]" },
+  { key: "orcRep", label: "Orç. Rep", widthClass: "w-[9%]" },
   { key: "perfGanhosFeitos", label: "Perf. Ganhos/Feitos", widthClass: "w-[10%]" },
   { key: "umbler", label: "Umbler", widthClass: "w-[9%]" },
 ];
@@ -190,12 +190,12 @@ function normalizeTipoAcessoSelection(value: string | undefined) {
   }
 
   if (
-    raw === "Time Neg\u00f3cios" ||
-    raw === "Time de Neg\u00f3cios" ||
+    raw === "Time Negócios" ||
+    raw === "Time de Negócios" ||
     raw === "Time de Negocios" ||
     raw === "Time Negocios"
   ) {
-    return "Time Neg\u00f3cios";
+    return "Time Negócios";
   }
 
   if (raw === "Prime") {
@@ -519,11 +519,29 @@ function normalizeDashboardVerticalScope(
   return "other";
 }
 
-function getVisibleDashboardViews(verticalDescricao: string): DashboardView[] {
+function isSuperAdmTipoAcesso(value: string) {
+  const normalized = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .trim();
+  return normalized === "superadm";
+}
+
+function canViewEvolucaoLeads(verticalDescricao: string, tipoAcesso2: string) {
   const scope = normalizeDashboardVerticalScope(verticalDescricao);
+  return scope === "gerencia" || isSuperAdmTipoAcesso(tipoAcesso2);
+}
+
+function getVisibleDashboardViews(verticalDescricao: string, tipoAcesso2: string): DashboardView[] {
+  const scope = normalizeDashboardVerticalScope(verticalDescricao);
+  const allowEvolucaoLeads = canViewEvolucaoLeads(verticalDescricao, tipoAcesso2);
 
   if (scope === "gerencia" || scope === "prime") {
-    return ["dashboard", "retrato", "evolucao-leads", "orcamentos"];
+    return allowEvolucaoLeads
+      ? ["dashboard", "retrato", "evolucao-leads", "orcamentos"]
+      : ["dashboard", "retrato", "orcamentos"];
   }
 
   if (scope === "crv") {
@@ -531,27 +549,29 @@ function getVisibleDashboardViews(verticalDescricao: string): DashboardView[] {
   }
 
   if (scope === "time-negocios") {
-    return ["dashboard", "retrato", "evolucao-leads"];
+    return allowEvolucaoLeads ? ["dashboard", "retrato", "evolucao-leads"] : ["dashboard", "retrato"];
   }
 
-  return ["dashboard", "retrato", "evolucao-leads", "orcamentos"];
+  return allowEvolucaoLeads
+    ? ["dashboard", "retrato", "evolucao-leads", "orcamentos"]
+    : ["dashboard", "retrato", "orcamentos"];
 }
 
 const EVOLUCAO_CHART_HEIGHT = 480;
 const EVOLUCAO_BASELINE_MAX = 200;
 const EVOLUCAO_THRESHOLDS = [
-  { label: "Critico (150)", value: 150, borderClass: "border-red-500/50", textClass: "text-red-500" },
+  { label: "CRÍTICO (150)", value: 150, borderClass: "border-[#ef9a9a]", textClass: "text-[#ef4444]" },
   {
-    label: "Atencao (100)",
+    label: "ATENÇÃO (100)",
     value: 100,
-    borderClass: "border-amber-500/50",
-    textClass: "text-amber-500",
+    borderClass: "border-[#eebf6f]",
+    textClass: "text-[#e89b17]",
   },
   {
-    label: "Meta (70)",
+    label: "META (70)",
     value: 70,
-    borderClass: "border-emerald-500/50",
-    textClass: "text-emerald-500",
+    borderClass: "border-[#8ad9c0]",
+    textClass: "text-[#16a34a]",
   },
 ] as const;
 
@@ -578,15 +598,8 @@ function formatComparativoPeriodLabel(dataInicioInput: string, dataFimInput: str
   return `${formatDateLabel(dataInicioInput)} - ${formatDateLabel(dataFimInput)}`;
 }
 
-function formatEvolutionPerformancePercent(value: number) {
-  return `${value.toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}%`;
-}
-
 function resolveEvolutionChartMax(rows: DashboardEvolucaoLeadComparativoRow[]) {
-  const highestValue = rows.reduce((maxValue, row) => Math.max(maxValue, row.performancePercent), 0);
+  const highestValue = rows.reduce((maxValue, row) => Math.max(maxValue, row.performance), 0);
   const rawMax = Math.max(EVOLUCAO_BASELINE_MAX, highestValue, ...EVOLUCAO_THRESHOLDS.map((item) => item.value));
   return Math.max(EVOLUCAO_BASELINE_MAX, Math.ceil(rawMax / 50) * 50);
 }
@@ -620,7 +633,7 @@ function getDashboardLoadingLabel(activeView: DashboardView) {
   }
 
   if (activeView === "evolucao-leads") {
-    return "Carregando evolucao de leads...";
+    return "Carregando evolução de leads...";
   }
 
   if (activeView === "retrato") {
@@ -728,6 +741,8 @@ async function DashboardListContent({
                         fullscreenDashboardMode ? undefined : column.widthClass,
                         fullscreenDashboardMode,
                       )} ${
+                        fullscreenDashboardMode ? "py-3.5" : ""
+                      } ${
                         column.key === "min"
                           ? "text-[0.84rem] tracking-wide text-slate-700"
                           : "text-[0.95rem] text-slate-700"
@@ -843,54 +858,30 @@ async function DashboardListContent({
     const chartRows = [evolucaoSnapshot.periodoAnterior, evolucaoSnapshot.periodoAtual];
     const chartMax = resolveEvolutionChartMax(chartRows);
     const tickValues = [4, 3, 2, 1, 0].map((step) => Math.round((chartMax * step) / 4));
-    const yAnterior = chartValueToY(evolucaoSnapshot.periodoAnterior.performancePercent, chartMax);
-    const yAtual = chartValueToY(evolucaoSnapshot.periodoAtual.performancePercent, chartMax);
-    const chartLinePath = `M 0,${yAnterior} L 1000,${yAtual}`;
-    const chartAreaPath = `M 0,${yAnterior} L 1000,${yAtual} V ${EVOLUCAO_CHART_HEIGHT} H 0 Z`;
+    const yAnterior = chartValueToY(evolucaoSnapshot.periodoAnterior.performance, chartMax);
+    const yAtual = chartValueToY(evolucaoSnapshot.periodoAtual.performance, chartMax);
+    const chartInsetX = 56;
+    const chartStartX = chartInsetX;
+    const chartEndX = 1000 - chartInsetX;
+    const chartLinePath = `M ${chartStartX},${yAnterior} L ${chartEndX},${yAtual}`;
+    const chartAreaPath = `M ${chartStartX},${yAnterior} L ${chartEndX},${yAtual} V ${EVOLUCAO_CHART_HEIGHT} H ${chartStartX} Z`;
 
     return (
       <div className="rounded-[30px] border border-white/20 bg-white/60 p-6 shadow-lg backdrop-blur-md sm:p-8">
-        <div className="mb-10 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-[#16423c]">Evolucao de Leads</h3>
+        <div className="mb-8 flex items-center justify-between">
+          <h3 className="text-xl font-bold text-[#16423c]">Evolução de Leads</h3>
           <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-[#16423c]" />
-            <span className="text-xs font-medium text-slate-500">Performance (%)</span>
+            <span className="h-3 w-3 rounded-full bg-[#174f46]" />
+            <span className="text-sm font-semibold text-slate-500">Real</span>
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/30 bg-white/55 p-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Periodo Anterior</p>
-            <p className="mt-1 text-sm font-medium text-slate-700">{periodoAnteriorLabel}</p>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-600">
-              <span>#10: {evolucaoSnapshot.periodoAnterior.qtd10}</span>
-              <span>#61: {evolucaoSnapshot.periodoAnterior.qtd61}</span>
-              <span>#50: {evolucaoSnapshot.periodoAnterior.qtd50}</span>
-            </div>
-            <p className="mt-3 text-sm font-semibold text-[#16423c]">
-              {formatEvolutionPerformancePercent(evolucaoSnapshot.periodoAnterior.performancePercent)}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/30 bg-white/55 p-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Periodo Atual</p>
-            <p className="mt-1 text-sm font-medium text-slate-700">{periodoAtualLabel}</p>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-600">
-              <span>#10: {evolucaoSnapshot.periodoAtual.qtd10}</span>
-              <span>#61: {evolucaoSnapshot.periodoAtual.qtd61}</span>
-              <span>#50: {evolucaoSnapshot.periodoAtual.qtd50}</span>
-            </div>
-            <p className="mt-3 text-sm font-semibold text-[#16423c]">
-              {formatEvolutionPerformancePercent(evolucaoSnapshot.periodoAtual.performancePercent)}
-            </p>
-          </div>
-        </div>
-
-        <div className="relative h-[480px] w-full px-4">
+        <div className="relative h-[480px] w-full px-6">
           <div className="pointer-events-none absolute inset-0 flex flex-col justify-between">
-            {tickValues.map((value, index) => (
-              <div key={value} className="relative w-full border-t border-slate-200/70">
-                <span className="absolute top-0 right-[calc(100%+10px)] -translate-y-1/2 text-xs text-slate-400">
-                  {index === tickValues.length - 1 ? 0 : value}
+            {tickValues.map((value) => (
+              <div key={value} className="relative w-full border-t border-slate-200/70 pl-11">
+                <span className="absolute -top-2 left-0 w-9 pr-1 text-right text-xs font-medium text-[#95a4b8]">
+                  {value}
                 </span>
               </div>
             ))}
@@ -903,7 +894,7 @@ async function DashboardListContent({
               style={{ bottom: `${Math.max(0, Math.min(100, (threshold.value / chartMax) * 100))}%` }}
             >
               <span
-                className={`absolute top-[-24px] right-0 bg-white/90 px-2 text-[10px] font-bold tracking-widest uppercase ${threshold.textClass}`}
+                className={`absolute top-[-22px] right-2 rounded-sm bg-white/90 px-2 py-0.5 text-[11px] font-bold tracking-widest ${threshold.textClass}`}
               >
                 {threshold.label}
               </span>
@@ -914,30 +905,26 @@ async function DashboardListContent({
             <path
               d={chartLinePath}
               fill="none"
-              stroke="#16423C"
+              stroke="#174f46"
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="4"
             />
-            <path
-              d={chartAreaPath}
-              fill="url(#evolucao-gradient)"
-              opacity="0.1"
-            />
+            <path d={chartAreaPath} fill="url(#evolucao-gradient)" opacity="0.32" />
             <defs>
               <linearGradient id="evolucao-gradient" x1="0%" x2="0%" y1="0%" y2="100%">
-                <stop offset="0%" style={{ stopColor: "#16423C", stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: "#16423C", stopOpacity: 0 }} />
+                <stop offset="0%" style={{ stopColor: "#667a78", stopOpacity: 0.35 }} />
+                <stop offset="100%" style={{ stopColor: "#667a78", stopOpacity: 0.02 }} />
               </linearGradient>
             </defs>
-            <circle cx="0" cy={yAnterior} r="5" fill="#16423C" />
-            <circle cx="1000" cy={yAtual} r="5" fill="#16423C" />
+            <circle cx={chartStartX} cy={yAnterior} r="5" fill="#174f46" />
+            <circle cx={chartEndX} cy={yAtual} r="5" fill="#174f46" />
           </svg>
         </div>
 
-        <div className="mt-6 flex justify-between px-4">
-          <div className="text-xs font-medium text-slate-400">Anterior ({periodoAnteriorLabel})</div>
-          <div className="text-xs font-medium text-slate-400">Atual ({periodoAtualLabel})</div>
+        <div className="relative mt-6 h-6">
+          <span className="absolute top-0 left-0 text-xs font-medium text-[#95a4b8]">{periodoAnteriorLabel}</span>
+          <span className="absolute top-0 right-0 text-xs font-medium text-[#95a4b8]">{periodoAtualLabel}</span>
         </div>
       </div>
     );
@@ -1031,7 +1018,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const selectedFunilColumnKeys = normalizeFunilColumnsSelection(params.colunas, allowedFunilColumns);
   const visibleFunilColumns = allowedFunilColumns.filter((column) => selectedFunilColumnKeys.includes(column.key));
   const percentageBaseKey = resolveFunilPercentageBaseKey(visibleFunilColumns);
-  const visibleViews = getVisibleDashboardViews(dashboardAccessScope.viewerVerticalDescricao);
+  const visibleViews = getVisibleDashboardViews(
+    dashboardAccessScope.viewerVerticalDescricao,
+    dashboardAccessScope.viewerTipoAcesso2,
+  );
   const activeView = visibleViews.includes(requestedView) ? requestedView : visibleViews[0] ?? "dashboard";
   const canViewOrcamentosAllVertical = dashboardAccessScope.isGerencia;
   const forcedOrcamentosVertical = resolveForcedOrcamentosVertical(
@@ -1205,7 +1195,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 activeView === "evolucao-leads" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
               }`}
             >
-              Evolucao de Leads
+              Evolução de Leads
             </Link>
           ) : null}
           {visibleViews.includes("orcamentos") ? (
@@ -1215,7 +1205,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 activeView === "orcamentos" ? "bg-[#0f5050]" : "bg-[#6ca89a]"
               }`}
             >
-              {"Or\u00e7amentos"}
+              {"Orçamentos"}
             </Link>
           ) : null}
         </div>
@@ -1226,13 +1216,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               {activeView === "retrato"
                 ? "Retrato"
                 : activeView === "evolucao-leads"
-                  ? "Dashboard de Evolucao de Leads"
+                  ? "Dashboard de Evolução de Leads"
                 : activeView === "orcamentos"
-                  ? "Or\u00e7amentos"
+                  ? "Orçamentos"
                   : "Funil comercial"}
             </h2>
             {activeView === "dashboard" ? (
-              <p className="mt-2 text-xl text-slate-600">Informacoes do Funil de vendas</p>
+              <p className="mt-2 text-xl text-slate-600">Informações do Funil de vendas</p>
             ) : null}
             {activeView === "evolucao-leads" ? (
               <p className="mt-2 text-xl text-slate-600">
@@ -1287,7 +1277,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 <input type="hidden" name="view" value="evolucao-leads" />
 
                 <div className="min-w-[200px] flex-1">
-                  <label className="mb-1.5 ml-1 block text-xs font-bold uppercase text-slate-400">Inicio</label>
+                  <label className="mb-1.5 ml-1 block text-xs font-bold uppercase text-slate-400">Início</label>
                   <input
                     type="date"
                     name="data_inicio"

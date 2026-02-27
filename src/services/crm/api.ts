@@ -3298,7 +3298,6 @@ export type DashboardEvolucaoLeadComparativoRow = {
   qtd61: number;
   qtd50: number;
   performance: number;
-  performancePercent: number;
 };
 
 export type DashboardEvolucaoLeadsSnapshot = {
@@ -4953,7 +4952,6 @@ function buildEmptyDashboardEvolucaoLeadRow(
     qtd61: 0,
     qtd50: 0,
     performance: 0,
-    performancePercent: 0,
   };
 }
 
@@ -5010,7 +5008,6 @@ export async function getDashboardEvolucaoLeadsSnapshot(
       const qtd50 = Math.max(0, Math.trunc(asNumber(row.qtd_50, 0)));
       const performanceRaw = asNumber(row.performance, 0);
       const performance = Number.isFinite(performanceRaw) ? performanceRaw : 0;
-      const performancePercent = Number((performance * 100).toFixed(2));
 
       const mappedRow: DashboardEvolucaoLeadComparativoRow = {
         periodo,
@@ -5018,7 +5015,6 @@ export async function getDashboardEvolucaoLeadsSnapshot(
         qtd61,
         qtd50,
         performance,
-        performancePercent,
       };
 
       if (periodo === "anterior") {

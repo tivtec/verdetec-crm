@@ -476,3 +476,119 @@ Import trace for requested module:
  GET /campanhas 200 in 3.0s (compile: 1752ms, proxy.ts: 529ms, render: 682ms)
  GET /campanhas?tab=tintim&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1343ms (compile: 7ms, proxy.ts: 181ms, render: 1155ms)
  GET /campanhas?tab=tintim&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 802ms (compile: 150ms, proxy.ts: 485ms, render: 167ms)
+ GET /dashboard 200 in 1393ms (compile: 41ms, proxy.ts: 893ms, render: 460ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 3.6s (compile: 5ms, proxy.ts: 1705ms, render: 1923ms)
+ GET /dashboard 200 in 44s (compile: 1178ms, proxy.ts: 1090ms, render: 42s)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 1354ms (compile: 107ms, proxy.ts: 1128ms, render: 119ms)
+⨯ TypeError: Cannot read properties of undefined (reading 'performancePercent')
+    at eval (src\app\(crm)\dashboard\page.tsx:589:78)
+    at Array.reduce (<anonymous>)
+    at resolveEvolutionChartMax (src\app\(crm)\dashboard\page.tsx:589:29)
+    at DashboardListContent (src\app\(crm)\dashboard\page.tsx:844:22)
+  587 |
+  588 | function resolveEvolutionChartMax(rows: DashboardEvolucaoLeadComparativoRow[]) {
+> 589 |   const highestValue = rows.reduce((maxValue, row) => Math.max(maxValue, row.performancePercent), 0);
+      |                                                                              ^
+  590 |   const rawMax = Math.max(EVOLUCAO_BASELINE_MAX, highestValue, ...EVOLUCAO_THRESHOLDS.map((item) => item.value));
+  591 |   return Math.max(EVOLUCAO_BASELINE_MAX, Math.ceil(rawMax / 50) * 50);
+  592 | } {
+  digest: '892614086'
+}
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 2.9s (compile: 100ms, proxy.ts: 1136ms, render: 1661ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: Error: read ECONNRESET
+      at ignore-listed frames {
+    errno: -4077,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}
+⨯ TypeError: Cannot read properties of undefined (reading 'performancePercent')
+    at eval (src\app\(crm)\dashboard\page.tsx:589:78)
+    at Array.reduce (<anonymous>)
+    at resolveEvolutionChartMax (src\app\(crm)\dashboard\page.tsx:589:29)
+    at DashboardListContent (src\app\(crm)\dashboard\page.tsx:844:22)
+  587 |
+  588 | function resolveEvolutionChartMax(rows: DashboardEvolucaoLeadComparativoRow[]) {
+> 589 |   const highestValue = rows.reduce((maxValue, row) => Math.max(maxValue, row.performancePercent), 0);
+      |                                                                              ^
+  590 |   const rawMax = Math.max(EVOLUCAO_BASELINE_MAX, highestValue, ...EVOLUCAO_THRESHOLDS.map((item) => item.value));
+  591 |   return Math.max(EVOLUCAO_BASELINE_MAX, Math.ceil(rawMax / 50) * 50);
+  592 | } {
+  digest: '892614086'
+}
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 7.2s (compile: 65ms, proxy.ts: 2.8s, render: 4.4s)
+⨯ ReferenceError: shiftInputDate is not defined
+    at DashboardListContent (src\app\(crm)\dashboard\page.tsx:868:35)
+  866 |       dataFimInput,
+  867 |     });
+> 868 |     const periodoAnteriorInicio = shiftInputDate(evolucaoSnapshot.dataInicioInput, -30);
+      |                                   ^
+  869 |     const periodoAnteriorFim = shiftInputDate(evolucaoSnapshot.dataFimInput, -30);
+  870 |     const periodoAtualLabel = formatComparativoPeriodLabel(
+  871 |       evolucaoSnapshot.dataInicioInput, {
+  digest: '3745157665'
+}
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 1711ms (compile: 67ms, proxy.ts: 673ms, render: 972ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: shiftInputDate is not defined
+    at DashboardListContent (src\app\(crm)\dashboard\page.tsx:868:35)
+  866 |       dataFimInput,
+  867 |     });
+> 868 |     const periodoAnteriorInicio = shiftInputDate(evolucaoSnapshot.dataInicioInput, -30);
+      |                                   ^
+  869 |     const periodoAnteriorFim = shiftInputDate(evolucaoSnapshot.dataFimInput, -30);
+  870 |     const periodoAtualLabel = formatComparativoPeriodLabel(
+  871 |       evolucaoSnapshot.dataInicioInput, {
+  digest: '3745157665'
+}
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 1299ms (compile: 32ms, proxy.ts: 402ms, render: 865ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 912ms (compile: 72ms, proxy.ts: 277ms, render: 563ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 4.2s (compile: 111ms, proxy.ts: 2.9s, render: 1108ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 2.8s (compile: 106ms, proxy.ts: 1146ms, render: 1512ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 5.3s (compile: 66ms, proxy.ts: 2.9s, render: 2.3s)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 731ms (compile: 62ms, proxy.ts: 504ms, render: 165ms)
+⨯ ReferenceError: buildEvolutionChartPoints is not defined
+    at DashboardListContent (src\app\(crm)\dashboard\page.tsx:832:20)
+  830 |     const chartMax = resolveEvolutionChartMax(chartRows);
+  831 |     const tickValues = [4, 3, 2, 1, 0].map((step) => Math.round((chartMax * step) / 4));
+> 832 |     const points = buildEvolutionChartPoints(chartRows, chartMax);
+      |                    ^
+  833 |     const chartLinePath = buildEvolutionSmoothPath(points);
+  834 |     const chartAreaPath =
+  835 |       points.length > 0 {
+  digest: '363887436'
+}
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 2.4s (compile: 75ms, proxy.ts: 2.1s, render: 233ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 1431ms (compile: 78ms, proxy.ts: 334ms, render: 1019ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 1300ms (compile: 57ms, proxy.ts: 1079ms, render: 165ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 1117ms (compile: 9ms, proxy.ts: 347ms, render: 761ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 929ms (compile: 8ms, proxy.ts: 351ms, render: 570ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 811ms (compile: 5ms, proxy.ts: 248ms, render: 558ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 767ms (compile: 54ms, proxy.ts: 576ms, render: 137ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 721ms (compile: 103ms, proxy.ts: 397ms, render: 221ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 1736ms (compile: 4ms, proxy.ts: 836ms, render: 896ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 591ms (compile: 61ms, proxy.ts: 347ms, render: 183ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 854ms (compile: 63ms, proxy.ts: 647ms, render: 144ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 2.8s (compile: 54ms, proxy.ts: 2.6s, render: 110ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 959ms (compile: 7ms, proxy.ts: 329ms, render: 622ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 761ms (compile: 5ms, proxy.ts: 273ms, render: 483ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 1850ms (compile: 31ms, proxy.ts: 1709ms, render: 110ms)
+ GET /dashboard?view=evolucao-leads&data_inicio=2026-01-28&data_fim=2026-02-27&next=%2Fdashboard 200 in 451ms (compile: 44ms, proxy.ts: 281ms, render: 125ms)
+ GET /login 200 in 1693ms (compile: 1625ms, proxy.ts: 16ms, render: 52ms)
+ GET /login 200 in 64ms (compile: 7ms, proxy.ts: 8ms, render: 48ms)
+ GET /login 200 in 64ms (compile: 7ms, proxy.ts: 8ms, render: 49ms)
+ GET /splash 200 in 1609ms (compile: 868ms, proxy.ts: 203ms, render: 538ms)
+ GET /splash 200 in 669ms (compile: 7ms, proxy.ts: 239ms, render: 423ms)
+ GET /dashboard 200 in 10.5s (compile: 18ms, proxy.ts: 132ms, render: 10.4s)
+ GET /dashboard 200 in 10.3s (compile: 6ms, proxy.ts: 139ms, render: 10.2s)
+ GET /dashboard?colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n14&colunas=n15&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler&tipo_acesso_2=Time+Neg%C3%B3cios&usuario=&data_inicio=2026-01-28&data_fim=2026-02-27 200 in 6.5s (compile: 5ms, proxy.ts: 217ms, render: 6.3s)
+ GET /dashboard?view=dashboard&data_inicio=2026-01-28&data_fim=2026-02-27&tipo_acesso_2=Time+Neg%C3%B3cios&colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n14&colunas=n15&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler&fullscreen=1 200 in 5.1s (compile: 4ms, proxy.ts: 190ms, render: 4.9s)
+ GET /dashboard?view=dashboard&data_inicio=2026-01-28&data_fim=2026-02-27&tipo_acesso_2=Time+Neg%C3%B3cios&colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n14&colunas=n15&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler&fullscreen=1 200 in 1348ms (compile: 89ms, proxy.ts: 977ms, render: 283ms)
+ GET /dashboard?view=dashboard&data_inicio=2026-01-28&data_fim=2026-02-27&tipo_acesso_2=Time+Neg%C3%B3cios&colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n14&colunas=n15&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler&fullscreen=1 200 in 8.0s (compile: 7ms, proxy.ts: 261ms, render: 7.7s)
+ GET /dashboard?view=dashboard&data_inicio=2026-01-28&data_fim=2026-02-27&tipo_acesso_2=Time+Neg%C3%B3cios&colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n14&colunas=n15&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler 200 in 5.9s (compile: 7ms, proxy.ts: 367ms, render: 5.6s)
+ GET /dashboard?view=dashboard&data_inicio=2026-01-28&data_fim=2026-02-27&tipo_acesso_2=Time+Neg%C3%B3cios&colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n14&colunas=n15&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler&fullscreen=1 200 in 5.7s (compile: 8ms, proxy.ts: 152ms, render: 5.6s)
+ GET /dashboard?view=dashboard&data_inicio=2026-01-28&data_fim=2026-02-27&tipo_acesso_2=Time+Neg%C3%B3cios&colunas=nome&colunas=lead&colunas=plusL100&colunas=l100&colunas=n00&colunas=n10&colunas=n14&colunas=n15&colunas=n21&colunas=n05&colunas=n30&colunas=n40&colunas=n50&colunas=n60&colunas=n61&colunas=n62&colunas=n66&colunas=tv&colunas=min&colunas=qtd&colunas=umbler 200 in 5.9s (compile: 9ms, proxy.ts: 275ms, render: 5.6s)
