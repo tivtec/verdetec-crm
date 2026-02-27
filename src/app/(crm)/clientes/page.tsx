@@ -205,6 +205,10 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
   ]);
   let representantes = baseRepresentantes;
 
+  if (canSelectUsuario && representantes.length === 0 && shouldExpandPopupRepresentantes && popupRepresentantes.length > 0) {
+    representantes = popupRepresentantes;
+  }
+
   if (!canSelectUsuario) {
     if (viewerUsuarioId > 0) {
       const selfRow = representantes.find((representante) => representante.id === viewerUsuarioId);
@@ -227,8 +231,10 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
       ? viewerUsuarioId > 0
         ? String(viewerUsuarioId)
         : ""
-      : requestedUsuario.length > 0 && allowedRepresentanteIds.has(Number(requestedUsuario))
-        ? requestedUsuario
+      : requestedUsuario.length > 0
+        ? allowedRepresentanteIds.size === 0 || allowedRepresentanteIds.has(Number(requestedUsuario))
+          ? requestedUsuario
+          : ""
         : "";
 
   const initialFilters: ClientesControlFiltersValue = {
@@ -238,7 +244,8 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
     etiqueta,
   };
 
-  const requiresAllowedFilterPagination = !dashboardAccessScope.isGerencia && selectedUsuario.trim().length === 0;
+  const requiresAllowedFilterPagination =
+    !dashboardAccessScope.isGerencia && selectedUsuario.trim().length === 0 && allowedRepresentanteIds.size > 0;
   const allowedUsuarioIdsForQuery = requiresAllowedFilterPagination ? Array.from(allowedRepresentanteIds) : undefined;
   let webhookRows: ClienteControleRow[] = [];
   let webhookHasNextPage = false;

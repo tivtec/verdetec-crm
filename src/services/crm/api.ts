@@ -1363,6 +1363,7 @@ async function getClientesControleRowsFromAgregacao(
   const etiquetaFilterRaw = asString(filters.etiqueta);
   const etiquetaFilterNormalized = normalizeLoose(etiquetaFilterRaw);
   const etiquetaFilterCode = extractEtiquetaCode(etiquetaFilterRaw);
+  const hasEtiquetaCodeFilter = etiquetaFilterCode.length > 0;
   const hasEtiquetaFilter = etiquetaFilterCode.length > 0 || etiquetaFilterNormalized.length > 0;
   const hasOffset = filters.offset !== undefined && filters.offset !== null;
   const hasLimit = filters.limit !== undefined && filters.limit !== null;
@@ -1442,15 +1443,62 @@ async function getClientesControleRowsFromAgregacao(
   }
 
   const latestAgregacaoByPessoa = new Map<number, AgregacaoClienteRow>();
+  const etiquetaCodeByEtiquetaId = new Map<number, string>();
   const agregacaoPageSize = hasLimit
     ? Math.min(500, Math.max(120, Math.min(1500, targetLength * 4)))
     : 1500;
   const maxRowsToScan =
-    hasPessoaSearchFilters || etiquetaFilterRaw.length > 0
+    hasPessoaSearchFilters
       ? 220000
-      : Math.max(20000, hasLimit ? targetLength * 80 : 50000);
+      : hasEtiquetaCodeFilter
+        ? Math.max(30000, hasLimit ? targetLength * 180 : 70000)
+        : etiquetaFilterRaw.length > 0
+          ? 220000
+          : Math.max(20000, hasLimit ? targetLength * 80 : 50000);
   let scannedRows = 0;
-  const canStopEarly = pessoaIdsFilter.length === 0 && !hasEtiquetaFilter;
+  const canStopEarly = pessoaIdsFilter.length === 0 && (!hasEtiquetaFilter || hasEtiquetaCodeFilter);
+
+  const hydrateEtiquetaCodes = async (agregacaoPageRows: AgregacaoClienteRow[]) => {
+    if (!hasEtiquetaCodeFilter || !agregacaoPageRows.length) {
+      return;
+    }
+
+    const missingEtiquetaIds = Array.from(
+      new Set(
+        agregacaoPageRows
+          .map((row) => Math.max(0, Math.trunc(asNumber(row.id_etiqueta, 0))))
+          .filter((id) => id > 0 && !etiquetaCodeByEtiquetaId.has(id)),
+      ),
+    );
+
+    if (!missingEtiquetaIds.length) {
+      return;
+    }
+
+    const chunkSize = 400;
+    for (let index = 0; index < missingEtiquetaIds.length; index += chunkSize) {
+      const chunk = missingEtiquetaIds.slice(index, index + chunkSize);
+      const { data, error } = await supabase.from("etiqueta").select("id,etiqueta").in("id", chunk);
+
+      if (error || !data?.length) {
+        continue;
+      }
+
+      for (const row of data as Array<Record<string, unknown>>) {
+        const id = Math.max(0, Math.trunc(asNumber(row.id, 0)));
+        if (id <= 0) {
+          continue;
+        }
+        etiquetaCodeByEtiquetaId.set(id, extractEtiquetaCode(asString(row.etiqueta), ""));
+      }
+    }
+
+    for (const id of missingEtiquetaIds) {
+      if (!etiquetaCodeByEtiquetaId.has(id)) {
+        etiquetaCodeByEtiquetaId.set(id, "");
+      }
+    }
+  };
 
   const readAgregacaoPage = async ({
     pessoaChunk,
@@ -1479,7 +1527,10 @@ async function getClientesControleRowsFromAgregacao(
         return false;
       }
 
-      for (const agregacao of data as AgregacaoClienteRow[]) {
+      const pageRows = data as AgregacaoClienteRow[];
+      await hydrateEtiquetaCodes(pageRows);
+
+      for (const agregacao of pageRows) {
         scannedRows += 1;
         if (scannedRows >= maxRowsToScan) {
           return true;
@@ -1489,6 +1540,15 @@ async function getClientesControleRowsFromAgregacao(
         if (pessoaId <= 0 || latestAgregacaoByPessoa.has(pessoaId)) {
           continue;
         }
+
+        if (hasEtiquetaCodeFilter) {
+          const etiquetaId = Math.max(0, Math.trunc(asNumber(agregacao.id_etiqueta, 0)));
+          const etiquetaCode = etiquetaId > 0 ? asString(etiquetaCodeByEtiquetaId.get(etiquetaId)) : "";
+          if (etiquetaCode !== etiquetaFilterCode) {
+            continue;
+          }
+        }
+
         // Query is ordered by id desc: first row per pessoa is the latest snapshot.
         latestAgregacaoByPessoa.set(pessoaId, agregacao);
       }
@@ -1814,8 +1874,10 @@ export async function getClientesControleRows(
   const nome = asString(filters.nome).trim();
   const hasLimit = filters.limit !== undefined && filters.limit !== null;
   const hasOffset = filters.offset !== undefined && filters.offset !== null;
-  const limitPara = hasLimit ? String(Math.max(1, Math.trunc(asNumber(filters.limit, 10)))) : "";
-  const offPara = hasOffset ? String(Math.max(0, Math.trunc(asNumber(filters.offset, 0)))) : "";
+  const numericLimit = hasLimit ? Math.max(1, Math.trunc(asNumber(filters.limit, 10))) : 10;
+  const numericOffset = hasOffset ? Math.max(0, Math.trunc(asNumber(filters.offset, 0))) : 0;
+  const limitPara = hasLimit ? String(numericLimit) : "";
+  const offPara = hasOffset ? String(numericOffset) : "";
 
   const payload: ClienteControleWebhookPayload = {
     id_usuario: selectedUsuario,
@@ -1835,6 +1897,39 @@ export async function getClientesControleRows(
   // Preserve the legacy etiqueta-filter behavior and avoid expensive full scans
   // in agregacao when etiqueta is explicitly selected.
   if (etiqueta.length > 0) {
+    if (selectedUsuario <= 0 && hasAllowedUsuarioFilter && normalizedAllowedUsuarioIds.length > 0) {
+      const perUserFetchSize = String(Math.min(2000, Math.max(200, numericOffset + numericLimit + 20)));
+      const scopedPayloads = normalizedAllowedUsuarioIds.map((idUsuario) => ({
+        ...payload,
+        id_usuario: idUsuario,
+        off_para: "0",
+        limit_para: perUserFetchSize,
+      }));
+
+      const scopedWebhookRowsList = await Promise.all(scopedPayloads.map((item) => fetchClientesControleWebhookRows(item)));
+      const mergedScopedRows: ClienteControleApiRow[] = [];
+
+      for (let index = 0; index < scopedWebhookRowsList.length; index += 1) {
+        const idUsuario = normalizedAllowedUsuarioIds[index];
+        const scopedRows = mapClientesControleRows(scopedWebhookRowsList[index]).map((row) => ({
+          ...row,
+          usuarioId:
+            typeof row.usuarioId === "number" && row.usuarioId > 0
+              ? Math.max(0, Math.trunc(row.usuarioId))
+              : idUsuario,
+        }));
+        mergedScopedRows.push(...scopedRows);
+      }
+
+      if (mergedScopedRows.length > 0) {
+        const normalizedScopedRows = await mapClientesRows(mergedScopedRows);
+        if (normalizedScopedRows.length > 0) {
+          const end = hasLimit ? numericOffset + numericLimit : undefined;
+          return normalizedScopedRows.slice(numericOffset, end);
+        }
+      }
+    }
+
     const webhookRowsWithEtiqueta = await fetchClientesControleWebhookRows(payload);
     if (hasUsableClientesControleRows(webhookRowsWithEtiqueta)) {
       return mapClientesRows(mapClientesControleRows(webhookRowsWithEtiqueta));

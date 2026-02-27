@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ClipboardList,
   Gauge,
+  Clock3,
   KeyRound,
   LayoutDashboard,
   LayoutGrid,
@@ -74,6 +75,7 @@ const ICON_BY_PAGE_KEY = {
   "solicitacao-portal": ShieldCheck,
   "mix-sementes": Leaf,
   "verde-score": Gauge,
+  rh: Clock3,
   invoice: ReceiptText,
   "gestao-acessos": KeyRound,
 } as const;
