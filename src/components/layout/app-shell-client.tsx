@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -18,13 +18,21 @@ type AppShellClientProps = {
 };
 
 export function AppShellClient({ children, profile, navigation }: AppShellClientProps) {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const isDashboardFullscreen =
-    pathname === "/dashboard" && searchParams.get("fullscreen") === "1";
-  const showSidebar = !isDashboardFullscreen;
+  return (
+    <Suspense fallback={<AppShellFrame profile={profile} navigation={navigation}>{children}</AppShellFrame>}>
+      <AppShellClientContent profile={profile} navigation={navigation}>
+        {children}
+      </AppShellClientContent>
+    </Suspense>
+  );
+}
 
+type AppShellFrameProps = AppShellClientProps & {
+  showSidebar?: boolean;
+};
+
+function AppShellFrame({ children, profile, navigation, showSidebar = true }: AppShellFrameProps) {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   return (
     <div className="h-dvh bg-[var(--brand-surface)]">
       {showSidebar ? (
@@ -41,10 +49,17 @@ export function AppShellClient({ children, profile, navigation }: AppShellClient
           showSidebar ? (isSidebarCollapsed ? "lg:pl-20" : "lg:pl-56") : "pl-0",
         )}
       >
-        <main className={cn("flex h-full flex-col overflow-hidden", isDashboardFullscreen && "bg-[#eef0f2]")}>
-          {children}
-        </main>
+        <main className="flex h-full flex-col overflow-hidden">{children}</main>
       </div>
     </div>
   );
+}
+
+function AppShellClientContent({ children, profile, navigation }: AppShellClientProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isDashboardFullscreen =
+    pathname === "/dashboard" && searchParams.get("fullscreen") === "1";
+
+  return <AppShellFrame profile={profile} navigation={navigation} showSidebar={!isDashboardFullscreen}>{children}</AppShellFrame>;
 }
