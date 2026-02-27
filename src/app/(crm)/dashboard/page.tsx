@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 
 import { DashboardFiltersForm } from "@/components/dashboard/dashboard-filters-form";
 import { OrcamentosFiltersForm } from "@/components/dashboard/orcamentos-filters-form";
@@ -238,6 +239,47 @@ function normalizeCarteiraSelection(value: string | undefined) {
   return "";
 }
 
+function normalizeFullscreenSelection(value: string | undefined) {
+  return value === "1";
+}
+
+function buildDashboardFunilHref(args: {
+  dataInicioInput: string;
+  dataFimInput: string;
+  selectedTipoAcesso: string;
+  selectedUsuario: number;
+  selectedColumnKeys: FunilColumnKey[];
+  percentageMode: boolean;
+  fullscreen: boolean;
+}) {
+  const params = new URLSearchParams();
+  params.set("view", "dashboard");
+  params.set("data_inicio", args.dataInicioInput);
+  params.set("data_fim", args.dataFimInput);
+
+  if (args.selectedTipoAcesso) {
+    params.set("tipo_acesso_2", args.selectedTipoAcesso);
+  }
+
+  if (args.selectedUsuario > 0) {
+    params.set("usuario", String(args.selectedUsuario));
+  }
+
+  if (args.percentageMode) {
+    params.set("porcentagem", "1");
+  }
+
+  for (const columnKey of args.selectedColumnKeys) {
+    params.append("colunas", columnKey);
+  }
+
+  if (args.fullscreen) {
+    params.set("fullscreen", "1");
+  }
+
+  return `/dashboard?${params.toString()}`;
+}
+
 const ORCAMENTOS_VERTICAL_IDS = {
   prime: "b9ba82ab-b666-4b6f-a084-32be9577830a",
   timeNegocios: "31ab857a-bac4-415b-b9bd-7cf811e40601",
@@ -350,7 +392,11 @@ function formatOrcamentosCellValue(key: OrcamentosColumnKey, value: string | num
   return String(value);
 }
 
-function baseCellClass(widthClass?: string) {
+function baseCellClass(widthClass?: string, compactMode = false) {
+  if (compactMode) {
+    return "px-2 py-2 text-xs leading-tight whitespace-normal break-words";
+  }
+
   return `px-3 py-2.5 text-sm whitespace-nowrap ${widthClass ?? ""}`;
 }
 
@@ -597,6 +643,7 @@ type DashboardListContentProps = {
   percentageBaseKey: FunilColumnKey | null;
   selectedTipoRepre: string;
   orcamentosScopedUsuarioId: number | undefined;
+  fullscreenDashboardMode?: boolean;
 };
 
 async function DashboardListContent({
@@ -612,6 +659,7 @@ async function DashboardListContent({
   percentageBaseKey,
   selectedTipoRepre,
   orcamentosScopedUsuarioId,
+  fullscreenDashboardMode = false,
 }: DashboardListContentProps) {
   if (activeView === "dashboard") {
     const dashboardSnapshot = await getDashboardFunilSnapshot({
@@ -625,15 +673,23 @@ async function DashboardListContent({
       allowedRepresentantes: representantes,
     });
 
+    const listContainerClass = fullscreenDashboardMode
+      ? "h-full overflow-hidden rounded-xl border border-white/20 bg-white/80 backdrop-blur-md shadow-lg"
+      : "max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg";
+    const tableClass = fullscreenDashboardMode ? "w-full table-fixed border-collapse" : "w-max min-w-full border-collapse";
+
     return (
-      <div className="max-h-[calc(100dvh-330px)] overflow-auto rounded-xl border border-white/20 bg-white/60 backdrop-blur-md shadow-lg">
-        <table className="w-max min-w-full border-collapse">
+      <div className={listContainerClass}>
+        <table className={tableClass}>
           <thead className="bg-[#d6d6d8]/80 backdrop-blur-sm">
             <tr>
               {visibleFunilColumns.map((column) => (
                 <th
                   key={column.key}
-                  className={`${baseCellClass(column.widthClass)} ${
+                  className={`${baseCellClass(
+                    fullscreenDashboardMode ? undefined : column.widthClass,
+                    fullscreenDashboardMode,
+                  )} ${
                     isFunilNumericColumn(column.key) ? "text-right" : "text-left"
                   } text-[0.92rem] font-semibold text-[#18484a]`}
                 >
@@ -668,13 +724,24 @@ async function DashboardListContent({
                   {visibleFunilColumns.map((column) => (
                     <td
                       key={`${rowKey}-${column.key}`}
-                      className={`${baseCellClass(column.widthClass)} ${
+                      className={`${baseCellClass(
+                        fullscreenDashboardMode ? undefined : column.widthClass,
+                        fullscreenDashboardMode,
+                      )} ${
                         column.key === "min"
                           ? "text-[0.84rem] tracking-wide text-slate-700"
                           : "text-[0.95rem] text-slate-700"
                       } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
                     >
-                      <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
+                      <span
+                        className={
+                          column.key === "min"
+                            ? fullscreenDashboardMode
+                              ? "inline-block text-right"
+                              : "inline-block min-w-[5.4rem] text-right"
+                            : ""
+                        }
+                      >
                         {(() => {
                           const rowValue = getFunilRowCellValue(row, column.key);
 
@@ -705,13 +772,24 @@ async function DashboardListContent({
               {visibleFunilColumns.map((column) => (
                 <td
                   key={`total-${column.key}`}
-                  className={`${baseCellClass(column.widthClass)} font-semibold ${
+                  className={`${baseCellClass(
+                    fullscreenDashboardMode ? undefined : column.widthClass,
+                    fullscreenDashboardMode,
+                  )} font-semibold ${
                     column.key === "min"
                       ? "text-[0.86rem] tracking-wide text-[#18484a]"
                       : "text-[1.02rem] text-[#18484a]"
                   } ${isFunilNumericColumn(column.key) ? "text-right tabular-nums" : "text-left"}`}
                 >
-                  <span className={column.key === "min" ? "inline-block min-w-[5.4rem] text-right" : ""}>
+                  <span
+                    className={
+                      column.key === "min"
+                        ? fullscreenDashboardMode
+                          ? "inline-block text-right"
+                          : "inline-block min-w-[5.4rem] text-right"
+                        : ""
+                    }
+                  >
                     {(() => {
                       const totalValue = getFunilTotalCellValue(dashboardSnapshot.totals, column.key);
 
@@ -935,6 +1013,7 @@ async function DashboardListContent({
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const params = await searchParams;
   const requestedView = normalizeViewSelection(getSearchValue(params.view));
+  const fullscreenRequested = normalizeFullscreenSelection(getSearchValue(params.fullscreen));
   const defaultRange = getDefaultDateRangeInput();
   const dataInicioInput = normalizeInputDate(getSearchValue(params.data_inicio), defaultRange.dataInicio);
   const dataFimInput = normalizeInputDate(getSearchValue(params.data_fim), defaultRange.dataFim);
@@ -1018,6 +1097,83 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           ? (representantes[0]?.verticalId ?? "")
           : ""
         : dashboardAccessScope.viewerVerticalId;
+  const isDashboardFullscreen = activeView === "dashboard" && fullscreenRequested;
+  const dashboardNormalHref = buildDashboardFunilHref({
+    dataInicioInput,
+    dataFimInput,
+    selectedTipoAcesso,
+    selectedUsuario,
+    selectedColumnKeys: selectedFunilColumnKeys,
+    percentageMode,
+    fullscreen: false,
+  });
+  const dashboardFullscreenHref = buildDashboardFunilHref({
+    dataInicioInput,
+    dataFimInput,
+    selectedTipoAcesso,
+    selectedUsuario,
+    selectedColumnKeys: selectedFunilColumnKeys,
+    percentageMode,
+    fullscreen: true,
+  });
+
+  if (isDashboardFullscreen) {
+    return (
+      <section className="flex h-full min-h-0 flex-col bg-[#eef0f2] p-2 lg:p-4">
+        <div className="flex h-full min-h-0 flex-col gap-3 rounded-2xl border border-white/30 bg-white/65 p-3 shadow-xl backdrop-blur-md lg:p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-3xl font-semibold text-slate-800 lg:text-4xl">Funil comercial</h2>
+            <Link
+              href={dashboardNormalHref}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#0f5050] px-4 text-sm font-semibold text-white transition hover:bg-[#0c4343]"
+              title="Minimizar tela"
+            >
+              <Minimize2 className="h-4 w-4" />
+              Minimizar
+            </Link>
+          </div>
+
+          <DashboardFiltersForm
+            key={`${dataInicioInput}:${dataFimInput}:${selectedTipoAcesso}:${selectedUsuario}:${dashboardAccessScope.allowTipoSelection}:${dashboardAccessScope.allowUsuarioSelection}:dashboard:fullscreen`}
+            dataInicioInput={dataInicioInput}
+            dataFimInput={dataFimInput}
+            selectedTipoAcesso={selectedTipoAcesso}
+            selectedUsuario={selectedUsuario}
+            representantes={representantes}
+            lockTipoSelection={!dashboardAccessScope.allowTipoSelection}
+            lockUsuarioSelection={!dashboardAccessScope.allowUsuarioSelection}
+            columnOptions={allowedFunilColumns.map((column) => ({ key: column.key, label: column.label }))}
+            selectedColumnKeys={selectedFunilColumnKeys}
+            percentageMode={percentageMode}
+            fullscreenMode
+          />
+
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <Suspense
+              key={`${activeView}:${dataInicioInput}:${dataFimInput}:${selectedTipoAcesso}:${selectedUsuario}:${selectedTipoRepre}:${percentageMode}:${selectedFunilColumnKeys.join(",")}:fullscreen`}
+              fallback={<DashboardListLoading label={getDashboardLoadingLabel(activeView)} />}
+            >
+              <DashboardListContent
+                activeView={activeView}
+                dataInicioInput={dataInicioInput}
+                dataFimInput={dataFimInput}
+                selectedTipoAcesso={selectedTipoAcesso}
+                selectedUsuario={selectedUsuario}
+                selectedVerticalId={selectedVerticalId}
+                representantes={representantes}
+                visibleFunilColumns={visibleFunilColumns}
+                percentageMode={percentageMode}
+                percentageBaseKey={percentageBaseKey}
+                selectedTipoRepre={selectedTipoRepre}
+                orcamentosScopedUsuarioId={orcamentosScopedUsuarioId}
+                fullscreenDashboardMode
+              />
+            </Suspense>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <PageContainer className="space-y-5 bg-[#eef0f2]">
@@ -1064,23 +1220,35 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           ) : null}
         </div>
 
-        <div>
-          <h2 className="text-5xl font-semibold leading-tight text-slate-800 sm:text-[46px]">
-            {activeView === "retrato"
-              ? "Retrato"
-              : activeView === "evolucao-leads"
-                ? "Dashboard de Evolucao de Leads"
-              : activeView === "orcamentos"
-                ? "Or\u00e7amentos"
-                : "Funil comercial"}
-          </h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-5xl font-semibold leading-tight text-slate-800 sm:text-[46px]">
+              {activeView === "retrato"
+                ? "Retrato"
+                : activeView === "evolucao-leads"
+                  ? "Dashboard de Evolucao de Leads"
+                : activeView === "orcamentos"
+                  ? "Or\u00e7amentos"
+                  : "Funil comercial"}
+            </h2>
+            {activeView === "dashboard" ? (
+              <p className="mt-2 text-xl text-slate-600">Informacoes do Funil de vendas</p>
+            ) : null}
+            {activeView === "evolucao-leads" ? (
+              <p className="mt-2 text-xl text-slate-600">
+                Acompanhe o crescimento e performance da sua base de leads.
+              </p>
+            ) : null}
+          </div>
           {activeView === "dashboard" ? (
-            <p className="mt-2 text-xl text-slate-600">Informacoes do Funil de vendas</p>
-          ) : null}
-          {activeView === "evolucao-leads" ? (
-            <p className="mt-2 text-xl text-slate-600">
-              Acompanhe o crescimento e performance da sua base de leads.
-            </p>
+            <Link
+              href={dashboardFullscreenHref}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#0f5050] px-4 text-sm font-semibold text-white transition hover:bg-[#0c4343]"
+              title="Maximizar tela"
+            >
+              <Maximize2 className="h-4 w-4" />
+              Maximizar
+            </Link>
           ) : null}
         </div>
 
@@ -1097,6 +1265,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             columnOptions={allowedFunilColumns.map((column) => ({ key: column.key, label: column.label }))}
             selectedColumnKeys={selectedFunilColumnKeys}
             percentageMode={percentageMode}
+            fullscreenMode={false}
           />
         ) : (
           <>
@@ -1197,6 +1366,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             percentageBaseKey={percentageBaseKey}
             selectedTipoRepre={selectedTipoRepre}
             orcamentosScopedUsuarioId={orcamentosScopedUsuarioId}
+            fullscreenDashboardMode={false}
           />
         </Suspense>
       </PageContainer>

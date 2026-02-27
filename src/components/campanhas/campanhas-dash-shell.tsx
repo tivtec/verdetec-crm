@@ -723,7 +723,7 @@ export function CampanhasDashShell({
               </button>
             </form>
 
-            <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-[#d7dde0] bg-[#f4f6f6] pr-3 [scrollbar-gutter:stable]">
+            <div className="h-[min(64vh,calc(100vh-320px))] min-h-[280px] overflow-x-auto overflow-y-auto rounded-lg border border-[#d7dde0] bg-[#f4f6f6] pr-3 [scrollbar-gutter:stable]">
               <table className="w-full min-w-[1120px] border-collapse">
                 <thead className="bg-[#c8dfde] text-[#0f4e52]">
                   <tr>

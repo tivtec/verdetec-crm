@@ -19,6 +19,7 @@ type DashboardFiltersFormProps = {
   columnOptions?: Array<{ key: string; label: string }>;
   selectedColumnKeys?: string[];
   percentageMode?: boolean;
+  fullscreenMode?: boolean;
 };
 
 const tipoAcessoOptions = [
@@ -37,6 +38,7 @@ export function DashboardFiltersForm({
   columnOptions = [],
   selectedColumnKeys = [],
   percentageMode = false,
+  fullscreenMode = false,
 }: DashboardFiltersFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const columnsDropdownRef = useRef<HTMLDivElement>(null);
@@ -152,6 +154,7 @@ export function DashboardFiltersForm({
         <input key={`selected-column-${columnKey}`} type="hidden" name="colunas" value={columnKey} />
       ))}
       {isPercentageMode ? <input type="hidden" name="porcentagem" value="1" /> : null}
+      {fullscreenMode ? <input type="hidden" name="fullscreen" value="1" /> : null}
 
       <div className="relative">
         <select
