@@ -1344,21 +1344,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   Buscar
                 </button>
 
-                <Link
-                  href={`/dashboard?view=evolucao-leads&data_inicio=${defaultRange.dataInicio}&data_fim=${defaultRange.dataFim}`}
-                  className="inline-flex h-11 items-center rounded-xl bg-slate-200 px-8 text-sm font-semibold text-slate-600 transition hover:bg-slate-300"
-                >
-                  Limpar
-                </Link>
-
-                <div className="ml-auto flex rounded-xl bg-slate-100 p-1">
-                  <button
-                    type="button"
-                    className="rounded-lg bg-[#0f5050] px-4 py-1.5 text-sm font-medium text-white shadow-sm"
-                  >
-                    Linhas
-                  </button>
-                </div>
               </form>
             ) : (
               <OrcamentosFiltersForm
