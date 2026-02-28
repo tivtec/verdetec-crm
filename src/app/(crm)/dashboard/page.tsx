@@ -1354,12 +1354,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 <div className="ml-auto flex rounded-xl bg-slate-100 p-1">
                   <button
                     type="button"
-                    className="rounded-lg px-4 py-1.5 text-sm font-medium text-slate-500"
-                  >
-                    Barras
-                  </button>
-                  <button
-                    type="button"
                     className="rounded-lg bg-[#0f5050] px-4 py-1.5 text-sm font-medium text-white shadow-sm"
                   >
                     Linhas
